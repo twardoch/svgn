@@ -114,7 +114,7 @@ mod tests {
             root: Element {
                 name: "svg".to_string(),
                 attributes: IndexMap::new(),
-                namespaces: IndexMap::new(),
+                namespaces: HashMap::new(),
                 children: vec![],
             },
             ..Default::default()
@@ -176,7 +176,7 @@ mod tests {
         let element = Element {
             name: "rect".to_string(),
             attributes,
-            namespaces: IndexMap::new(),
+            namespaces: HashMap::new(),
             children: vec![],
         };
 
@@ -204,21 +204,19 @@ mod tests {
         let mut attributes = IndexMap::new();
         attributes.insert("href".to_string(), "javascript:alert('test')".to_string());
 
-        let child_text = Node::Text(Text {
-            content: "Click me".to_string(),
-        });
+        let child_text = Node::Text("Click me".to_string());
 
         let child_element = Node::Element(Element {
             name: "span".to_string(),
             attributes: IndexMap::new(),
-            namespaces: IndexMap::new(),
+            namespaces: HashMap::new(),
             children: vec![],
         });
 
         let anchor_element = Element {
             name: "a".to_string(),
             attributes,
-            namespaces: IndexMap::new(),
+            namespaces: HashMap::new(),
             children: vec![child_text, child_element.clone()],
         };
 
@@ -253,7 +251,7 @@ mod tests {
         let anchor_element = Element {
             name: "a".to_string(),
             attributes,
-            namespaces: IndexMap::new(),
+            namespaces: HashMap::new(),
             children: vec![Node::Text(Text {
                 content: "Normal link".to_string(),
             })],
@@ -286,11 +284,11 @@ mod tests {
         let anchor_element = Element {
             name: "a".to_string(),
             attributes,
-            namespaces: IndexMap::new(),
+            namespaces: HashMap::new(),
             children: vec![Node::Element(Element {
                 name: "rect".to_string(),
                 attributes: IndexMap::new(),
-                namespaces: IndexMap::new(),
+                namespaces: HashMap::new(),
                 children: vec![],
             })],
         };
