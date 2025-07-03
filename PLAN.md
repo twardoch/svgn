@@ -123,16 +123,16 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
     -   [P] `removeNonInheritableGroupAttrs`
     -   [P] `removeOffCanvasPaths`
     -   [P] `removeRasterImages`
-    -   [P] `removeScripts`
+    -   [D] `removeScripts`
     -   [D] `removeStyleElement`
     -   [D] `removeTitle`
     -   [D] `removeUnknownsAndDefaults`
-    -   [P] `removeUnusedNS`
-    -   [P] `removeUselessDefs`
+    -   [D] `removeUnusedNS`
+    -   [D] `removeUselessDefs`
     -   [P] `removeUselessStrokeAndFill`
-    -   [P] `removeViewBox`
-    -   [P] `removeXlink`
-    -   [P] `removeXMLNS`
+    -   [D] `removeViewBox`
+    -   [D] `removeXlink`
+    -   [D] `removeXMLNS`
     -   [D] `removeXMLProcInst`
     -   [P] `reusePaths`
     -   [D] `sortAttrs`
@@ -140,7 +140,7 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 
 ### Implementation Progress Summary
 
-**Total Plugins Completed: 27/54 (50%)**
+**Total Plugins Completed: 33/54 (61%)**
 
 **Completed Batches:**
 - ✅ **Simple Removers (6 plugins)**: removeComments, removeDesc, removeDoctype, removeMetadata, removeTitle, removeXMLProcInst
@@ -160,7 +160,7 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 - ✅ Implemented CSS parsing regex for style attribute conversion
 - ✅ Added PRESENTATION_ATTRS collection for SVG presentation attributes
 - ✅ Added comprehensive color conversion algorithms with full SVG color name support
-- ✅ Comprehensive test coverage: **160+ tests passing**
+- ✅ Comprehensive test coverage: **260+ tests passing**
 
 ### Next Implementation Priorities
 
@@ -262,6 +262,7 @@ This final phase focuses on preparing the project for public use.
 - **ExperimentalWarning: VM Modules**: This is a Node.js warning about an experimental feature. It doesn't indicate a functional error but should be noted.
 - **`cleanupListOfValues` warning**: The plugin `cleanupListOfValues` is being configured outside of `preset-default` in a way that triggers a warning. This might indicate a misconfiguration in the test setup or a need to adjust how plugins are enabled/disabled.
 - **`removeAttrs` warning**: The `removeAttrs` plugin is being used without the required `attrs` parameter, making it a no-op. This also points to a potential misconfiguration in the test setup.
+- **Timeout errors in CLI tests**: Several CLI tests (`test/cli/cli.test.js` and `test/coa/_index.test.js`) are timing out. This indicates a potential issue with the test environment or the CLI's execution, possibly related to how it handles input/output streams or long-running operations.
 
 ### `svgn` Issues:
 - No compiler warnings or test failures observed.

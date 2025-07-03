@@ -39,6 +39,11 @@ pub mod remove_elements_by_attr;
 pub mod remove_dimensions;
 pub mod remove_scripts;
 pub mod remove_useless_defs;
+pub mod remove_unused_ns;
+pub mod remove_view_box;
+pub mod remove_xlink;
+pub mod remove_xmlns;
+pub mod sort_defs_children;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -74,3 +79,9 @@ pub use remove_editors_ns_data::RemoveEditorsNSDataPlugin;
 pub use remove_elements_by_attr::RemoveElementsByAttrPlugin;
 pub use remove_dimensions::RemoveDimensionsPlugin;
 pub use remove_scripts::RemoveScriptsPlugin;
+pub use remove_useless_defs::RemoveUselessDefsPlugin;
+pub use remove_unused_ns::RemoveUnusedNSPlugin;
+pub use remove_view_box::RemoveViewBoxPlugin;
+pub use remove_xlink::RemoveXlinkPlugin;
+pub use remove_xmlns::RemoveXMLNSPlugin;
+pub use sort_defs_children::SortDefsChildrenPlugin;
