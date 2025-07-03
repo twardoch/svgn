@@ -1,0 +1,46 @@
+# this_file: Cargo.toml
+
+[package]
+name = "svgn"
+version = "0.1.0"
+edition = "2021"
+authors = ["Adam Twardoch <adam@twardoch.com>"]
+description = "A native Rust port of SVGO (SVG Optimizer) with API compatibility"
+license = "MIT"
+repository = "https://github.com/twardoch/svgn"
+homepage = "https://github.com/twardoch/svgn"
+readme = "README.md"
+keywords = ["svg", "optimization", "graphics", "xml", "cli"]
+categories = ["command-line-utilities", "graphics", "web-programming"]
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+quick-xml = "0.36"
+roxmltree = "0.20"
+regex = "1.10"
+indexmap = "2.2"
+base64 = "0.22"
+urlencoding = "2.1"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"
+tempfile = "3.8"
+
+[[bin]]
+name = "svgn"
+path = "src/main.rs"
+
+[lib]
+name = "svgn"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
