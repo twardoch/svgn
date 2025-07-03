@@ -145,7 +145,7 @@ impl Default for ParserOptions {
     fn default() -> Self {
         Self {
             preserve_whitespace: false,
-            preserve_comments: false,
+            preserve_comments: true, // Must be true for removeComments plugin to work
         }
     }
 }
