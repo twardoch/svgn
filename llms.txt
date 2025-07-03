@@ -52,6 +52,7 @@ docs/
   _config.yml
   architecture.md
   comparison.md
+  Gemfile
   index.md
   plugins.md
   usage.md
@@ -686,6 +687,8 @@ src/
   plugins/
     convert_colors.rs
     mod.rs
+  lib.rs
+  main.rs
 svgn/
   benches/
     optimization.rs
@@ -749,6 +752,7 @@ svgn/
 .gitignore
 .gitmodules
 AGENTS.md
+Cargo.toml
 CHANGELOG.md
 CLAUDE.md
 GEMINI.md
@@ -30863,31 +30867,6 @@ export default [
 }
 </file>
 
-<file path=".github/workflows/rust.yml">
-name: Rust
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-env:
-  CARGO_TERM_COLOR: always
-
-jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
-</file>
-
 <file path=".specstory/.what-is-this.md">
 # SpecStory Artifacts Directory
     
@@ -31010,6 +30989,13 @@ a {
     text-decoration: underline;
   }
 }
+</file>
+
+<file path="docs/Gemfile">
+source 'https://rubygems.org'
+
+gem 'github-pages', group: :jekyll_plugins
+gem 'just-the-docs'
 </file>
 
 <file path="issues/201.txt">
@@ -31514,6 +31500,299 @@ pub mod remove_unknowns_and_defaults;
 pub mod remove_xml_proc_inst;
 pub mod sort_attrs;
 pub mod convert_colors;
+</file>
+
+<file path="src/lib.rs">
+// this_file: src/lib.rs
+
+//! SVGN - A native Rust port of SVGO (SVG Optimizer)
+//!
+//! This library provides SVG optimization functionality that is API-compatible
+//! with SVGO v4.0.0. It includes a plugin-based architecture for applying
+//! various optimizations to SVG files.
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+/// The main optimization result returned by the optimize function
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OptimizeResult {
+    /// The optimized SVG string
+    pub data: String,
+    /// Information about the optimization process
+    pub info: OptimizeInfo,
+    /// Error message if optimization failed
+    pub error: Option<String>,
+    /// Whether the modern parser was used
+    pub modern: bool,
+}
+
+/// Information about the optimization process
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OptimizeInfo {
+    /// Original file size in bytes
+    pub original_size: usize,
+    /// Optimized file size in bytes
+    pub optimized_size: usize,
+    /// Compression ratio (0.0 to 1.0)
+    pub compression_ratio: f64,
+}
+
+/// Configuration for the optimization process
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Config {
+    /// Path to the file being optimized
+    pub path: Option<String>,
+    /// Array of plugin configurations
+    pub plugins: Vec<PluginConfig>,
+    /// Whether to run optimizations multiple times
+    pub multipass: bool,
+    /// Options for JS to SVG conversion
+    pub js2svg: Js2SvgOptions,
+    /// Output as data URI
+    pub datauri: Option<String>,
+}
+
+/// Plugin configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PluginConfig {
+    /// Simple plugin name
+    Name(String),
+    /// Plugin with parameters
+    WithParams {
+        name: String,
+        params: HashMap<String, serde_json::Value>,
+    },
+}
+
+/// Options for JS to SVG conversion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Js2SvgOptions {
+    /// Whether to pretty-print the output
+    pub pretty: bool,
+    /// Indentation level for pretty-printing
+    pub indent: u32,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            path: None,
+            plugins: vec![PluginConfig::Name("preset-default".to_string())],
+            multipass: false,
+            js2svg: Js2SvgOptions::default(),
+            datauri: None,
+        }
+    }
+}
+
+impl Default for Js2SvgOptions {
+    fn default() -> Self {
+        Self {
+            pretty: false,
+            indent: 2,
+        }
+    }
+}
+
+/// The main optimization function
+///
+/// This function takes an SVG string and a configuration object, and returns
+/// an optimized SVG with metadata about the optimization process.
+///
+/// # Arguments
+///
+/// * `input` - The SVG string to optimize
+/// * `config` - Optional configuration for the optimization process
+///
+/// # Returns
+///
+/// An `OptimizeResult` containing the optimized SVG and metadata
+///
+/// # Example
+///
+/// ```rust
+/// use svgn::{optimize, Config};
+///
+/// let svg = r#"<svg width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="red"/></svg>"#;
+/// let config = Config::default();
+/// let result = optimize(svg, Some(config)).unwrap();
+/// println!("Optimized SVG: {}", result.data);
+/// ```
+pub fn optimize(input: &str, config: Option<Config>) -> Result<OptimizeResult> {
+    let _config = config.unwrap_or_default();
+    let original_size = input.len();
+    
+    // TODO: Implement actual optimization logic
+    // For now, just return the input unchanged
+    let optimized_data = input.to_string();
+    let optimized_size = optimized_data.len();
+    
+    let compression_ratio = if original_size > 0 {
+        1.0 - (optimized_size as f64 / original_size as f64)
+    } else {
+        0.0
+    };
+    
+    Ok(OptimizeResult {
+        data: optimized_data,
+        info: OptimizeInfo {
+            original_size,
+            optimized_size,
+            compression_ratio,
+        },
+        error: None,
+        modern: true,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_optimize_basic() {
+        let svg = r#"<svg width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="red"/></svg>"#;
+        let result = optimize(svg, None).unwrap();
+        assert_eq!(result.data, svg);
+        assert_eq!(result.info.original_size, svg.len());
+        assert!(result.error.is_none());
+        assert!(result.modern);
+    }
+
+    #[test]
+    fn test_config_default() {
+        let config = Config::default();
+        assert!(!config.multipass);
+        assert!(!config.js2svg.pretty);
+        assert_eq!(config.js2svg.indent, 2);
+        assert_eq!(config.plugins.len(), 1);
+    }
+}
+</file>
+
+<file path="src/main.rs">
+// this_file: src/main.rs
+
+//! SVGN CLI - Command-line interface for the SVGN SVG optimizer
+
+use anyhow::{Context, Result};
+use clap::{Arg, Command};
+use std::fs;
+use svgn::{optimize, Config};
+use base64::prelude::*;
+
+fn main() -> Result<()> {
+    let matches = Command::new("svgn")
+        .version("0.1.0")
+        .author("Adam Twardoch <adam@twardoch.com>")
+        .about("A native Rust port of SVGO (SVG Optimizer)")
+        .arg(
+            Arg::new("input")
+                .short('i')
+                .long("input")
+                .value_name("FILE")
+                .help("Input SVG file")
+                .required(true),
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .value_name("FILE")
+                .help("Output file (defaults to input file)")
+                .required(false),
+        )
+        .arg(
+            Arg::new("pretty")
+                .short('p')
+                .long("pretty")
+                .help("Pretty-print the output SVG")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("multipass")
+                .long("multipass")
+                .help("Run optimizations multiple times")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("datauri")
+                .long("datauri")
+                .value_name("TYPE")
+                .help("Output as data URI (base64, enc, unenc)")
+                .required(false),
+        )
+        .get_matches();
+
+    let input_path = matches.get_one::<String>("input").unwrap();
+    let output_path = matches
+        .get_one::<String>("output")
+        .map(|s| s.as_str())
+        .unwrap_or(input_path);
+
+    // Read input file
+    let input_svg = fs::read_to_string(input_path)
+        .with_context(|| format!("Failed to read input file: {}", input_path))?;
+
+    // Create configuration
+    let config = Config {
+        path: Some(input_path.clone()),
+        plugins: vec![svgn::PluginConfig::Name("preset-default".to_string())],
+        multipass: matches.get_flag("multipass"),
+        js2svg: svgn::Js2SvgOptions {
+            pretty: matches.get_flag("pretty"),
+            indent: 2,
+        },
+        datauri: matches.get_one::<String>("datauri").cloned(),
+    };
+
+    // Optimize the SVG
+    let result = optimize(&input_svg, Some(config))
+        .with_context(|| "Failed to optimize SVG")?;
+
+    if let Some(error) = result.error {
+        eprintln!("Error during optimization: {}", error);
+        std::process::exit(1);
+    }
+
+    // Handle data URI output
+    let output_data = if let Some(datauri_type) = matches.get_one::<String>("datauri") {
+        match datauri_type.as_str() {
+            "base64" => {
+                let encoded = base64::prelude::BASE64_STANDARD.encode(&result.data);
+                format!("data:image/svg+xml;base64,{}", encoded)
+            }
+            "enc" => {
+                let encoded = urlencoding::encode(&result.data);
+                format!("data:image/svg+xml;charset=utf-8,{}", encoded)
+            }
+            "unenc" => {
+                format!("data:image/svg+xml;charset=utf-8,{}", result.data)
+            }
+            _ => {
+                eprintln!("Invalid datauri type. Use: base64, enc, or unenc");
+                std::process::exit(1);
+            }
+        }
+    } else {
+        result.data
+    };
+
+    // Write output file
+    fs::write(output_path, output_data)
+        .with_context(|| format!("Failed to write output file: {}", output_path))?;
+
+    // Print optimization info
+    println!("Optimization complete!");
+    println!("Original size: {} bytes", result.info.original_size);
+    println!("Optimized size: {} bytes", result.info.optimized_size);
+    println!("Compression ratio: {:.2}%", result.info.compression_ratio * 100.0);
+
+    Ok(())
+}
 </file>
 
 <file path="svgn/benches/optimization.rs">
@@ -42100,6 +42379,55 @@ If you work with Python, use 'uv pip' instead of 'pip', and use 'uvx hatch test'
 When I say "/report", you must: Read all `./TODO.md` and `./PLAN.md` files and analyze recent changes. Document all changes in `./CHANGELOG.md`. From `./TODO.md` and `./PLAN.md` remove things that are done. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics, while `./TODO.md` is its flat simplified itemized `- [ ]`-prefixed representation. When I say "/work", you must work in iterations like so: Read all `./TODO.md` and `./PLAN.md` files and reflect. Work on the tasks. Think, contemplate, research, reflect, refine, revise. Be careful, curious, vigilant, energetic. Verify your changes. Think aloud. Consult, research, reflect. Then update `./PLAN.md` and `./TODO.md` with tasks that will lead to improving the work you’ve just done. Then '/report', and then iterate again.
 </file>
 
+<file path="Cargo.toml">
+# this_file: Cargo.toml
+
+[package]
+name = "svgn"
+version = "0.1.0"
+edition = "2021"
+authors = ["Adam Twardoch <adam@twardoch.com>"]
+description = "A native Rust port of SVGO (SVG Optimizer) with API compatibility"
+license = "MIT"
+repository = "https://github.com/twardoch/svgn"
+homepage = "https://github.com/twardoch/svgn"
+readme = "README.md"
+keywords = ["svg", "optimization", "graphics", "xml", "cli"]
+categories = ["command-line-utilities", "graphics", "web-programming"]
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+quick-xml = "0.36"
+roxmltree = "0.20"
+regex = "1.10"
+indexmap = "2.2"
+base64 = "0.22"
+urlencoding = "2.1"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"
+tempfile = "3.8"
+
+[[bin]]
+name = "svgn"
+path = "src/main.rs"
+
+[lib]
+name = "svgn"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+</file>
+
 <file path="CLAUDE.md">
 # SVGO Specification
 
@@ -43002,6 +43330,45 @@ svgo input.svg -o output.svg
 -   `--quiet`: Only output error messages.
 -   `-v, --version`: Show version.
 -   `-h, --help`: Show help.
+</file>
+
+<file path=".github/workflows/rust.yml">
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache cargo dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+    - name: Check formatting
+      run: cargo fmt --check
 </file>
 
 <file path="docs/architecture.md">
@@ -45428,54 +45795,6 @@ yarn qa             # Run all quality checks
 ```
 </file>
 
-<file path="docs/_config.yml">
-theme: just-the-docs
-
-# Site settings
-title: SVGN Documentation
-description: A native Rust SVG optimizer - API-compatible port of SVGO
-baseurl: ""
-url: "https://twardoch.github.io/svgn"
-
-# Just the Docs specific settings
-search_enabled: true
-search:
-  heading_level: 2
-  previews: 3
-  preview_words_before: 5
-  preview_words_after: 10
-  tokenizer_separator: /[\s/]+/
-  rel_url: true
-  button: false
-
-# Navigation
-nav_sort: case_insensitive
-nav_external_links:
-  - title: GitHub Repository
-    url: https://github.com/twardoch/svgn
-  - title: SVGO Reference
-    url: https://github.com/svg/svgo
-
-# Footer
-footer_content: "Copyright &copy; 2024 Adam Twardoch. Distributed under the MIT License."
-
-# Color scheme
-color_scheme: light
-
-# Enable copy to clipboard
-enable_copy_code_button: true
-
-# Aux links
-aux_links:
-  "View on GitHub":
-    - "https://github.com/twardoch/svgn"
-
-# Collections
-collections:
-  data:
-    output: true
-</file>
-
 <file path="svgn/src/plugins/convert_one_stop_gradients.rs">
 // this_file: svgn/src/plugins/convert_one_stop_gradients.rs
 
@@ -45894,62 +46213,58 @@ name = "optimization"
 harness = false
 </file>
 
-<file path="docs/index.md">
----
-layout: default
-title: Home
-nav_order: 1
-description: "SVGN: A Native Rust SVG Optimizer"
-permalink: /
----
+<file path="docs/_config.yml">
+remote_theme: just-the-docs/just-the-docs
 
-# SVGN: A Native Rust SVG Optimizer
+# GitHub Pages plugins
+plugins:
+  - jekyll-remote-theme
+  - jekyll-sitemap
+  - jekyll-feed
 
-## 1. Introduction
+# Site settings
+title: SVGN Documentation
+description: A native Rust SVG optimizer - API-compatible port of SVGO
+baseurl: ""
+url: "https://twardoch.github.io/svgn"
 
-`svgn` is a high-performance, native Rust port of `svgo` (SVG Optimizer), the popular Node.js-based tool for optimizing SVG vector graphics files. While `svgo` has been instrumental in reducing SVG file sizes by removing redundant information, minifying code, and applying various optimizations, `svgn` aims to bring these benefits to a new level with the power and efficiency of Rust.
+# Just the Docs specific settings
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
 
-This document describes `svgn`'s structure, API, and plugins, drawing parallels and highlighting differences with the original JavaScript `svgo` reference implementation.
+# Navigation
+nav_sort: case_insensitive
+nav_external_links:
+  - title: GitHub Repository
+    url: https://github.com/twardoch/svgn
+  - title: SVGO Reference
+    url: https://github.com/svg/svgo
 
-## 2. Why SVGN?
+# Footer
+footer_content: "Copyright &copy; 2024 Adam Twardoch. Distributed under the MIT License."
 
-The primary motivations behind developing `svgn` are:
+# Color scheme
+color_scheme: light
 
--   **Performance**: Rust's focus on performance and memory safety allows `svgn` to process SVG files significantly faster than its JavaScript counterpart, making it ideal for large-scale optimization tasks or real-time applications.
--   **Native Integration**: As a native Rust library, `svgn` can be seamlessly integrated into other Rust applications, desktop tools, and command-line interfaces without the overhead of a Node.js runtime.
--   **WebAssembly (WASM) Compatibility**: `svgn` is designed with WebAssembly compilation in mind, enabling high-performance SVG optimization directly within web browsers or other WASM environments.
--   **API Compatibility**: `svgn` strives for API compatibility with `svgo` v4.0.0, making it easier for developers familiar with `svgo` to transition to `svgn`.
+# Enable copy to clipboard
+enable_copy_code_button: true
 
-## 3. Project Structure
+# Aux links
+aux_links:
+  "View on GitHub":
+    - "https://github.com/twardoch/svgn"
 
-The `svgn` repository is organized to reflect its native Rust implementation while referencing the original `svgo` structure:
-
--   **/svgn**: Contains the core Rust library and CLI application.
--   **/src**: Rust source code for `svgn`, including the parser, optimizer, stringifier, and plugin implementations.
--   **/ref/svgo**: The complete `svgo` v4.0.0 JavaScript reference implementation, used for functional parity testing and architectural guidance.
--   **/docs**: This documentation.
--   **/tests**: Comprehensive test suites for `svgn`, including integration and unit tests, often mirroring `svgo`'s test cases.
-
-## 4. Installation
-
-To get started with `svgn`, you'll need to have Rust and Cargo installed. If you don't have them, you can install them via `rustup`:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-Once Rust is set up, you can install `svgn` as a command-line tool:
-
-```bash
-cargo install svgn
-```
-
-Or, if you want to use `svgn` as a library in your Rust project, add it to your `Cargo.toml`:
-
-```toml
-[dependencies]
-svgn = "0.1.0" # Use the latest version
-```
+# Collections
+collections:
+  data:
+    output: true
 </file>
 
 <file path="svgn/src/plugins/remove_attributes_by_selector.rs">
@@ -47173,6 +47488,92 @@ pub static EDITOR_NAMESPACES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         "https://boxy-svg.com",
     ])
 });
+</file>
+
+<file path="docs/index.md">
+---
+layout: default
+title: Home
+nav_order: 1
+description: "SVGN: A Native Rust SVG Optimizer"
+permalink: /
+---
+
+# SVGN: A Native Rust SVG Optimizer
+
+## 1. Introduction
+
+`svgn` is a high-performance, native Rust port of `svgo` (SVG Optimizer), the popular Node.js-based tool for optimizing SVG vector graphics files. While `svgo` has been instrumental in reducing SVG file sizes by removing redundant information, minifying code, and applying various optimizations, `svgn` aims to bring these benefits to a new level with the power and efficiency of Rust.
+
+This documentation serves as a comprehensive guide to `svgn`, detailing its structure, API, and plugin system. Throughout these pages, we will draw parallels and highlight key differences with the original JavaScript `svgo` reference implementation, providing context for developers familiar with `svgo` and a clear understanding for newcomers.
+
+## 2. Why SVGN?
+
+The primary motivations behind developing `svgn` are rooted in the desire for superior performance, broader integration capabilities, and enhanced reliability for SVG optimization tasks.
+
+-   **Unmatched Performance**: Leveraging Rust's focus on zero-cost abstractions, memory safety, and efficient concurrency, `svgn` processes SVG files significantly faster than its JavaScript counterpart. This makes it an ideal choice for:
+    *   **Large-scale batch processing**: Optimizing thousands of SVG assets in build pipelines.
+    *   **Real-time applications**: Where low latency SVG manipulation is critical.
+    *   **Server-side rendering**: Reducing payload sizes and improving page load times.
+-   **Seamless Native Integration**: As a native Rust library, `svgn` can be effortlessly integrated into a wide array of applications without the overhead of a Node.js runtime. This includes:
+    *   **Desktop applications**: Building performant SVG tools.
+    *   **Command-line interfaces (CLIs)**: Creating fast and efficient SVG optimization scripts.
+    *   **Backend services**: Optimizing SVGs directly within Rust-based web servers or microservices.
+    *   **Embedded systems**: Where resource constraints demand highly optimized code.
+-   **WebAssembly (WASM) Compatibility**: `svgn` is meticulously designed with WebAssembly compilation in mind. This enables high-performance SVG optimization directly within web browsers, edge computing environments, or other WASM-compatible runtimes, unlocking new possibilities for client-side SVG processing.
+-   **API Compatibility with `svgo`**: `svgn` strives for a high degree of API compatibility with `svgo` v4.0.0. This design choice significantly eases the transition for developers already familiar with `svgo`, allowing them to leverage their existing knowledge and configurations with minimal adjustments. Our goal is to ensure that if you know `svgo`, you'll feel right at home with `svgn`.
+
+## 3. Key Features
+
+`svgn` offers a robust set of features designed to provide comprehensive SVG optimization:
+
+-   **Plugin-based Architecture**: A flexible and extensible system where individual optimization rules are encapsulated as plugins, allowing for fine-grained control over the optimization process.
+-   **AST-based Transformations**: Utilizes an Abstract Syntax Tree (AST) for SVG manipulation, ensuring precise and reliable transformations.
+-   **Comprehensive Optimization Plugins**: A growing collection of plugins, systematically ported from `svgo`, covering a wide range of optimization techniques from removing redundant attributes to converting shapes.
+-   **CLI Tool**: A user-friendly command-line interface for quick and easy SVG optimization.
+-   **Rust Library**: A powerful and efficient Rust library for programmatic integration into your projects.
+-   **WASM Target**: Future-proof design with WebAssembly compilation support for browser and edge environments.
+
+## 4. Project Structure
+
+The `svgn` repository is organized to reflect its native Rust implementation while maintaining a clear reference to the original `svgo` structure for architectural guidance and functional parity testing:
+
+-   **/svgn**: Contains the core Rust library and the `svgn` CLI application. This is where the primary Rust source code resides.
+-   **/src**: Within the `svgn` directory, this folder holds the Rust source code for `svgn`'s core components, including the parser, optimizer, stringifier, and individual plugin implementations.
+-   **/ref/svgo**: This directory contains the complete `svgo` v4.0.0 JavaScript reference implementation. It serves as a crucial benchmark for functional parity testing and provides architectural insights during the porting process.
+-   **/docs**: This folder contains the project's documentation, which you are currently reading.
+-   **/tests**: Comprehensive test suites for `svgn`, including integration and unit tests. Many of these tests are designed to mirror `svgo`'s test cases, ensuring that `svgn` produces identical optimization results.
+
+## 5. Installation
+
+To get started with `svgn`, you'll need to have Rust and Cargo (Rust's package manager) installed on your system. If you don't have them, you can install them conveniently via `rustup`, the recommended Rust toolchain installer:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Follow the on-screen instructions to complete the `rustup` installation. Once Rust and Cargo are set up, you have two primary ways to use `svgn`:
+
+### 5.1. As a Command-Line Tool
+
+You can install `svgn` as a global command-line tool, making it accessible from any directory in your terminal:
+
+```bash
+cargo install svgn
+```
+
+This command compiles and installs the `svgn` executable to your Cargo bin directory, which should be in your system's `PATH`.
+
+### 5.2. As a Rust Library
+
+If you want to integrate `svgn` directly into your Rust project as a dependency, add it to your `Cargo.toml` file:
+
+```toml
+[dependencies]
+svgn = "0.1.0" # Replace "0.1.0" with the latest version available on crates.io
+```
+
+After adding the dependency, Cargo will automatically download and compile `svgn` when you build your project. You can then import and use `svgn`'s functionalities within your Rust code.
 </file>
 
 <file path="CHANGELOG.md">
