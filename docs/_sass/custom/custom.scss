@@ -1,0 +1,49 @@
+// Custom styles for SVGN documentation
+
+// Color theme overrides
+$body-background-color: $white;
+$sidebar-color: $grey-lt-100;
+$border-color: $grey-lt-100;
+
+// Custom styling
+.code-example {
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: $grey-lt-000;
+}
+
+// Table styling improvements
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  
+  th, td {
+    border: 1px solid $border-color;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  
+  th {
+    background-color: $grey-lt-000;
+    font-weight: 600;
+  }
+}
+
+// Improve code block styling
+pre.highlight {
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid $border-color;
+}
+
+// Better link styling
+a {
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}

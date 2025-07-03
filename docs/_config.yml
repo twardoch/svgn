@@ -1,5 +1,45 @@
-theme: jekyll-theme-minimal
+theme: just-the-docs
 
+# Site settings
+title: SVGN Documentation
+description: A native Rust SVG optimizer - API-compatible port of SVGO
+baseurl: ""
+url: "https://twardoch.github.io/svgn"
+
+# Just the Docs specific settings
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+# Navigation
+nav_sort: case_insensitive
+nav_external_links:
+  - title: GitHub Repository
+    url: https://github.com/twardoch/svgn
+  - title: SVGO Reference
+    url: https://github.com/svg/svgo
+
+# Footer
+footer_content: "Copyright &copy; 2024 Adam Twardoch. Distributed under the MIT License."
+
+# Color scheme
+color_scheme: light
+
+# Enable copy to clipboard
+enable_copy_code_button: true
+
+# Aux links
+aux_links:
+  "View on GitHub":
+    - "https://github.com/twardoch/svgn"
+
+# Collections
 collections:
   data:
     output: true

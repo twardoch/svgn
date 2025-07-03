@@ -1,6 +1,8 @@
 ---
 layout: default
-title: SVGN Architecture
+title: Architecture
+nav_order: 5
+description: "SVGN internal architecture and design"
 ---
 
 # SVGN Architecture
