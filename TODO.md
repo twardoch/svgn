@@ -35,7 +35,7 @@ This is a flat task list derived from PLAN.md. Tasks are organized by priority a
 - [ ] `mergePaths`
 
 ### Structural Optimizers
-- [ ] `collapseGroups`
+- [x] `collapseGroups` ✅
 - [ ] `moveElemsAttrsToGroup`
 - [ ] `moveGroupAttrsToElems`
 - [ ] `removeNonInheritableGroupAttrs`

@@ -179,7 +179,6 @@ impl Plugin for CollapseGroupsPlugin {
 mod tests {
     use super::*;
     use crate::parser::Parser;
-    use crate::stringifier::Stringifier;
 
     #[test]
     fn test_collapse_empty_group() {
