@@ -194,8 +194,6 @@ impl ConvertOneStopGradientsPlugin {
 
     fn remove_unused_xlink_namespace(&self, document: &mut Document) {
         // Check if any xlink:href attributes remain
-        let mut has_xlink = false;
-        
         fn check_xlink(element: &Element) -> bool {
             if element.attributes.contains_key("xlink:href") {
                 return true;
@@ -211,7 +209,7 @@ impl ConvertOneStopGradientsPlugin {
             false
         }
 
-        has_xlink = check_xlink(&document.root);
+        let has_xlink = check_xlink(&document.root);
 
         // Remove xmlns:xlink if no xlink:href attributes remain
         if !has_xlink {

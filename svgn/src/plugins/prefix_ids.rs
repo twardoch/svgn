@@ -5,7 +5,6 @@ use crate::collections::REFERENCES_PROPS;
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use regex::Regex;
 use serde_json::Value;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct PrefixIdsConfig {

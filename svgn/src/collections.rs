@@ -457,6 +457,114 @@ pub static PRESENTATION_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ])
 });
 
+/// Animation event attributes in SVG
+pub static ANIMATION_EVENT_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "onbegin",
+        "onend", 
+        "onrepeat",
+        "onload",
+    ])
+});
+
+/// Document event attributes in SVG
+pub static DOCUMENT_EVENT_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "onabort",
+        "onerror",
+        "onresize",
+        "onscroll", 
+        "onunload",
+        "onzoom",
+    ])
+});
+
+/// Document element event attributes in SVG
+pub static DOCUMENT_ELEMENT_EVENT_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "oncopy",
+        "oncut",
+        "onpaste",
+    ])
+});
+
+/// Global event attributes in SVG
+pub static GLOBAL_EVENT_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "oncancel",
+        "oncanplay",
+        "oncanplaythrough",
+        "onchange",
+        "onclick",
+        "onclose",
+        "oncuechange",
+        "ondblclick",
+        "ondrag",
+        "ondragend",
+        "ondragenter",
+        "ondragleave",
+        "ondragover",
+        "ondragstart",
+        "ondrop",
+        "ondurationchange",
+        "onemptied",
+        "onended",
+        "onerror",
+        "onfocus",
+        "oninput",
+        "oninvalid",
+        "onkeydown",
+        "onkeypress",
+        "onkeyup",
+        "onload",
+        "onloadeddata",
+        "onloadedmetadata",
+        "onloadstart",
+        "onmousedown",
+        "onmouseenter",
+        "onmouseleave",
+        "onmousemove",
+        "onmouseout",
+        "onmouseover",
+        "onmouseup",
+        "onmousewheel",
+        "onpause",
+        "onplay",
+        "onplaying",
+        "onprogress",
+        "onratechange",
+        "onreset",
+        "onresize",
+        "onscroll",
+        "onseeked",
+        "onseeking",
+        "onselect",
+        "onshow",
+        "onstalled",
+        "onsubmit",
+        "onsuspend",
+        "ontimeupdate",
+        "ontoggle",
+        "onvolumechange",
+        "onwaiting",
+    ])
+});
+
+/// Graphical event attributes in SVG
+pub static GRAPHICAL_EVENT_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "onactivate",
+        "onclick",
+        "onfocusin",
+        "onfocusout",
+        "onload",
+        "onmousedown",
+        "onmousemove",
+        "onmouseout",
+        "onmouseover",
+        "onmouseup",
+    ])
+});
 
 /// Properties that can contain URL references in SVG
 pub static REFERENCES_PROPS: Lazy<HashSet<&'static str>> = Lazy::new(|| {

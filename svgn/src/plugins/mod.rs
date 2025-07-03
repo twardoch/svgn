@@ -37,6 +37,7 @@ pub mod prefix_ids;
 pub mod remove_editors_ns_data;
 pub mod remove_elements_by_attr;
 pub mod remove_dimensions;
+pub mod remove_scripts;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -71,3 +72,4 @@ pub use prefix_ids::PrefixIdsPlugin;
 pub use remove_editors_ns_data::RemoveEditorsNSDataPlugin;
 pub use remove_elements_by_attr::RemoveElementsByAttrPlugin;
 pub use remove_dimensions::RemoveDimensionsPlugin;
+pub use remove_scripts::RemoveScriptsPlugin;

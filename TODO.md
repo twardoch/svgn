@@ -3,3 +3,5 @@
   - [x] Document `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`
   - [x] Run `cargo test` in `svgn`
   - [x] Document `svgn` compiler warnings in `svgn/TODO.md`
+- [ ] Address issues documented in `ref/svgo/TODO.md`
+- [ ] Address issues documented in `svgn/TODO.md`

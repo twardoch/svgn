@@ -183,7 +183,7 @@ This phase focuses on ensuring the correctness, performance, and stability of th
     -   [ ] Systematically port the entire `svgo` test suite from `ref/svgo/test/`.
     -   [ ] Create a test runner that can easily execute these tests and compare the output of `svgn` with the expected output from `svgo`.
 
--   **[ ] 4.2. Benchmarking**
+-   **[I] 4.2. Benchmarking**
     -   [ ] Create a comprehensive benchmark suite using `cargo bench`.
     -   [ ] Benchmarks should cover parsing, stringifying, and each of the major plugins.
     -   [ ] Compare the performance of `svgn` against the original `svgo` to quantify the performance gains.
@@ -255,3 +255,13 @@ This final phase focuses on preparing the project for public use.
 2. Fast parsing and stringification
 3. Efficient tree traversal and mutation
 4. Minimize allocations during optimization passes
+
+## Issues Identified During Testing
+
+### `ref/svgo` Issues:
+- **ExperimentalWarning: VM Modules**: This is a Node.js warning about an experimental feature. It doesn't indicate a functional error but should be noted.
+- **`cleanupListOfValues` warning**: The plugin `cleanupListOfValues` is being configured outside of `preset-default` in a way that triggers a warning. This might indicate a misconfiguration in the test setup or a need to adjust how plugins are enabled/disabled.
+- **`removeAttrs` warning**: The `removeAttrs` plugin is being used without the required `attrs` parameter, making it a no-op. This also points to a potential misconfiguration in the test setup.
+
+### `svgn` Issues:
+- No compiler warnings or test failures observed.
