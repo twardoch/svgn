@@ -2,7 +2,7 @@
 
 use crate::ast::{Document, Element, Node};
 use crate::collections::COLORS_PROPS;
-use crate::plugin::{Plugin, PluginInfo};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
@@ -158,7 +158,7 @@ impl ConvertOneStopGradientsPlugin {
             if let Node::Element(ref elem) = child {
                 if elem.name == "linearGradient" || elem.name == "radialGradient" {
                     if let Some(id) = elem.attributes.get("id") {
-                        return !gradients_to_remove.contains_key(id);
+                        return !gradients_to_remove.contains_key(id.as_str());
                     }
                 }
             }
@@ -211,15 +211,15 @@ impl ConvertOneStopGradientsPlugin {
             false
         }
 
-        if let Some(Node::Element(ref root)) = document.root {
+        if let Some(root) = &document.root {
             has_xlink = check_xlink(root);
         }
 
         // Remove xmlns:xlink if no xlink:href attributes remain
         if !has_xlink {
-            if let Some(Node::Element(ref mut root)) = document.root {
-                root.namespaces.remove("xlink");
-                root.attributes.remove("xmlns:xlink");
+            if let Some(root) = &mut document.root {
+                root.namespaces.shift_remove("xlink");
+                root.attributes.shift_remove("xmlns:xlink");
             }
         }
     }
@@ -234,28 +234,28 @@ impl Plugin for ConvertOneStopGradientsPlugin {
         "converts one-stop (single color) gradients to a plain color"
     }
 
-    fn apply(&self, document: &mut Document, _params: &Option<Value>, _info: &PluginInfo) -> Result<(), String> {
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         let mut gradients_to_remove = HashMap::new();
         let mut affected_defs = HashSet::new();
 
         // First pass: identify gradients with only one stop
-        if let Some(Node::Element(ref mut root)) = document.root {
+        if let Some(root) = &mut document.root {
             self.process_element(root, &mut gradients_to_remove, false, &mut affected_defs);
         }
 
         // Second pass: replace gradient references with solid colors
         if !gradients_to_remove.is_empty() {
-            if let Some(Node::Element(ref mut root)) = document.root {
+            if let Some(root) = &mut document.root {
                 self.replace_gradient_references(root, &gradients_to_remove);
             }
 
             // Third pass: remove the gradient elements
-            if let Some(Node::Element(ref mut root)) = document.root {
+            if let Some(root) = &mut document.root {
                 self.remove_gradients(root, &gradients_to_remove);
             }
 
             // Fourth pass: remove empty defs elements
-            if let Some(Node::Element(ref mut root)) = document.root {
+            if let Some(root) = &mut document.root {
                 self.remove_empty_defs(root);
             }
 
@@ -270,7 +270,6 @@ impl Plugin for ConvertOneStopGradientsPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::parse_svg;
 
     #[test]
     fn test_convert_one_stop_gradient() {
