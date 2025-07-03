@@ -114,6 +114,7 @@ fn cleanup_value(value: &str, node_name: &str, width: &str, height: &str) -> Opt
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;

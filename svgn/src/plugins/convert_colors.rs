@@ -381,6 +381,7 @@ fn includes_url_reference(value: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element};

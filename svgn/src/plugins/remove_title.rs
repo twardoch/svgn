@@ -60,6 +60,7 @@ fn remove_title_from_node(node: &mut crate::ast::Element) {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::Element;

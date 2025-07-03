@@ -167,6 +167,7 @@ fn minify_css_block(css: &str, remove_comments: bool) -> String {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::Element;

@@ -103,6 +103,7 @@ impl RemoveScriptsPlugin {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};

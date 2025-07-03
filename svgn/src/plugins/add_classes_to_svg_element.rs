@@ -129,6 +129,7 @@ fn add_classes_to_element(element: &mut Element, config: &AddClassesConfig) {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element};

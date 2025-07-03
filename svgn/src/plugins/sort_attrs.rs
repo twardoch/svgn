@@ -206,6 +206,7 @@ fn get_namespace_priority(name: &str, xmlns_order: &XmlnsOrder) -> u8 {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element};

@@ -136,6 +136,7 @@ impl Plugin for RemoveElementsByAttrPlugin {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
@@ -420,7 +421,7 @@ mod tests {
         
         let mut group_attrs = IndexMap::new();
         group_attrs.insert("id".to_string(), "group".to_string());
-        let mut group = Element {
+        let group = Element {
             name: "g".to_string(),
             attributes: group_attrs,
             namespaces: HashMap::new(),

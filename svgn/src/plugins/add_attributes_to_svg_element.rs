@@ -143,6 +143,7 @@ fn add_attributes_to_element(element: &mut Element, config: &AddAttributesConfig
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element};

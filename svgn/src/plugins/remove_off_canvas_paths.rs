@@ -237,6 +237,7 @@ impl RemoveOffCanvasPathsPlugin {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
@@ -390,7 +391,7 @@ mod tests {
     fn test_nested_elements() {
         let mut document = create_test_document_with_viewbox("0 0 100 100");
         
-        let mut group = Element {
+        let group = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),

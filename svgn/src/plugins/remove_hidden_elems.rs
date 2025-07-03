@@ -194,6 +194,7 @@ impl RemoveHiddenElemsPlugin {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
@@ -383,7 +384,7 @@ mod tests {
             children: vec![],
         };
 
-        let mut filled_group = Element {
+        let filled_group = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
@@ -430,7 +431,7 @@ mod tests {
     fn test_nested_hidden_elements() {
         let mut document = create_test_document();
         
-        let mut group = Element {
+        let group = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),

@@ -222,6 +222,7 @@ fn remove_matching_attributes(element: &mut Element, patterns: &[CompiledPattern
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};

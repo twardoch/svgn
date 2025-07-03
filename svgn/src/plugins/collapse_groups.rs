@@ -176,6 +176,7 @@ impl Plugin for CollapseGroupsPlugin {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;

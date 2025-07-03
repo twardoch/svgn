@@ -89,6 +89,7 @@ fn remove_comments_from_node(node: &mut crate::ast::Element, preserve_patterns: 
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::Element;

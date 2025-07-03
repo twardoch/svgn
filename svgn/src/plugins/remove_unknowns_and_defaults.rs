@@ -378,6 +378,7 @@ fn is_default_value(attr_name: &str, attr_value: &str) -> bool {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};

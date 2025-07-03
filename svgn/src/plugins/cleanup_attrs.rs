@@ -88,6 +88,7 @@ fn cleanup_element_attrs(element: &mut Element, newlines: bool, trim: bool, spac
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;
