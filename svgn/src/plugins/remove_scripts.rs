@@ -96,7 +96,7 @@ impl RemoveScriptsPlugin {
 
             // Clear attributes and replace with children
             element.attributes = IndexMap::new();
-            element.namespaces = IndexMap::new();
+            element.namespaces = HashMap::new();
             element.children = useful_children;
         }
     }
@@ -105,7 +105,8 @@ impl RemoveScriptsPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{Document, Element, Node, Text};
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
     use indexmap::IndexMap;
 
     fn create_test_document() -> Document {
@@ -134,16 +135,14 @@ mod tests {
         let script_element = Element {
             name: "script".to_string(),
             attributes: IndexMap::new(),
-            namespaces: IndexMap::new(),
-            children: vec![Node::Text(Text {
-                content: "alert('hello')".to_string(),
-            })],
+            namespaces: HashMap::new(),
+            children: vec![Node::Text("alert('hello')".to_string())],
         };
 
         let circle_element = Element {
             name: "circle".to_string(),
             attributes: IndexMap::new(),
-            namespaces: IndexMap::new(),
+            namespaces: HashMap::new(),
             children: vec![],
         };
 
@@ -152,8 +151,8 @@ mod tests {
             Node::Element(circle_element.clone()),
         ];
 
-        let plugin = RemoveScriptsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), &Value::Null);
+        let mut plugin = RemoveScriptsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
         assert!(result.is_ok());
 
         // Should only have circle element left
@@ -183,8 +182,8 @@ mod tests {
 
         document.root.children = vec![Node::Element(element)];
 
-        let plugin = RemoveScriptsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), &Value::Null);
+        let mut plugin = RemoveScriptsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
         assert!(result.is_ok());
 
         if let Node::Element(ref elem) = document.root.children[0] {
@@ -225,8 +224,8 @@ mod tests {
 
         document.root.children = vec![Node::Element(anchor_element)];
 
-        let plugin = RemoveScriptsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), &Value::Null);
+        let mut plugin = RemoveScriptsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
         assert!(result.is_ok());
 
         if let Node::Element(ref elem) = document.root.children[0] {
@@ -262,8 +261,8 @@ mod tests {
 
         document.root.children = vec![Node::Element(anchor_element.clone())];
 
-        let plugin = RemoveScriptsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), &Value::Null);
+        let mut plugin = RemoveScriptsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
         assert!(result.is_ok());
 
         if let Node::Element(ref elem) = document.root.children[0] {
@@ -298,8 +297,8 @@ mod tests {
 
         document.root.children = vec![Node::Element(anchor_element)];
 
-        let plugin = RemoveScriptsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), &Value::Null);
+        let mut plugin = RemoveScriptsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
         assert!(result.is_ok());
 
         if let Node::Element(ref elem) = document.root.children[0] {
