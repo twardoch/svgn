@@ -1,22 +1,19 @@
-- [x] Run tests in all subprojects and document issues into respective TODO.md files
-  - [x] Run `yarn test` in `ref/svgo`
-  - [x] Document `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`
-  - [x] Run `cargo test` in `svgn`
-  - [x] Document `svgn` compiler warnings in `svgn/TODO.md`
-- [x] Implement 40+ plugins (achieved: 43 plugins)
-- [ ] Port remaining plugins to reach 100% compatibility:
-  - [ ] convertPathData (complex path optimization)
+- [ ] Port remaining 11 complex plugins to reach 100% compatibility:
+  - [ ] convertPathData (complex path optimization using lyon)
   - [ ] convertShapeToPath (shape to path conversion)
   - [ ] convertTransform (transform optimization)
-  - [ ] inlineStyles (style inlining)
-  - [ ] mergePaths (path merging)
-  - [ ] minifyStyles (CSS minification)
-  - [ ] moveElemsAttrsToGroup (attribute grouping)
-  - [ ] moveGroupAttrsToElems (attribute distribution)
+  - [ ] inlineStyles (style inlining with CSS parsing)
+  - [ ] mergePaths (path merging and optimization)
+  - [ ] minifyStyles (CSS minification with cssparser)
+  - [ ] moveElemsAttrsToGroup (attribute grouping optimization)
+  - [ ] moveGroupAttrsToElems (attribute distribution optimization)
   - [ ] removeUselessStrokeAndFill (stroke/fill optimization)
-  - [ ] reusePaths (path deduplication)
+  - [ ] reusePaths (path deduplication with hashing)
+- [ ] Enhance test coverage with svgo compatibility tests
 - [ ] Address issues documented in `ref/svgo/TODO.md`
 - [ ] Address issues documented in `svgn/TODO.md`
-- [ ] Port svgo test suite to svgn
-- [ ] Implement WASM target
-- [ ] Create comprehensive benchmarks
+- [ ] Implement WASM target for web usage
+- [ ] Create comprehensive benchmarks comparing to svgo
+- [ ] Optimize performance for large SVG files
+- [ ] Add CLI configuration file support
+- [ ] Implement multipass optimization mode
