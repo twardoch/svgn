@@ -252,9 +252,7 @@ mod tests {
             name: "a".to_string(),
             attributes,
             namespaces: HashMap::new(),
-            children: vec![Node::Text(Text {
-                content: "Normal link".to_string(),
-            })],
+            children: vec![Node::Text("Normal link".to_string())],
         };
 
         document.root.children = vec![Node::Element(anchor_element.clone())];

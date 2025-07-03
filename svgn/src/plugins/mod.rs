@@ -38,6 +38,7 @@ pub mod remove_editors_ns_data;
 pub mod remove_elements_by_attr;
 pub mod remove_dimensions;
 pub mod remove_scripts;
+pub mod remove_useless_defs;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
