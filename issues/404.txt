@@ -1,4 +1,4 @@
-cat testdata/complex.svg; cat testdata/complex.svg | ./target/debug/svgn -i /dev/stdin -o /dev/stdout
+cat testdata/complex.svg; cat testdata/complex.svg | ./target/release/svgn -i /dev/stdin -o /dev/stdout
 
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
