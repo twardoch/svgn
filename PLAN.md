@@ -111,7 +111,7 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
     -   [D] `removeComments`
     -   [D] `removeDeprecatedAttrs`
     -   [D] `removeDesc`
-    -   [P] `removeDimensions`
+    -   [D] `removeDimensions`
     -   [D] `removeDoctype`
     -   [P] `removeEditorsNSData`
     -   [P] `removeElementsByAttr`

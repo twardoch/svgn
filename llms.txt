@@ -118,7 +118,9 @@ svgn/
       remove_empty_attrs.rs
       remove_empty_containers.rs
       remove_empty_text.rs
+      remove_hidden_elems.rs
       remove_metadata.rs
+      remove_raster_images.rs
       remove_scripts.rs
       remove_style_element.rs
       remove_title.rs
@@ -158,6 +160,7 @@ Cargo.toml
 CHANGELOG.md
 CLAUDE.md
 GEMINI.md
+generate_compatibility_tests.py
 LICENSE
 PLAN.md
 README.md
@@ -168,1432 +171,197 @@ TODO.md
 <files>
 This section contains the contents of the repository's files.
 
-<file path="svgn/src/plugins/remove_unused_ns.rs">
-// this_file: svgn/src/plugins/remove_unused_ns.rs
+<file path="svgn/src/plugins/remove_hidden_elems.rs">
+// this_file: svgn/src/plugins/remove_hidden_elems.rs
 
-//! Plugin to remove unused namespace declarations
+//! Plugin to remove hidden elements
 //!
-//! This plugin removes unused namespace declarations from the root SVG element
-//! which are not used in elements or attributes throughout the document.
-
-use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-use std::collections::HashSet;
-
-/// Plugin to remove unused namespace declarations
-pub struct RemoveUnusedNSPlugin;
-
-impl Plugin for RemoveUnusedNSPlugin {
-    fn name(&self) -> &'static str {
-        "removeUnusedNS"
-    }
-
-    fn description(&self) -> &'static str {
-        "removes unused namespaces declaration"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        // First, collect all namespace declarations from the root SVG element
-        let mut unused_namespaces = HashSet::new();
-        
-        // Collect xmlns: attributes from root element
-        for attr_name in document.root.attributes.keys() {
-            if attr_name.starts_with("xmlns:") {
-                let local = attr_name.strip_prefix("xmlns:").unwrap();
-                unused_namespaces.insert(local.to_string());
-            }
-        }
-
-        // Traverse the document and remove used namespaces from the unused set
-        self.check_usage(&document.root, &mut unused_namespaces);
-
-        // Remove unused namespace declarations from root element
-        for ns in &unused_namespaces {
-            let xmlns_attr = format!("xmlns:{}", ns);
-            document.root.attributes.shift_remove(&xmlns_attr);
-        }
-
-        Ok(())
-    }
-}
-
-impl RemoveUnusedNSPlugin {
-    fn check_usage(&self, element: &Element, unused_namespaces: &mut HashSet<String>) {
-        // Check if element name uses a namespace
-        if element.name.contains(':') {
-            let parts: Vec<&str> = element.name.split(':').collect();
-            if parts.len() >= 2 {
-                let ns = parts[0];
-                unused_namespaces.remove(ns);
-            }
-        }
-
-        // Check if any attributes use namespaces
-        for attr_name in element.attributes.keys() {
-            if attr_name.contains(':') {
-                let parts: Vec<&str> = attr_name.split(':').collect();
-                if parts.len() >= 2 {
-                    let ns = parts[0];
-                    unused_namespaces.remove(ns);
-                }
-            }
-        }
-
-        // Recursively check children
-        for child in &element.children {
-            if let Node::Element(ref elem) = child {
-                self.check_usage(elem, unused_namespaces);
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
-    use indexmap::IndexMap;
-
-    fn create_test_document() -> Document {
-        Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: IndexMap::new(),
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_plugin_name_and_description() {
-        let plugin = RemoveUnusedNSPlugin;
-        assert_eq!(plugin.name(), "removeUnusedNS");
-        assert_eq!(plugin.description(), "removes unused namespaces declaration");
-    }
-
-    #[test]
-    fn test_remove_unused_namespace() {
-        let mut document = create_test_document();
-        
-        // Add unused namespace
-        document.root.attributes.insert("xmlns:unused".to_string(), "http://example.com/unused".to_string());
-        document.root.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
-
-        // Add an element that uses xlink
-        let mut rect_attrs = IndexMap::new();
-        rect_attrs.insert("xlink:href".to_string(), "#test".to_string());
-        
-        let rect_element = Element {
-            name: "rect".to_string(),
-            attributes: rect_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(rect_element)];
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // unused namespace should be removed, xlink should remain
-        assert!(!document.root.attributes.contains_key("xmlns:unused"));
-        assert!(document.root.attributes.contains_key("xmlns:xlink"));
-    }
-
-    #[test]
-    fn test_preserve_used_namespace_in_element_name() {
-        let mut document = create_test_document();
-        
-        // Add namespace
-        document.root.attributes.insert("xmlns:svg".to_string(), "http://www.w3.org/2000/svg".to_string());
-        
-        // Add a child element with namespaced name
-        let ns_element = Element {
-            name: "svg:g".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(ns_element)];
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // svg namespace should be preserved
-        assert!(document.root.attributes.contains_key("xmlns:svg"));
-    }
-
-    #[test]
-    fn test_preserve_used_namespace_in_attributes() {
-        let mut document = create_test_document();
-        
-        // Add namespace
-        document.root.attributes.insert("xmlns:custom".to_string(), "http://example.com/custom".to_string());
-        
-        // Add an element with namespaced attribute
-        let mut element_attrs = IndexMap::new();
-        element_attrs.insert("custom:data".to_string(), "value".to_string());
-        
-        let element = Element {
-            name: "rect".to_string(),
-            attributes: element_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(element)];
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // custom namespace should be preserved
-        assert!(document.root.attributes.contains_key("xmlns:custom"));
-    }
-
-    #[test]
-    fn test_remove_all_unused_namespaces() {
-        let mut document = create_test_document();
-        
-        // Add multiple unused namespaces
-        document.root.attributes.insert("xmlns:ns1".to_string(), "http://example.com/ns1".to_string());
-        document.root.attributes.insert("xmlns:ns2".to_string(), "http://example.com/ns2".to_string());
-        document.root.attributes.insert("xmlns:ns3".to_string(), "http://example.com/ns3".to_string());
-
-        // Add an element without any namespace usage
-        let element = Element {
-            name: "rect".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(element)];
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // All unused namespaces should be removed
-        assert!(!document.root.attributes.contains_key("xmlns:ns1"));
-        assert!(!document.root.attributes.contains_key("xmlns:ns2"));
-        assert!(!document.root.attributes.contains_key("xmlns:ns3"));
-    }
-
-    #[test]
-    fn test_no_namespaces_to_remove() {
-        let mut document = create_test_document();
-        
-        // No xmlns: attributes
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "100".to_string());
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Should still have original attributes
-        assert_eq!(document.root.attributes["width"], "100");
-        assert_eq!(document.root.attributes["height"], "100");
-    }
-
-    #[test]
-    fn test_nested_element_namespace_usage() {
-        let mut document = create_test_document();
-        
-        // Add namespace
-        document.root.attributes.insert("xmlns:deep".to_string(), "http://example.com/deep".to_string());
-        
-        // Create nested structure where namespace is used deep in the tree
-        let mut deep_attrs = IndexMap::new();
-        deep_attrs.insert("deep:attr".to_string(), "value".to_string());
-        
-        let deep_element = Element {
-            name: "text".to_string(),
-            attributes: deep_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        let middle_element = Element {
-            name: "g".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![Node::Element(deep_element)],
-        };
-
-        let container_element = Element {
-            name: "g".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![Node::Element(middle_element)],
-        };
-
-        document.root.children = vec![Node::Element(container_element)];
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // deep namespace should be preserved (used in nested element)
-        assert!(document.root.attributes.contains_key("xmlns:deep"));
-    }
-
-    #[test]
-    fn test_mixed_used_and_unused_namespaces() {
-        let mut document = create_test_document();
-        
-        // Add multiple namespaces
-        document.root.attributes.insert("xmlns:used".to_string(), "http://example.com/used".to_string());
-        document.root.attributes.insert("xmlns:unused".to_string(), "http://example.com/unused".to_string());
-        document.root.attributes.insert("xmlns:alsounused".to_string(), "http://example.com/alsounused".to_string());
-        
-        // Add an element that uses only one namespace
-        let mut element_attrs = IndexMap::new();
-        element_attrs.insert("used:data".to_string(), "value".to_string());
-        
-        let element = Element {
-            name: "rect".to_string(),
-            attributes: element_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(element)];
-
-        let mut plugin = RemoveUnusedNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Only used namespace should remain
-        assert!(document.root.attributes.contains_key("xmlns:used"));
-        assert!(!document.root.attributes.contains_key("xmlns:unused"));
-        assert!(!document.root.attributes.contains_key("xmlns:alsounused"));
-    }
-}
-</file>
-
-<file path="svgn/src/plugins/remove_view_box.rs">
-// this_file: svgn/src/plugins/remove_view_box.rs
-
-//! Plugin to remove viewBox attribute when possible
-//!
-//! This plugin removes the viewBox attribute when it coincides with width/height box.
-//! For example, `<svg width="100" height="50" viewBox="0 0 100 50">` becomes 
-//! `<svg width="100" height="50">`.
+//! This plugin removes elements that are hidden through various means:
+//! - display="none" 
+//! - visibility="hidden" or visibility="collapse"
+//! - opacity="0" (optional)
+//! - Zero width/height rectangles, ellipses, images
+//! - Zero radius circles
+//! - Empty paths
 
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
-/// Elements that can have viewBox attributes
-const VIEWBOX_ELEMENTS: &[&str] = &["pattern", "svg", "symbol"];
-
-/// Plugin to remove redundant viewBox attributes
-pub struct RemoveViewBoxPlugin;
-
-impl Plugin for RemoveViewBoxPlugin {
-    fn name(&self) -> &'static str {
-        "removeViewBox"
-    }
-
-    fn description(&self) -> &'static str {
-        "removes viewBox attribute when possible"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        self.process_element(&mut document.root, true);
-        Ok(())
-    }
-}
-
-impl RemoveViewBoxPlugin {
-    fn process_element(&self, element: &mut Element, is_root: bool) {
-        // Check if this element can have a viewBox
-        if VIEWBOX_ELEMENTS.contains(&element.name.as_str()) {
-            self.check_and_remove_viewbox(element, is_root);
-        }
-
-        // Process children recursively
-        for child in &mut element.children {
-            if let Node::Element(ref mut elem) = child {
-                self.process_element(elem, false);
-            }
-        }
-    }
-
-    fn check_and_remove_viewbox(&self, element: &mut Element, is_root: bool) {
-        // Skip nested SVG elements (keep their viewBox)
-        if element.name == "svg" && !is_root {
-            return;
-        }
-
-        // Check if element has viewBox, width, and height attributes
-        if let (Some(view_box), Some(width), Some(height)) = (
-            element.attributes.get("viewBox"),
-            element.attributes.get("width"),
-            element.attributes.get("height"),
-        ) {
-            if self.can_remove_viewbox(view_box, width, height) {
-                element.attributes.shift_remove("viewBox");
-            }
-        }
-    }
-
-    fn can_remove_viewbox(&self, view_box: &str, width: &str, height: &str) -> bool {
-        // Parse viewBox values (format: "min-x min-y width height")
-        let view_box_parts: Vec<&str> = view_box.split(&[' ', ','][..]).filter(|s| !s.is_empty()).collect();
-        
-        if view_box_parts.len() != 4 {
-            return false;
-        }
-
-        // Check if viewBox starts at origin (0,0)
-        if view_box_parts[0] != "0" || view_box_parts[1] != "0" {
-            return false;
-        }
-
-        // Remove 'px' suffix from width/height if present
-        let width_value = width.strip_suffix("px").unwrap_or(width);
-        let height_value = height.strip_suffix("px").unwrap_or(height);
-
-        // Check if viewBox width/height matches element width/height
-        view_box_parts[2] == width_value && view_box_parts[3] == height_value
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
-    use indexmap::IndexMap;
-
-    fn create_test_document() -> Document {
-        Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: IndexMap::new(),
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_plugin_name_and_description() {
-        let plugin = RemoveViewBoxPlugin;
-        assert_eq!(plugin.name(), "removeViewBox");
-        assert_eq!(plugin.description(), "removes viewBox attribute when possible");
-    }
-
-    #[test]
-    fn test_remove_redundant_viewbox() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be removed
-        assert!(!document.root.attributes.contains_key("viewBox"));
-        assert_eq!(document.root.attributes["width"], "100");
-        assert_eq!(document.root.attributes["height"], "50");
-    }
-
-    #[test]
-    fn test_keep_viewbox_with_px_units() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100px".to_string());
-        document.root.attributes.insert("height".to_string(), "50px".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be removed (px suffix is ignored)
-        assert!(!document.root.attributes.contains_key("viewBox"));
-    }
-
-    #[test]
-    fn test_keep_viewbox_different_origin() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "10 10 100 50".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be kept (different origin)
-        assert!(document.root.attributes.contains_key("viewBox"));
-        assert_eq!(document.root.attributes["viewBox"], "10 10 100 50");
-    }
-
-    #[test]
-    fn test_keep_viewbox_different_dimensions() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be kept (different dimensions)
-        assert!(document.root.attributes.contains_key("viewBox"));
-        assert_eq!(document.root.attributes["viewBox"], "0 0 200 100");
-    }
-
-    #[test]
-    fn test_keep_viewbox_missing_width_or_height() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        // Missing height
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be kept (missing height)
-        assert!(document.root.attributes.contains_key("viewBox"));
-    }
-
-    #[test]
-    fn test_comma_separated_viewbox() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0,0,100,50".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be removed (comma-separated format)
-        assert!(!document.root.attributes.contains_key("viewBox"));
-    }
-
-    #[test]
-    fn test_mixed_separator_viewbox() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0, 0 100,50".to_string());
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // viewBox should be removed (mixed separators)
-        assert!(!document.root.attributes.contains_key("viewBox"));
-    }
-
-    #[test]
-    fn test_pattern_element() {
-        let mut document = create_test_document();
-        
-        let mut pattern_attrs = IndexMap::new();
-        pattern_attrs.insert("width".to_string(), "20".to_string());
-        pattern_attrs.insert("height".to_string(), "30".to_string());
-        pattern_attrs.insert("viewBox".to_string(), "0 0 20 30".to_string());
-
-        let pattern_element = Element {
-            name: "pattern".to_string(),
-            attributes: pattern_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(pattern_element)];
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Pattern viewBox should be removed
-        if let Node::Element(ref pattern) = document.root.children[0] {
-            assert_eq!(pattern.name, "pattern");
-            assert!(!pattern.attributes.contains_key("viewBox"));
-            assert_eq!(pattern.attributes["width"], "20");
-            assert_eq!(pattern.attributes["height"], "30");
-        } else {
-            panic!("Expected pattern element");
-        }
-    }
-
-    #[test]
-    fn test_nested_svg_preserved() {
-        let mut document = create_test_document();
-        
-        let mut nested_svg_attrs = IndexMap::new();
-        nested_svg_attrs.insert("width".to_string(), "50".to_string());
-        nested_svg_attrs.insert("height".to_string(), "25".to_string());
-        nested_svg_attrs.insert("viewBox".to_string(), "0 0 50 25".to_string());
-
-        let nested_svg = Element {
-            name: "svg".to_string(),
-            attributes: nested_svg_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(nested_svg)];
-
-        let mut plugin = RemoveViewBoxPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Nested SVG viewBox should be preserved
-        if let Node::Element(ref nested) = document.root.children[0] {
-            assert_eq!(nested.name, "svg");
-            assert!(nested.attributes.contains_key("viewBox"));
-            assert_eq!(nested.attributes["viewBox"], "0 0 50 25");
-        } else {
-            panic!("Expected nested svg element");
-        }
-    }
-}
-</file>
-
-<file path="svgn/src/plugins/remove_xlink.rs">
-// this_file: svgn/src/plugins/remove_xlink.rs
-
-//! Plugin to remove xlink namespace and replace attributes with SVG 2 equivalents
-//!
-//! This plugin removes the deprecated XLink namespace and converts XLink attributes
-//! to their SVG 2 equivalents where applicable. XLink was deprecated in SVG 2.
-
-use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-use std::collections::HashMap;
-
-/// XLink namespace URI
-const XLINK_NAMESPACE: &str = "http://www.w3.org/1999/xlink";
-
-/// Elements that use xlink:href but were deprecated in SVG 2
-const LEGACY_ELEMENTS: &[&str] = &[
-    "cursor",
-    "filter", 
-    "font-face-uri",
-    "glyphRef",
-    "tref",
-];
-
-/// Configuration for the removeXlink plugin
 #[derive(Debug, Clone)]
-pub struct RemoveXlinkConfig {
-    /// Include legacy elements that don't support SVG 2 href
-    pub include_legacy: bool,
+pub struct RemoveHiddenElemsConfig {
+    /// Whether to treat display="none" as hidden
+    pub display_none: bool,
+    /// Whether to treat opacity="0" as hidden
+    pub opacity_zero: bool,
+    /// Whether to remove empty groups
+    pub empty_groups: bool,
+    /// Whether to remove elements with no meaningful size
+    pub zero_size: bool,
 }
 
-impl Default for RemoveXlinkConfig {
+impl Default for RemoveHiddenElemsConfig {
     fn default() -> Self {
         Self {
-            include_legacy: false,
+            display_none: true,
+            opacity_zero: true,
+            empty_groups: true,
+            zero_size: true,
         }
     }
 }
 
-/// Plugin to remove xlink namespace and convert to SVG 2 equivalents
-pub struct RemoveXlinkPlugin;
+/// Plugin to remove hidden elements
+pub struct RemoveHiddenElemsPlugin;
 
-impl Plugin for RemoveXlinkPlugin {
+impl Plugin for RemoveHiddenElemsPlugin {
     fn name(&self) -> &'static str {
-        "removeXlink"
+        "removeHiddenElems"
     }
 
     fn description(&self) -> &'static str {
-        "remove xlink namespace and replaces attributes with the SVG 2 equivalent where applicable"
+        "removes hidden elements (disabled by default)"
     }
 
     fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
-        let config = self.parse_config(params)?;
-        let mut context = XlinkContext::new(config);
-        
-        self.process_element(&mut document.root, &mut context);
+        let config = self.parse_config(params);
+        self.process_element(&mut document.root, &config);
         Ok(())
     }
 }
 
-struct XlinkContext {
-    config: RemoveXlinkConfig,
-    xlink_prefixes: Vec<String>,
-    used_in_legacy: Vec<String>,
-}
-
-impl XlinkContext {
-    fn new(config: RemoveXlinkConfig) -> Self {
-        Self {
-            config,
-            xlink_prefixes: Vec::new(),
-            used_in_legacy: Vec::new(),
-        }
-    }
-}
-
-impl RemoveXlinkPlugin {
-    fn parse_config(&self, params: Option<&Value>) -> PluginResult<RemoveXlinkConfig> {
-        let mut config = RemoveXlinkConfig::default();
+impl RemoveHiddenElemsPlugin {
+    fn parse_config(&self, params: Option<&Value>) -> RemoveHiddenElemsConfig {
+        let mut config = RemoveHiddenElemsConfig::default();
         
-        if let Some(params_obj) = params {
-            if let Some(include_legacy) = params_obj.get("includeLegacy") {
-                if let Some(val) = include_legacy.as_bool() {
-                    config.include_legacy = val;
+        if let Some(Value::Object(obj)) = params {
+            if let Some(Value::Bool(v)) = obj.get("displayNone") {
+                config.display_none = *v;
+            }
+            if let Some(Value::Bool(v)) = obj.get("opacity0") {
+                config.opacity_zero = *v;
+            }
+            if let Some(Value::Bool(v)) = obj.get("emptyGroups") {
+                config.empty_groups = *v;
+            }
+            if let Some(Value::Bool(v)) = obj.get("zeroSize") {
+                config.zero_size = *v;
+            }
+        }
+        
+        config
+    }
+
+    fn is_hidden(&self, element: &Element, config: &RemoveHiddenElemsConfig) -> bool {
+        // Check display="none"
+        if config.display_none {
+            if let Some(display) = element.attributes.get("display") {
+                if display == "none" {
+                    return true;
                 }
             }
         }
-        
-        Ok(config)
-    }
 
-    fn process_element(&self, element: &mut Element, context: &mut XlinkContext) {
-        // Collect xlink namespace prefixes
-        let mut current_xlink_prefixes = Vec::new();
-        
-        for (key, value) in &element.attributes {
-            if key.starts_with("xmlns:") && value == XLINK_NAMESPACE {
-                let prefix = key.strip_prefix("xmlns:").unwrap();
-                current_xlink_prefixes.push(prefix.to_string());
-                context.xlink_prefixes.push(prefix.to_string());
+        // Check visibility="hidden" or visibility="collapse"
+        if let Some(visibility) = element.attributes.get("visibility") {
+            if visibility == "hidden" || visibility == "collapse" {
+                return true;
             }
         }
 
-        // Handle xlink:href conversion
-        let is_legacy = LEGACY_ELEMENTS.contains(&element.name.as_str());
-        
-        if is_legacy && !context.config.include_legacy {
-            // Mark prefixes as used in legacy elements - check for any xlink attributes
-            let has_xlink_attrs = element.attributes.keys().any(|key| {
-                context.xlink_prefixes.iter().any(|prefix| key.starts_with(&format!("{}:", prefix)))
-            });
-            
-            if has_xlink_attrs {
-                for prefix in &context.xlink_prefixes {
-                    if !context.used_in_legacy.contains(prefix) {
-                        context.used_in_legacy.push(prefix.clone());
+        // Check opacity="0"
+        if config.opacity_zero {
+            if let Some(opacity) = element.attributes.get("opacity") {
+                if let Ok(opacity_val) = opacity.parse::<f64>() {
+                    if opacity_val == 0.0 {
+                        return true;
                     }
                 }
             }
-        } else {
-            // Convert xlink:href to href if no href exists
-            self.convert_href_attributes(element, &context.xlink_prefixes);
         }
 
-        // Only convert other xlink attributes if not a legacy element or include_legacy is true
-        if !is_legacy || context.config.include_legacy {
-            // Handle xlink:show conversion to target
-            self.convert_show_attributes(element, &context.xlink_prefixes);
-
-            // Handle xlink:title conversion to <title> element
-            self.convert_title_attributes(element, &context.xlink_prefixes);
-
-            // Remove unused xlink attributes
-            self.remove_unused_xlink_attributes(element, &context.xlink_prefixes, &context.used_in_legacy);
-        }
-
-        // Process children recursively
-        for child in &mut element.children {
-            if let Node::Element(ref mut elem) = child {
-                self.process_element(elem, context);
-            }
-        }
-
-        // Remove xlink namespace declarations if not used in legacy elements
-        for prefix in &current_xlink_prefixes {
-            if !context.used_in_legacy.contains(prefix) {
-                let xmlns_key = format!("xmlns:{}", prefix);
-                element.attributes.shift_remove(&xmlns_key);
-            }
-        }
-
-        // Remove processed prefixes from context
-        for prefix in &current_xlink_prefixes {
-            context.xlink_prefixes.retain(|p| p != prefix);
-        }
-    }
-
-    fn convert_href_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
-        // Find xlink:href attributes
-        let href_attrs: Vec<String> = element.attributes.keys()
-            .filter(|key| {
-                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:href", prefix))
-            })
-            .cloned()
-            .collect();
-
-        for href_attr in href_attrs {
-            if let Some(href_value) = element.attributes.get(&href_attr).cloned() {
-                // Only convert if no href attribute exists
-                if !element.attributes.contains_key("href") {
-                    element.attributes.insert("href".to_string(), href_value);
-                }
-                element.attributes.shift_remove(&href_attr);
-            }
-        }
-    }
-
-    fn convert_show_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
-        // Find xlink:show attributes
-        let show_attrs: Vec<String> = element.attributes.keys()
-            .filter(|key| {
-                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:show", prefix))
-            })
-            .cloned()
-            .collect();
-
-        for show_attr in show_attrs {
-            if let Some(show_value) = element.attributes.get(&show_attr).cloned() {
-                // Convert to target attribute if no target exists
-                if !element.attributes.contains_key("target") {
-                    let target_value = match show_value.as_str() {
-                        "new" => "_blank",
-                        "replace" => "_self", 
-                        _ => {
-                            // Remove unknown values
-                            element.attributes.shift_remove(&show_attr);
-                            continue;
-                        }
-                    };
-                    element.attributes.insert("target".to_string(), target_value.to_string());
-                }
-                element.attributes.shift_remove(&show_attr);
-            }
-        }
-    }
-
-    fn convert_title_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
-        // Find xlink:title attributes
-        let title_attrs: Vec<String> = element.attributes.keys()
-            .filter(|key| {
-                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:title", prefix))
-            })
-            .cloned()
-            .collect();
-
-        for title_attr in title_attrs {
-            if let Some(title_value) = element.attributes.get(&title_attr).cloned() {
-                // Check if element already has a title child
-                let has_title_child = element.children.iter().any(|child| {
-                    matches!(child, Node::Element(elem) if elem.name == "title")
-                });
-
-                if !has_title_child {
-                    // Create title element
-                    let title_element = Element {
-                        name: "title".to_string(),
-                        attributes: indexmap::IndexMap::new(),
-                        namespaces: HashMap::new(),
-                        children: vec![Node::Text(title_value)],
-                    };
-                    element.children.insert(0, Node::Element(title_element));
-                }
-                element.attributes.shift_remove(&title_attr);
-            }
-        }
-    }
-
-    fn remove_unused_xlink_attributes(&self, element: &mut Element, xlink_prefixes: &[String], used_in_legacy: &[String]) {
-        // Remove any remaining xlink attributes that weren't converted
-        let attrs_to_remove: Vec<String> = element.attributes.keys()
-            .filter(|key| {
-                if let Some(colon_pos) = key.find(':') {
-                    let prefix = &key[..colon_pos];
-                    xlink_prefixes.contains(&prefix.to_string()) && 
-                    !used_in_legacy.contains(&prefix.to_string())
-                } else {
-                    false
-                }
-            })
-            .cloned()
-            .collect();
-
-        for attr in attrs_to_remove {
-            element.attributes.shift_remove(&attr);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
-    use indexmap::IndexMap;
-
-    fn create_test_document() -> Document {
-        Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: IndexMap::new(),
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_plugin_name_and_description() {
-        let plugin = RemoveXlinkPlugin;
-        assert_eq!(plugin.name(), "removeXlink");
-        assert_eq!(plugin.description(), "remove xlink namespace and replaces attributes with the SVG 2 equivalent where applicable");
-    }
-
-    #[test]
-    fn test_convert_xlink_href_to_href() {
-        let mut document = create_test_document();
-        
-        // Add xlink namespace
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
-        // Add element with xlink:href
-        let mut use_attrs = IndexMap::new();
-        use_attrs.insert("xlink:href".to_string(), "#symbol1".to_string());
-        
-        let use_element = Element {
-            name: "use".to_string(),
-            attributes: use_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(use_element)];
-
-        let mut plugin = RemoveXlinkPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // xlink:href should be converted to href
-        if let Node::Element(ref use_elem) = document.root.children[0] {
-            assert!(!use_elem.attributes.contains_key("xlink:href"));
-            assert_eq!(use_elem.attributes.get("href"), Some(&"#symbol1".to_string()));
-        } else {
-            panic!("Expected use element");
-        }
-
-        // xlink namespace should be removed
-        assert!(!document.root.attributes.contains_key("xmlns:xlink"));
-    }
-
-    #[test]
-    fn test_preserve_existing_href() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
-        let mut element_attrs = IndexMap::new();
-        element_attrs.insert("href".to_string(), "#existing".to_string());
-        element_attrs.insert("xlink:href".to_string(), "#xlink".to_string());
-        
-        let element = Element {
-            name: "a".to_string(),
-            attributes: element_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(element)];
-
-        let mut plugin = RemoveXlinkPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Should preserve existing href and remove xlink:href
-        if let Node::Element(ref elem) = document.root.children[0] {
-            assert!(!elem.attributes.contains_key("xlink:href"));
-            assert_eq!(elem.attributes.get("href"), Some(&"#existing".to_string()));
-        } else {
-            panic!("Expected element");
-        }
-    }
-
-    #[test]
-    fn test_convert_xlink_show_to_target() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
-        let mut element_attrs = IndexMap::new();
-        element_attrs.insert("xlink:show".to_string(), "new".to_string());
-        
-        let element = Element {
-            name: "a".to_string(),
-            attributes: element_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(element)];
-
-        let mut plugin = RemoveXlinkPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // xlink:show="new" should become target="_blank"
-        if let Node::Element(ref elem) = document.root.children[0] {
-            assert!(!elem.attributes.contains_key("xlink:show"));
-            assert_eq!(elem.attributes.get("target"), Some(&"_blank".to_string()));
-        } else {
-            panic!("Expected element");
-        }
-    }
-
-    #[test]
-    fn test_convert_xlink_title_to_title_element() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
-        let mut element_attrs = IndexMap::new();
-        element_attrs.insert("xlink:title".to_string(), "Element title".to_string());
-        
-        let element = Element {
-            name: "rect".to_string(),
-            attributes: element_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(element)];
-
-        let mut plugin = RemoveXlinkPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // xlink:title should be converted to title element
-        if let Node::Element(ref elem) = document.root.children[0] {
-            assert!(!elem.attributes.contains_key("xlink:title"));
-            assert_eq!(elem.children.len(), 1);
-            
-            if let Node::Element(ref title) = elem.children[0] {
-                assert_eq!(title.name, "title");
-                assert_eq!(title.children.len(), 1);
-                if let Node::Text(ref text) = title.children[0] {
-                    assert_eq!(text, "Element title");
-                } else {
-                    panic!("Expected text in title");
-                }
-            } else {
-                panic!("Expected title element");
-            }
-        } else {
-            panic!("Expected element");
-        }
-    }
-
-    #[test]
-    fn test_preserve_legacy_elements() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
-        let mut filter_attrs = IndexMap::new();
-        filter_attrs.insert("xlink:href".to_string(), "#filter1".to_string());
-        
-        let filter_element = Element {
-            name: "filter".to_string(),
-            attributes: filter_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(filter_element)];
-
-        let mut plugin = RemoveXlinkPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Legacy elements should preserve xlink attributes by default
-        if let Node::Element(ref filter) = document.root.children[0] {
-            assert!(filter.attributes.contains_key("xlink:href"));
-            assert!(!filter.attributes.contains_key("href"));
-        } else {
-            panic!("Expected filter element");
-        }
-
-        // xlink namespace should be preserved for legacy usage
-        assert!(document.root.attributes.contains_key("xmlns:xlink"));
-    }
-
-    #[test]
-    fn test_include_legacy_option() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
-        let mut filter_attrs = IndexMap::new();
-        filter_attrs.insert("xlink:href".to_string(), "#filter1".to_string());
-        
-        let filter_element = Element {
-            name: "filter".to_string(),
-            attributes: filter_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(filter_element)];
-
-        let params = serde_json::json!({"includeLegacy": true});
-        let mut plugin = RemoveXlinkPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&params));
-        assert!(result.is_ok());
-
-        // With includeLegacy=true, should convert even legacy elements
-        if let Node::Element(ref filter) = document.root.children[0] {
-            assert!(!filter.attributes.contains_key("xlink:href"));
-            assert_eq!(filter.attributes.get("href"), Some(&"#filter1".to_string()));
-        } else {
-            panic!("Expected filter element");
-        }
-    }
-}
-</file>
-
-<file path="svgn/src/plugins/remove_xmlns.rs">
-// this_file: svgn/src/plugins/remove_xmlns.rs
-
-//! Plugin to remove xmlns attribute from SVG elements
-//!
-//! This plugin removes the xmlns attribute when present, which is useful for inline SVG
-//! where the namespace declaration is not needed. This plugin is disabled by default.
-
-use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-
-/// Plugin to remove xmlns attribute from SVG elements
-pub struct RemoveXMLNSPlugin;
-
-impl Plugin for RemoveXMLNSPlugin {
-    fn name(&self) -> &'static str {
-        "removeXMLNS"
-    }
-
-    fn description(&self) -> &'static str {
-        "removes xmlns attribute (for inline svg, disabled by default)"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        self.process_element(&mut document.root);
-        Ok(())
-    }
-}
-
-impl RemoveXMLNSPlugin {
-    fn process_element(&self, element: &mut Element) {
-        // Remove xmlns attribute from SVG elements
-        if element.name == "svg" {
-            element.attributes.shift_remove("xmlns");
-        }
-
-        // Process children recursively
-        for child in &mut element.children {
-            if let Node::Element(ref mut elem) = child {
-                self.process_element(elem);
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
-    use indexmap::IndexMap;
-
-    fn create_test_document() -> Document {
-        Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: IndexMap::new(),
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_plugin_name_and_description() {
-        let plugin = RemoveXMLNSPlugin;
-        assert_eq!(plugin.name(), "removeXMLNS");
-        assert_eq!(plugin.description(), "removes xmlns attribute (for inline svg, disabled by default)");
-    }
-
-    #[test]
-    fn test_remove_xmlns_from_svg() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 100".to_string());
-
-        let mut plugin = RemoveXMLNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // xmlns should be removed, other attributes preserved
-        assert!(!document.root.attributes.contains_key("xmlns"));
-        assert!(document.root.attributes.contains_key("viewBox"));
-        assert_eq!(document.root.attributes["viewBox"], "0 0 100 100");
-    }
-
-    #[test]
-    fn test_remove_xmlns_from_nested_svg() {
-        let mut document = create_test_document();
-        
-        // Add nested SVG element with xmlns
-        let mut nested_svg_attrs = IndexMap::new();
-        nested_svg_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        nested_svg_attrs.insert("width".to_string(), "50".to_string());
-        
-        let nested_svg = Element {
-            name: "svg".to_string(),
-            attributes: nested_svg_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(nested_svg)];
-
-        let mut plugin = RemoveXMLNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // xmlns should be removed from nested SVG
-        if let Node::Element(ref nested) = document.root.children[0] {
-            assert_eq!(nested.name, "svg");
-            assert!(!nested.attributes.contains_key("xmlns"));
-            assert!(nested.attributes.contains_key("width"));
-            assert_eq!(nested.attributes["width"], "50");
-        } else {
-            panic!("Expected nested svg element");
-        }
-    }
-
-    #[test]
-    fn test_preserve_other_xmlns_attributes() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        document.root.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
-        document.root.attributes.insert("xmlns:custom".to_string(), "http://example.com/custom".to_string());
-
-        let mut plugin = RemoveXMLNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Only xmlns should be removed, namespaced xmlns attributes preserved
-        assert!(!document.root.attributes.contains_key("xmlns"));
-        assert!(document.root.attributes.contains_key("xmlns:xlink"));
-        assert!(document.root.attributes.contains_key("xmlns:custom"));
-    }
-
-    #[test]
-    fn test_ignore_non_svg_elements() {
-        let mut document = create_test_document();
-        
-        // Add a non-SVG element with xmlns (shouldn't happen but test anyway)
-        let mut rect_attrs = IndexMap::new();
-        rect_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        rect_attrs.insert("width".to_string(), "100".to_string());
-        
-        let rect_element = Element {
-            name: "rect".to_string(),
-            attributes: rect_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        document.root.children = vec![Node::Element(rect_element)];
-
-        let mut plugin = RemoveXMLNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // xmlns should be preserved on non-SVG elements
-        if let Node::Element(ref rect) = document.root.children[0] {
-            assert_eq!(rect.name, "rect");
-            assert!(rect.attributes.contains_key("xmlns"));
-            assert_eq!(rect.attributes["xmlns"], "http://www.w3.org/2000/svg");
-        } else {
-            panic!("Expected rect element");
-        }
-    }
-
-    #[test]
-    fn test_no_xmlns_attribute() {
-        let mut document = create_test_document();
-        
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 100".to_string());
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-
-        let mut plugin = RemoveXMLNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Should work fine even without xmlns attribute
-        assert!(document.root.attributes.contains_key("viewBox"));
-        assert!(document.root.attributes.contains_key("width"));
-        assert_eq!(document.root.attributes.len(), 2);
-    }
-
-    #[test]
-    fn test_complex_nested_structure() {
-        let mut document = create_test_document();
-        
-        // Root SVG with xmlns
-        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        
-        // Nested structure: svg -> g -> svg
-        let mut inner_svg_attrs = IndexMap::new();
-        inner_svg_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        inner_svg_attrs.insert("x".to_string(), "10".to_string());
-        
-        let inner_svg = Element {
-            name: "svg".to_string(),
-            attributes: inner_svg_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        };
-
-        let g_element = Element {
-            name: "g".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![Node::Element(inner_svg)],
-        };
-
-        document.root.children = vec![Node::Element(g_element)];
-
-        let mut plugin = RemoveXMLNSPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
-        assert!(result.is_ok());
-
-        // Both root and nested SVG should have xmlns removed
-        assert!(!document.root.attributes.contains_key("xmlns"));
-        
-        if let Node::Element(ref g) = document.root.children[0] {
-            if let Node::Element(ref inner_svg) = g.children[0] {
-                assert_eq!(inner_svg.name, "svg");
-                assert!(!inner_svg.attributes.contains_key("xmlns"));
-                assert_eq!(inner_svg.attributes["x"], "10");
-            } else {
-                panic!("Expected inner svg element");
-            }
-        } else {
-            panic!("Expected g element");
-        }
-    }
-}
-</file>
-
-<file path="svgn/src/plugins/sort_defs_children.rs">
-// this_file: svgn/src/plugins/sort_defs_children.rs
-
-//! Plugin to sort children of `<defs>` elements to improve compression
-//!
-//! This plugin sorts children of defs in order to improve compression. Elements are
-//! sorted first by frequency (most frequent first), then by element name length 
-//! (longer names first), then alphabetically by element name.
-
-use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-use std::collections::HashMap;
-use std::cmp::Ordering;
-
-/// Plugin to sort defs children for better compression
-pub struct SortDefsChildrenPlugin;
-
-impl Plugin for SortDefsChildrenPlugin {
-    fn name(&self) -> &'static str {
-        "sortDefsChildren"
-    }
-
-    fn description(&self) -> &'static str {
-        "Sorts children of <defs> to improve compression"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        self.process_element(&mut document.root);
-        Ok(())
-    }
-}
-
-impl SortDefsChildrenPlugin {
-    fn process_element(&self, element: &mut Element) {
-        // Sort children if this is a defs element
-        if element.name == "defs" {
-            self.sort_defs_children(element);
-        }
-
-        // Process children recursively
-        for child in &mut element.children {
-            if let Node::Element(ref mut elem) = child {
-                self.process_element(elem);
-            }
-        }
-    }
-
-    fn sort_defs_children(&self, defs: &mut Element) {
-        // Count frequencies of element names
-        let mut frequencies: HashMap<String, usize> = HashMap::new();
-        
-        for child in &defs.children {
-            if let Node::Element(ref elem) = child {
-                *frequencies.entry(elem.name.clone()).or_insert(0) += 1;
-            }
-        }
-
-        // Sort children based on frequency, name length, and name
-        defs.children.sort_by(|a, b| {
-            match (a, b) {
-                (Node::Element(elem_a), Node::Element(elem_b)) => {
-                    // First, sort by frequency (descending)
-                    let freq_a = frequencies.get(&elem_a.name).unwrap_or(&0);
-                    let freq_b = frequencies.get(&elem_b.name).unwrap_or(&0);
-                    
-                    match freq_b.cmp(freq_a) {
-                        Ordering::Equal => {
-                            // Then by name length (descending)
-                            match elem_b.name.len().cmp(&elem_a.name.len()) {
-                                Ordering::Equal => {
-                                    // Finally by name (descending/reverse alphabetical)
-                                    elem_b.name.cmp(&elem_a.name)
-                                }
-                                other => other
-                            }
-                        }
-                        other => other
+        // Check for zero-size elements
+        if config.zero_size {
+            match element.name.as_str() {
+                "rect" | "image" | "pattern" => {
+                    if self.is_zero_dimension(element, "width") || self.is_zero_dimension(element, "height") {
+                        return true;
                     }
                 }
-                // Non-element nodes maintain their relative order
-                _ => Ordering::Equal
+                "circle" => {
+                    if self.is_zero_dimension(element, "r") {
+                        return true;
+                    }
+                }
+                "ellipse" => {
+                    if self.is_zero_dimension(element, "rx") || self.is_zero_dimension(element, "ry") {
+                        return true;
+                    }
+                }
+                "line" => {
+                    // Line is hidden if start and end points are the same
+                    let x1 = self.get_numeric_attr(element, "x1").unwrap_or(0.0);
+                    let y1 = self.get_numeric_attr(element, "y1").unwrap_or(0.0);
+                    let x2 = self.get_numeric_attr(element, "x2").unwrap_or(0.0);
+                    let y2 = self.get_numeric_attr(element, "y2").unwrap_or(0.0);
+                    if x1 == x2 && y1 == y2 {
+                        return true;
+                    }
+                }
+                "polyline" | "polygon" => {
+                    if let Some(points) = element.attributes.get("points") {
+                        if points.trim().is_empty() {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
+                "path" => {
+                    if let Some(d) = element.attributes.get("d") {
+                        if d.trim().is_empty() {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Check for empty groups
+        if config.empty_groups && element.name == "g" && element.children.is_empty() {
+            return true;
+        }
+
+        false
+    }
+
+    fn is_zero_dimension(&self, element: &Element, attr_name: &str) -> bool {
+        if let Some(value) = element.attributes.get(attr_name) {
+            if let Ok(num_val) = value.parse::<f64>() {
+                return num_val == 0.0;
+            }
+        }
+        false
+    }
+
+    fn get_numeric_attr(&self, element: &Element, attr_name: &str) -> Option<f64> {
+        element.attributes.get(attr_name)?.parse::<f64>().ok()
+    }
+
+    fn process_element(&self, element: &mut Element, config: &RemoveHiddenElemsConfig) {
+        // Process children first (bottom-up) and remove hidden elements
+        element.children.retain_mut(|child| {
+            if let Node::Element(ref mut child_elem) = child {
+                // First process the child's children
+                self.process_element(child_elem, config);
+                
+                // Then check if the child itself should be removed
+                !self.is_hidden(child_elem, config)
+            } else {
+                true // Keep non-element nodes
             }
         });
     }
@@ -1618,10 +386,14 @@ mod tests {
         }
     }
 
-    fn create_element(name: &str) -> Element {
+    fn create_element(name: &str, attrs: Vec<(&str, &str)>) -> Element {
+        let mut attributes = IndexMap::new();
+        for (k, v) in attrs {
+            attributes.insert(k.to_string(), v.to_string());
+        }
         Element {
             name: name.to_string(),
-            attributes: IndexMap::new(),
+            attributes,
             namespaces: HashMap::new(),
             children: vec![],
         }
@@ -1629,307 +401,632 @@ mod tests {
 
     #[test]
     fn test_plugin_name_and_description() {
-        let plugin = SortDefsChildrenPlugin;
-        assert_eq!(plugin.name(), "sortDefsChildren");
-        assert_eq!(plugin.description(), "Sorts children of <defs> to improve compression");
+        let plugin = RemoveHiddenElemsPlugin;
+        assert_eq!(plugin.name(), "removeHiddenElems");
+        assert_eq!(plugin.description(), "removes hidden elements (disabled by default)");
     }
 
     #[test]
-    fn test_sort_by_frequency() {
+    fn test_remove_display_none() {
         let mut document = create_test_document();
         
-        let defs = Element {
-            name: "defs".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                Node::Element(create_element("pattern")),
-                Node::Element(create_element("linearGradient")),
-                Node::Element(create_element("pattern")),
-                Node::Element(create_element("mask")),
-                Node::Element(create_element("pattern")),
-                Node::Element(create_element("linearGradient")),
-            ],
-        };
+        document.root.children = vec![
+            Node::Element(create_element("rect", vec![("display", "none"), ("width", "100"), ("height", "100")])),
+            Node::Element(create_element("circle", vec![("display", "block"), ("r", "50")])),
+        ];
 
-        document.root.children = vec![Node::Element(defs)];
-
-        let mut plugin = SortDefsChildrenPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
 
-        // Should be sorted by frequency: pattern (3), linearGradient (2), mask (1)
-        if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
-                .filter_map(|child| {
-                    if let Node::Element(elem) = child {
-                        Some(elem.name.as_str())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            
-            assert_eq!(names, vec!["pattern", "pattern", "pattern", "linearGradient", "linearGradient", "mask"]);
-        } else {
-            panic!("Expected defs element");
+        // Element with display="none" should be removed
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.name, "circle");
         }
     }
 
     #[test]
-    fn test_sort_by_name_length() {
+    fn test_remove_visibility_hidden() {
         let mut document = create_test_document();
         
-        let defs = Element {
-            name: "defs".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                Node::Element(create_element("g")),
-                Node::Element(create_element("use")),
-                Node::Element(create_element("path")),
-                Node::Element(create_element("rect")),
-            ],
-        };
+        document.root.children = vec![
+            Node::Element(create_element("rect", vec![("visibility", "hidden"), ("width", "100")])),
+            Node::Element(create_element("rect", vec![("visibility", "collapse"), ("width", "100")])),
+            Node::Element(create_element("rect", vec![("visibility", "visible"), ("width", "100")])),
+        ];
 
-        document.root.children = vec![Node::Element(defs)];
-
-        let mut plugin = SortDefsChildrenPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
 
-        // Should be sorted by name length (all have frequency 1)
-        if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
-                .filter_map(|child| {
-                    if let Node::Element(elem) = child {
-                        Some(elem.name.as_str())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            
-            // Length 4 elements come first, then sorted alphabetically in reverse
-            assert_eq!(names, vec!["rect", "path", "use", "g"]);
-        } else {
-            panic!("Expected defs element");
+        // Elements with visibility="hidden" or "collapse" should be removed
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.attributes.get("visibility"), Some(&"visible".to_string()));
         }
     }
 
     #[test]
-    fn test_sort_alphabetically() {
+    fn test_remove_opacity_zero() {
         let mut document = create_test_document();
         
-        let defs = Element {
-            name: "defs".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                Node::Element(create_element("abc")),
-                Node::Element(create_element("xyz")),
-                Node::Element(create_element("def")),
-                Node::Element(create_element("mno")),
-            ],
-        };
+        document.root.children = vec![
+            Node::Element(create_element("rect", vec![("opacity", "0"), ("width", "100")])),
+            Node::Element(create_element("rect", vec![("opacity", "0.0"), ("width", "100")])),
+            Node::Element(create_element("rect", vec![("opacity", "0.5"), ("width", "100")])),
+        ];
 
-        document.root.children = vec![Node::Element(defs)];
-
-        let mut plugin = SortDefsChildrenPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
 
-        // Should be sorted reverse alphabetically (all same length and frequency)
-        if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
-                .filter_map(|child| {
-                    if let Node::Element(elem) = child {
-                        Some(elem.name.as_str())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            
-            assert_eq!(names, vec!["xyz", "mno", "def", "abc"]);
-        } else {
-            panic!("Expected defs element");
+        // Elements with opacity="0" should be removed
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.attributes.get("opacity"), Some(&"0.5".to_string()));
         }
     }
 
     #[test]
-    fn test_preserve_non_element_nodes() {
+    fn test_remove_zero_width_rect() {
         let mut document = create_test_document();
         
-        let defs = Element {
-            name: "defs".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                Node::Comment(" Start ".to_string()),
-                Node::Element(create_element("pattern")),
-                Node::Text(" whitespace ".to_string()),
-                Node::Element(create_element("mask")),
-                Node::Comment(" End ".to_string()),
-            ],
-        };
+        document.root.children = vec![
+            Node::Element(create_element("rect", vec![("width", "0"), ("height", "100")])),
+            Node::Element(create_element("rect", vec![("width", "100"), ("height", "0")])),
+            Node::Element(create_element("rect", vec![("width", "100"), ("height", "100")])),
+        ];
 
-        document.root.children = vec![Node::Element(defs)];
-
-        let mut plugin = SortDefsChildrenPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
 
-        // Non-element nodes should maintain relative position
-        if let Node::Element(ref defs) = document.root.children[0] {
-            assert_eq!(defs.children.len(), 5);
-            // Comments and text nodes are preserved
-            assert!(matches!(defs.children[0], Node::Comment(_)));
-            assert!(matches!(defs.children[2], Node::Text(_)));
-            assert!(matches!(defs.children[4], Node::Comment(_)));
-        } else {
-            panic!("Expected defs element");
+        // Rects with zero width or height should be removed
+        assert_eq!(document.root.children.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_zero_radius_circle() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_element("circle", vec![("r", "0"), ("cx", "50"), ("cy", "50")])),
+            Node::Element(create_element("circle", vec![("r", "50"), ("cx", "50"), ("cy", "50")])),
+        ];
+
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Circle with zero radius should be removed
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.attributes.get("r"), Some(&"50".to_string()));
         }
     }
 
     #[test]
-    fn test_nested_defs() {
+    fn test_remove_zero_radius_ellipse() {
         let mut document = create_test_document();
         
-        // Create nested defs structure
-        let inner_defs = Element {
-            name: "defs".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                Node::Element(create_element("rect")),
-                Node::Element(create_element("circle")),
-            ],
-        };
+        document.root.children = vec![
+            Node::Element(create_element("ellipse", vec![("rx", "0"), ("ry", "50")])),
+            Node::Element(create_element("ellipse", vec![("rx", "50"), ("ry", "0")])),
+            Node::Element(create_element("ellipse", vec![("rx", "50"), ("ry", "30")])),
+        ];
 
-        let outer_defs = Element {
-            name: "defs".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                Node::Element(create_element("path")),
-                Node::Element(inner_defs),
-                Node::Element(create_element("ellipse")),
-            ],
-        };
-
-        document.root.children = vec![Node::Element(outer_defs)];
-
-        let mut plugin = SortDefsChildrenPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
 
-        // Both outer and inner defs should be sorted
-        if let Node::Element(ref outer_defs) = document.root.children[0] {
-            // Check outer defs sorting
-            let outer_names: Vec<&str> = outer_defs.children.iter()
-                .filter_map(|child| {
-                    if let Node::Element(elem) = child {
-                        Some(elem.name.as_str())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            
-            // Should be sorted by length: ellipse(7), path(4), defs(4)
-            assert_eq!(outer_names, vec!["ellipse", "path", "defs"]);
-            
-            // Check inner defs sorting
-            if let Node::Element(ref inner_defs) = outer_defs.children[2] {
-                let inner_names: Vec<&str> = inner_defs.children.iter()
-                    .filter_map(|child| {
-                        if let Node::Element(elem) = child {
-                            Some(elem.name.as_str())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                
-                // Should be sorted by length: circle(6), rect(4)
-                assert_eq!(inner_names, vec!["circle", "rect"]);
-            }
-        } else {
-            panic!("Expected outer defs element");
+        // Ellipses with zero rx or ry should be removed
+        assert_eq!(document.root.children.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_empty_path() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_element("path", vec![("d", "")])),
+            Node::Element(create_element("path", vec![("d", "  ")])),
+            Node::Element(create_element("path", vec![("d", "M10,10 L20,20")])),
+            Node::Element(create_element("path", vec![])), // No d attribute
+        ];
+
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Empty paths should be removed
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.attributes.get("d"), Some(&"M10,10 L20,20".to_string()));
         }
     }
 
     #[test]
-    fn test_empty_defs() {
+    fn test_remove_empty_groups() {
         let mut document = create_test_document();
         
-        let defs = Element {
-            name: "defs".to_string(),
+        let empty_group = Element {
+            name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
             children: vec![],
         };
 
-        document.root.children = vec![Node::Element(defs)];
+        let mut filled_group = Element {
+            name: "g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![Node::Element(create_element("rect", vec![("width", "100"), ("height", "100")]))],
+        };
 
-        let mut plugin = SortDefsChildrenPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        document.root.children = vec![
+            Node::Element(empty_group),
+            Node::Element(filled_group),
+        ];
+
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
 
-        // Should handle empty defs gracefully
-        if let Node::Element(ref defs) = document.root.children[0] {
-            assert_eq!(defs.children.len(), 0);
-        } else {
-            panic!("Expected defs element");
+        // Empty group should be removed
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.children.len(), 1);
         }
     }
 
     #[test]
-    fn test_complex_sorting() {
+    fn test_config_display_none_disabled() {
         let mut document = create_test_document();
         
-        let defs = Element {
-            name: "defs".to_string(),
+        document.root.children = vec![
+            Node::Element(create_element("rect", vec![("display", "none"), ("width", "100")])),
+        ];
+
+        let config = serde_json::json!({
+            "displayNone": false
+        });
+
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&config));
+        assert!(result.is_ok());
+
+        // Element should not be removed when displayNone is disabled
+        assert_eq!(document.root.children.len(), 1);
+    }
+
+    #[test]
+    fn test_nested_hidden_elements() {
+        let mut document = create_test_document();
+        
+        let mut group = Element {
+            name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
             children: vec![
-                // Mix of frequencies and lengths
-                Node::Element(create_element("a")),     // freq=1, len=1
-                Node::Element(create_element("bb")),    // freq=2, len=2
-                Node::Element(create_element("ccc")),   // freq=1, len=3
-                Node::Element(create_element("a")),     // freq=2 now
-                Node::Element(create_element("bb")),    // freq=2, len=2
-                Node::Element(create_element("dddd")),  // freq=1, len=4
+                Node::Element(create_element("rect", vec![("display", "none"), ("width", "100")])),
+                Node::Element(create_element("circle", vec![("r", "50")])),
+                Node::Element(create_element("rect", vec![("visibility", "hidden"), ("width", "100")])),
             ],
         };
 
-        document.root.children = vec![Node::Element(defs)];
+        document.root.children = vec![Node::Element(group)];
 
-        let mut plugin = SortDefsChildrenPlugin;
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Hidden elements within group should be removed
+        if let Node::Element(group) = &document.root.children[0] {
+            assert_eq!(group.children.len(), 1);
+            if let Node::Element(elem) = &group.children[0] {
+                assert_eq!(elem.name, "circle");
+            }
+        }
+    }
+
+    #[test]
+    fn test_zero_line() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "10"), ("y2", "10")])),
+            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "20"), ("y2", "20")])),
+        ];
+
+        let mut plugin = RemoveHiddenElemsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Line with same start and end points should be removed
+        assert_eq!(document.root.children.len(), 1);
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/remove_raster_images.rs">
+// this_file: svgn/src/plugins/remove_raster_images.rs
+
+//! Plugin to remove raster image references
+//!
+//! This plugin removes `<image>` elements that reference raster images (JPEG, PNG, GIF).
+//! This is useful when you want a pure vector SVG without embedded or linked bitmaps.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+use regex::Regex;
+use once_cell::sync::Lazy;
+
+/// Regex to detect raster image references
+static RASTER_IMAGE_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(\.|image/)(jpe?g|png|gif)").unwrap()
+});
+
+/// Plugin to remove raster image references (disabled by default)
+pub struct RemoveRasterImagesPlugin;
+
+impl Plugin for RemoveRasterImagesPlugin {
+    fn name(&self) -> &'static str {
+        "removeRasterImages"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes raster images (disabled by default)"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        self.process_element(&mut document.root);
+        Ok(())
+    }
+}
+
+impl RemoveRasterImagesPlugin {
+    fn process_element(&self, element: &mut Element) {
+        // Filter out raster image elements
+        element.children.retain(|child| {
+            if let Node::Element(ref elem) = child {
+                !self.is_raster_image(elem)
+            } else {
+                true
+            }
+        });
+
+        // Process remaining children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut elem) = child {
+                self.process_element(elem);
+            }
+        }
+    }
+
+    fn is_raster_image(&self, element: &Element) -> bool {
+        if element.name != "image" {
+            return false;
+        }
+
+        // Check both xlink:href and href attributes
+        for attr_name in ["xlink:href", "href"] {
+            if let Some(href_value) = element.attributes.get(attr_name) {
+                if RASTER_IMAGE_REGEX.is_match(href_value) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    fn create_image_element(href_attr: &str, href_value: &str) -> Element {
+        let mut attributes = IndexMap::new();
+        attributes.insert(href_attr.to_string(), href_value.to_string());
+        attributes.insert("width".to_string(), "100".to_string());
+        attributes.insert("height".to_string(), "100".to_string());
+        
+        Element {
+            name: "image".to_string(),
+            attributes,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = RemoveRasterImagesPlugin;
+        assert_eq!(plugin.name(), "removeRasterImages");
+        assert_eq!(plugin.description(), "removes raster images (disabled by default)");
+    }
+
+    #[test]
+    fn test_remove_jpeg_image() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "photo.jpg")),
+            Node::Element(create_image_element("xlink:href", "image.jpeg")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
         assert!(result.is_ok());
 
-        if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
-                .filter_map(|child| {
-                    if let Node::Element(elem) = child {
-                        Some(elem.name.as_str())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            
-            // Expected order:
-            // - First by frequency: a(2), bb(2), then ccc(1), dddd(1)
-            // - Within same frequency, by length: bb(2) before a(1), dddd(4) before ccc(3)
-            assert_eq!(names, vec!["bb", "bb", "a", "a", "dddd", "ccc"]);
+        // Both JPEG images should be removed
+        assert_eq!(document.root.children.len(), 0);
+    }
+
+    #[test]
+    fn test_remove_png_image() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "icon.png")),
+            Node::Element(create_image_element("href", "logo.png")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Both PNG images should be removed
+        assert_eq!(document.root.children.len(), 0);
+    }
+
+    #[test]
+    fn test_remove_gif_image() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "animation.gif")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // GIF image should be removed
+        assert_eq!(document.root.children.len(), 0);
+    }
+
+    #[test]
+    fn test_remove_data_uri_images() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "data:image/jpeg;base64,/9j/4AAQ...")),
+            Node::Element(create_image_element("href", "data:image/png;base64,iVBORw0KGgo...")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Data URI raster images should be removed
+        assert_eq!(document.root.children.len(), 0);
+    }
+
+    #[test]
+    fn test_preserve_svg_images() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "icon.svg")),
+            Node::Element(create_image_element("href", "#symbol1")),
+            Node::Element(create_image_element("xlink:href", "drawing.svgz")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // SVG images should be preserved
+        assert_eq!(document.root.children.len(), 3);
+    }
+
+    #[test]
+    fn test_preserve_non_image_elements() {
+        let mut document = create_test_document();
+        
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("xlink:href".to_string(), "photo.jpg".to_string());
+        
+        let rect_element = Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![
+            Node::Element(rect_element),
+            Node::Element(create_image_element("xlink:href", "icon.svg")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Non-image elements should be preserved even with raster hrefs
+        assert_eq!(document.root.children.len(), 2);
+    }
+
+    #[test]
+    fn test_case_sensitivity() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "photo.JPG")),
+            Node::Element(create_image_element("xlink:href", "image.JPEG")),
+            Node::Element(create_image_element("xlink:href", "icon.PNG")),
+            Node::Element(create_image_element("xlink:href", "anim.GIF")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // The regex is case-sensitive, so uppercase extensions are preserved
+        assert_eq!(document.root.children.len(), 4);
+    }
+
+    #[test]
+    fn test_nested_images() {
+        let mut document = create_test_document();
+        
+        let g_element = Element {
+            name: "g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Element(create_image_element("xlink:href", "photo1.jpg")),
+                Node::Element(create_image_element("href", "icon.svg")),
+                Node::Element(create_image_element("xlink:href", "photo2.png")),
+            ],
+        };
+
+        document.root.children = vec![Node::Element(g_element)];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Only SVG image should remain in the group
+        if let Node::Element(ref g) = document.root.children[0] {
+            assert_eq!(g.children.len(), 1);
+            if let Node::Element(ref img) = g.children[0] {
+                assert_eq!(img.attributes.get("href"), Some(&"icon.svg".to_string()));
+            } else {
+                panic!("Expected image element");
+            }
         } else {
-            panic!("Expected defs element");
+            panic!("Expected g element");
         }
     }
+
+    #[test]
+    fn test_url_with_path() {
+        let mut document = create_test_document();
+        
+        document.root.children = vec![
+            Node::Element(create_image_element("xlink:href", "/images/photo.jpg")),
+            Node::Element(create_image_element("href", "https://example.com/image.png")),
+            Node::Element(create_image_element("xlink:href", "../assets/banner.gif")),
+        ];
+
+        let mut plugin = RemoveRasterImagesPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // All raster images with paths should be removed
+        assert_eq!(document.root.children.len(), 0);
+    }
 }
+</file>
+
+<file path="generate_compatibility_tests.py">
+import os
+import re
+
+def normalize_svg(svg_string):
+    return svg_string.strip().replace('\r\n', '\n')
+
+def generate_rust_test_file(fixtures_dir, output_file):
+    test_cases = []
+    for root, _, files in os.walk(fixtures_dir):
+        for file_name in files:
+            if file_name.endswith(".svg.txt"):
+                file_path = os.path.join(root, file_name)
+                relative_path = os.path.relpath(file_path, fixtures_dir)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Split by '===' to separate description from test case
+                parts = content.split('===')
+                test_content = parts[1] if len(parts) > 1 else parts[0]
+
+                # Split by '@@@' to separate original, expected, and params
+                test_parts = test_content.split('@@@')
+                original_svg = normalize_svg(test_parts[0])
+                expected_svg = normalize_svg(test_parts[1]) if len(test_parts) > 1 else ""
+                params_json = test_parts[2].strip() if len(test_parts) > 2 else "{}"
+
+                # Extract plugin name from filename (e.g., removeComments.01.svg.txt -> removeComments)
+                plugin_name_match = re.match(r'([a-zA-Z0-9]+)\.\d+\.svg\.txt', file_name)
+                plugin_name = plugin_name_match.group(1) if plugin_name_match else "unknown_plugin"
+
+                test_cases.append({
+                    "name": os.path.splitext(os.path.splitext(file_name)[0])[0].replace('.', '_').replace('-', '_'),
+                    "original": original_svg,
+                    "expected": expected_svg,
+                    "plugin_name": plugin_name,
+                    "params": params_json,
+                    "file_path": relative_path.replace('\\', '/'), # Use forward slashes for Rust path
+                })
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("// This file is auto-generated by generate_compatibility_tests.py\n")
+        f.write("// Do not modify it directly.\n\n")
+        f.write("use crate::optimize;\n")
+        f.write("use crate::config::{Config, PluginConfig};\n")
+        f.write("use std::collections::HashMap;\n")
+        f.write("use serde_json::from_str;\n\n")
+        f.write("fn normalize_svg(s: &str) -> String {\n")
+        f.write("    s.trim().replace("\r\n", "\n").to_string()\n")
+        f.write("}\n\n")
+        f.write("#[test]\n")
+        f.write("fn compatibility_tests() {\n")
+        f.write("    let test_cases: Vec<(&str, &str, &str, &str, &str)> = vec![\n")
+        for case in test_cases:
+            f.write(f"        ("{case['name']}", r#"{case['original']}"#, r#"{case['expected']}"#, "{case['plugin_name']}", r#"{case['params']}"#),\n")
+        f.write("    ];\n\n")
+        f.write("    for (name, original, expected, plugin_name, params_json) in test_cases {\n")
+        f.write("        println!(\"Running test: {{}}\", name);\n")
+        f.write("        let mut config = Config::default();\n")
+        f.write("        let mut plugin_map = HashMap::new();\n")
+        f.write("        let params: serde_json::Value = from_str(params_json).unwrap();\n")
+        f.write("        plugin_map.insert(plugin_name.to_string(), params);\n")
+        f.write("        config.plugins = Some(vec![PluginConfig::Enabled {{ name: plugin_name.to_string(), params: Some(plugin_map) }}]);\n")
+        f.write("        \n")
+        f.write("        let result = optimize(original.to_string(), Some(config));\n")
+        f.write("        assert!(result.is_ok(), \"Test {{}} failed with error: {{:?}}\", name, result.err());\n")
+        f.write("        let optimized_svg = normalize_svg(&result.unwrap().data);\n")
+        f.write("        assert_eq!(optimized_svg, expected, \"Test {{}} failed\\nOriginal:\\n{{}}\\nExpected:\\n{{}}\\nActual:\\n{{}}\", name, original, expected, optimized_svg);\n")
+        f.write("    }\n")
+        f.write("}\n")
+
+if __name__ == "__main__":
+    fixtures_dir = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/ref/svgo/test/plugins"
+    output_file = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/compatibility_plugins_test.rs"
+    generate_rust_test_file(fixtures_dir, output_file)
+
+    fixtures_dir = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/ref/svgo/test/svgo"
+    output_file = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/compatibility_svgo_test.rs"
+    generate_rust_test_file(fixtures_dir, output_file)
 </file>
 
 <file path=".specstory/.what-is-this.md">
@@ -9933,6 +9030,318 @@ mod tests {
 }
 </file>
 
+<file path="svgn/src/plugins/remove_unused_ns.rs">
+// this_file: svgn/src/plugins/remove_unused_ns.rs
+
+//! Plugin to remove unused namespace declarations
+//!
+//! This plugin removes unused namespace declarations from the root SVG element
+//! which are not used in elements or attributes throughout the document.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+use std::collections::HashSet;
+
+/// Plugin to remove unused namespace declarations
+pub struct RemoveUnusedNSPlugin;
+
+impl Plugin for RemoveUnusedNSPlugin {
+    fn name(&self) -> &'static str {
+        "removeUnusedNS"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes unused namespaces declaration"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        // First, collect all namespace declarations from the root SVG element
+        let mut unused_namespaces = HashSet::new();
+        
+        // Collect xmlns: attributes from root element
+        for attr_name in document.root.attributes.keys() {
+            if attr_name.starts_with("xmlns:") {
+                let local = attr_name.strip_prefix("xmlns:").unwrap();
+                unused_namespaces.insert(local.to_string());
+            }
+        }
+
+        // Traverse the document and remove used namespaces from the unused set
+        self.check_usage(&document.root, &mut unused_namespaces);
+
+        // Remove unused namespace declarations from root element
+        for ns in &unused_namespaces {
+            let xmlns_attr = format!("xmlns:{}", ns);
+            document.root.attributes.shift_remove(&xmlns_attr);
+        }
+
+        Ok(())
+    }
+}
+
+impl RemoveUnusedNSPlugin {
+    fn check_usage(&self, element: &Element, unused_namespaces: &mut HashSet<String>) {
+        // Check if element name uses a namespace
+        if element.name.contains(':') {
+            let parts: Vec<&str> = element.name.split(':').collect();
+            if parts.len() >= 2 {
+                let ns = parts[0];
+                unused_namespaces.remove(ns);
+            }
+        }
+
+        // Check if any attributes use namespaces
+        for attr_name in element.attributes.keys() {
+            if attr_name.contains(':') {
+                let parts: Vec<&str> = attr_name.split(':').collect();
+                if parts.len() >= 2 {
+                    let ns = parts[0];
+                    unused_namespaces.remove(ns);
+                }
+            }
+        }
+
+        // Recursively check children
+        for child in &element.children {
+            if let Node::Element(ref elem) = child {
+                self.check_usage(elem, unused_namespaces);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = RemoveUnusedNSPlugin;
+        assert_eq!(plugin.name(), "removeUnusedNS");
+        assert_eq!(plugin.description(), "removes unused namespaces declaration");
+    }
+
+    #[test]
+    fn test_remove_unused_namespace() {
+        let mut document = create_test_document();
+        
+        // Add unused namespace
+        document.root.attributes.insert("xmlns:unused".to_string(), "http://example.com/unused".to_string());
+        document.root.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
+
+        // Add an element that uses xlink
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("xlink:href".to_string(), "#test".to_string());
+        
+        let rect_element = Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(rect_element)];
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // unused namespace should be removed, xlink should remain
+        assert!(!document.root.attributes.contains_key("xmlns:unused"));
+        assert!(document.root.attributes.contains_key("xmlns:xlink"));
+    }
+
+    #[test]
+    fn test_preserve_used_namespace_in_element_name() {
+        let mut document = create_test_document();
+        
+        // Add namespace
+        document.root.attributes.insert("xmlns:svg".to_string(), "http://www.w3.org/2000/svg".to_string());
+        
+        // Add a child element with namespaced name
+        let ns_element = Element {
+            name: "svg:g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(ns_element)];
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // svg namespace should be preserved
+        assert!(document.root.attributes.contains_key("xmlns:svg"));
+    }
+
+    #[test]
+    fn test_preserve_used_namespace_in_attributes() {
+        let mut document = create_test_document();
+        
+        // Add namespace
+        document.root.attributes.insert("xmlns:custom".to_string(), "http://example.com/custom".to_string());
+        
+        // Add an element with namespaced attribute
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("custom:data".to_string(), "value".to_string());
+        
+        let element = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(element)];
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // custom namespace should be preserved
+        assert!(document.root.attributes.contains_key("xmlns:custom"));
+    }
+
+    #[test]
+    fn test_remove_all_unused_namespaces() {
+        let mut document = create_test_document();
+        
+        // Add multiple unused namespaces
+        document.root.attributes.insert("xmlns:ns1".to_string(), "http://example.com/ns1".to_string());
+        document.root.attributes.insert("xmlns:ns2".to_string(), "http://example.com/ns2".to_string());
+        document.root.attributes.insert("xmlns:ns3".to_string(), "http://example.com/ns3".to_string());
+
+        // Add an element without any namespace usage
+        let element = Element {
+            name: "rect".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(element)];
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // All unused namespaces should be removed
+        assert!(!document.root.attributes.contains_key("xmlns:ns1"));
+        assert!(!document.root.attributes.contains_key("xmlns:ns2"));
+        assert!(!document.root.attributes.contains_key("xmlns:ns3"));
+    }
+
+    #[test]
+    fn test_no_namespaces_to_remove() {
+        let mut document = create_test_document();
+        
+        // No xmlns: attributes
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        document.root.attributes.insert("height".to_string(), "100".to_string());
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should still have original attributes
+        assert_eq!(document.root.attributes["width"], "100");
+        assert_eq!(document.root.attributes["height"], "100");
+    }
+
+    #[test]
+    fn test_nested_element_namespace_usage() {
+        let mut document = create_test_document();
+        
+        // Add namespace
+        document.root.attributes.insert("xmlns:deep".to_string(), "http://example.com/deep".to_string());
+        
+        // Create nested structure where namespace is used deep in the tree
+        let mut deep_attrs = IndexMap::new();
+        deep_attrs.insert("deep:attr".to_string(), "value".to_string());
+        
+        let deep_element = Element {
+            name: "text".to_string(),
+            attributes: deep_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        let middle_element = Element {
+            name: "g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![Node::Element(deep_element)],
+        };
+
+        let container_element = Element {
+            name: "g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![Node::Element(middle_element)],
+        };
+
+        document.root.children = vec![Node::Element(container_element)];
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // deep namespace should be preserved (used in nested element)
+        assert!(document.root.attributes.contains_key("xmlns:deep"));
+    }
+
+    #[test]
+    fn test_mixed_used_and_unused_namespaces() {
+        let mut document = create_test_document();
+        
+        // Add multiple namespaces
+        document.root.attributes.insert("xmlns:used".to_string(), "http://example.com/used".to_string());
+        document.root.attributes.insert("xmlns:unused".to_string(), "http://example.com/unused".to_string());
+        document.root.attributes.insert("xmlns:alsounused".to_string(), "http://example.com/alsounused".to_string());
+        
+        // Add an element that uses only one namespace
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("used:data".to_string(), "value".to_string());
+        
+        let element = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(element)];
+
+        let mut plugin = RemoveUnusedNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Only used namespace should remain
+        assert!(document.root.attributes.contains_key("xmlns:used"));
+        assert!(!document.root.attributes.contains_key("xmlns:unused"));
+        assert!(!document.root.attributes.contains_key("xmlns:alsounused"));
+    }
+}
+</file>
+
 <file path="svgn/src/plugins/remove_useless_defs.rs">
 // this_file: svgn/src/plugins/remove_useless_defs.rs
 
@@ -10295,6 +9704,799 @@ mod tests {
 }
 </file>
 
+<file path="svgn/src/plugins/remove_view_box.rs">
+// this_file: svgn/src/plugins/remove_view_box.rs
+
+//! Plugin to remove viewBox attribute when possible
+//!
+//! This plugin removes the viewBox attribute when it coincides with width/height box.
+//! For example, `<svg width="100" height="50" viewBox="0 0 100 50">` becomes 
+//! `<svg width="100" height="50">`.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+
+/// Elements that can have viewBox attributes
+const VIEWBOX_ELEMENTS: &[&str] = &["pattern", "svg", "symbol"];
+
+/// Plugin to remove redundant viewBox attributes
+pub struct RemoveViewBoxPlugin;
+
+impl Plugin for RemoveViewBoxPlugin {
+    fn name(&self) -> &'static str {
+        "removeViewBox"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes viewBox attribute when possible"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        self.process_element(&mut document.root, true);
+        Ok(())
+    }
+}
+
+impl RemoveViewBoxPlugin {
+    fn process_element(&self, element: &mut Element, is_root: bool) {
+        // Check if this element can have a viewBox
+        if VIEWBOX_ELEMENTS.contains(&element.name.as_str()) {
+            self.check_and_remove_viewbox(element, is_root);
+        }
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut elem) = child {
+                self.process_element(elem, false);
+            }
+        }
+    }
+
+    fn check_and_remove_viewbox(&self, element: &mut Element, is_root: bool) {
+        // Skip nested SVG elements (keep their viewBox)
+        if element.name == "svg" && !is_root {
+            return;
+        }
+
+        // Check if element has viewBox, width, and height attributes
+        if let (Some(view_box), Some(width), Some(height)) = (
+            element.attributes.get("viewBox"),
+            element.attributes.get("width"),
+            element.attributes.get("height"),
+        ) {
+            if self.can_remove_viewbox(view_box, width, height) {
+                element.attributes.shift_remove("viewBox");
+            }
+        }
+    }
+
+    fn can_remove_viewbox(&self, view_box: &str, width: &str, height: &str) -> bool {
+        // Parse viewBox values (format: "min-x min-y width height")
+        let view_box_parts: Vec<&str> = view_box.split(&[' ', ','][..]).filter(|s| !s.is_empty()).collect();
+        
+        if view_box_parts.len() != 4 {
+            return false;
+        }
+
+        // Check if viewBox starts at origin (0,0)
+        if view_box_parts[0] != "0" || view_box_parts[1] != "0" {
+            return false;
+        }
+
+        // Remove 'px' suffix from width/height if present
+        let width_value = width.strip_suffix("px").unwrap_or(width);
+        let height_value = height.strip_suffix("px").unwrap_or(height);
+
+        // Check if viewBox width/height matches element width/height
+        view_box_parts[2] == width_value && view_box_parts[3] == height_value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = RemoveViewBoxPlugin;
+        assert_eq!(plugin.name(), "removeViewBox");
+        assert_eq!(plugin.description(), "removes viewBox attribute when possible");
+    }
+
+    #[test]
+    fn test_remove_redundant_viewbox() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        document.root.attributes.insert("height".to_string(), "50".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be removed
+        assert!(!document.root.attributes.contains_key("viewBox"));
+        assert_eq!(document.root.attributes["width"], "100");
+        assert_eq!(document.root.attributes["height"], "50");
+    }
+
+    #[test]
+    fn test_keep_viewbox_with_px_units() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100px".to_string());
+        document.root.attributes.insert("height".to_string(), "50px".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be removed (px suffix is ignored)
+        assert!(!document.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_keep_viewbox_different_origin() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        document.root.attributes.insert("height".to_string(), "50".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "10 10 100 50".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be kept (different origin)
+        assert!(document.root.attributes.contains_key("viewBox"));
+        assert_eq!(document.root.attributes["viewBox"], "10 10 100 50");
+    }
+
+    #[test]
+    fn test_keep_viewbox_different_dimensions() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        document.root.attributes.insert("height".to_string(), "50".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be kept (different dimensions)
+        assert!(document.root.attributes.contains_key("viewBox"));
+        assert_eq!(document.root.attributes["viewBox"], "0 0 200 100");
+    }
+
+    #[test]
+    fn test_keep_viewbox_missing_width_or_height() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        // Missing height
+        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be kept (missing height)
+        assert!(document.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_comma_separated_viewbox() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        document.root.attributes.insert("height".to_string(), "50".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "0,0,100,50".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be removed (comma-separated format)
+        assert!(!document.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_mixed_separator_viewbox() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+        document.root.attributes.insert("height".to_string(), "50".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "0, 0 100,50".to_string());
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // viewBox should be removed (mixed separators)
+        assert!(!document.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_pattern_element() {
+        let mut document = create_test_document();
+        
+        let mut pattern_attrs = IndexMap::new();
+        pattern_attrs.insert("width".to_string(), "20".to_string());
+        pattern_attrs.insert("height".to_string(), "30".to_string());
+        pattern_attrs.insert("viewBox".to_string(), "0 0 20 30".to_string());
+
+        let pattern_element = Element {
+            name: "pattern".to_string(),
+            attributes: pattern_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(pattern_element)];
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Pattern viewBox should be removed
+        if let Node::Element(ref pattern) = document.root.children[0] {
+            assert_eq!(pattern.name, "pattern");
+            assert!(!pattern.attributes.contains_key("viewBox"));
+            assert_eq!(pattern.attributes["width"], "20");
+            assert_eq!(pattern.attributes["height"], "30");
+        } else {
+            panic!("Expected pattern element");
+        }
+    }
+
+    #[test]
+    fn test_nested_svg_preserved() {
+        let mut document = create_test_document();
+        
+        let mut nested_svg_attrs = IndexMap::new();
+        nested_svg_attrs.insert("width".to_string(), "50".to_string());
+        nested_svg_attrs.insert("height".to_string(), "25".to_string());
+        nested_svg_attrs.insert("viewBox".to_string(), "0 0 50 25".to_string());
+
+        let nested_svg = Element {
+            name: "svg".to_string(),
+            attributes: nested_svg_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(nested_svg)];
+
+        let mut plugin = RemoveViewBoxPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Nested SVG viewBox should be preserved
+        if let Node::Element(ref nested) = document.root.children[0] {
+            assert_eq!(nested.name, "svg");
+            assert!(nested.attributes.contains_key("viewBox"));
+            assert_eq!(nested.attributes["viewBox"], "0 0 50 25");
+        } else {
+            panic!("Expected nested svg element");
+        }
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/remove_xlink.rs">
+// this_file: svgn/src/plugins/remove_xlink.rs
+
+//! Plugin to remove xlink namespace and replace attributes with SVG 2 equivalents
+//!
+//! This plugin removes the deprecated XLink namespace and converts XLink attributes
+//! to their SVG 2 equivalents where applicable. XLink was deprecated in SVG 2.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+use std::collections::HashMap;
+
+/// XLink namespace URI
+const XLINK_NAMESPACE: &str = "http://www.w3.org/1999/xlink";
+
+/// Elements that use xlink:href but were deprecated in SVG 2
+const LEGACY_ELEMENTS: &[&str] = &[
+    "cursor",
+    "filter", 
+    "font-face-uri",
+    "glyphRef",
+    "tref",
+];
+
+/// Configuration for the removeXlink plugin
+#[derive(Debug, Clone)]
+pub struct RemoveXlinkConfig {
+    /// Include legacy elements that don't support SVG 2 href
+    pub include_legacy: bool,
+}
+
+impl Default for RemoveXlinkConfig {
+    fn default() -> Self {
+        Self {
+            include_legacy: false,
+        }
+    }
+}
+
+/// Plugin to remove xlink namespace and convert to SVG 2 equivalents
+pub struct RemoveXlinkPlugin;
+
+impl Plugin for RemoveXlinkPlugin {
+    fn name(&self) -> &'static str {
+        "removeXlink"
+    }
+
+    fn description(&self) -> &'static str {
+        "remove xlink namespace and replaces attributes with the SVG 2 equivalent where applicable"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let config = self.parse_config(params)?;
+        let mut context = XlinkContext::new(config);
+        
+        self.process_element(&mut document.root, &mut context);
+        Ok(())
+    }
+}
+
+struct XlinkContext {
+    config: RemoveXlinkConfig,
+    xlink_prefixes: Vec<String>,
+    used_in_legacy: Vec<String>,
+}
+
+impl XlinkContext {
+    fn new(config: RemoveXlinkConfig) -> Self {
+        Self {
+            config,
+            xlink_prefixes: Vec::new(),
+            used_in_legacy: Vec::new(),
+        }
+    }
+}
+
+impl RemoveXlinkPlugin {
+    fn parse_config(&self, params: Option<&Value>) -> PluginResult<RemoveXlinkConfig> {
+        let mut config = RemoveXlinkConfig::default();
+        
+        if let Some(params_obj) = params {
+            if let Some(include_legacy) = params_obj.get("includeLegacy") {
+                if let Some(val) = include_legacy.as_bool() {
+                    config.include_legacy = val;
+                }
+            }
+        }
+        
+        Ok(config)
+    }
+
+    fn process_element(&self, element: &mut Element, context: &mut XlinkContext) {
+        // Collect xlink namespace prefixes
+        let mut current_xlink_prefixes = Vec::new();
+        
+        for (key, value) in &element.attributes {
+            if key.starts_with("xmlns:") && value == XLINK_NAMESPACE {
+                let prefix = key.strip_prefix("xmlns:").unwrap();
+                current_xlink_prefixes.push(prefix.to_string());
+                context.xlink_prefixes.push(prefix.to_string());
+            }
+        }
+
+        // Handle xlink:href conversion
+        let is_legacy = LEGACY_ELEMENTS.contains(&element.name.as_str());
+        
+        if is_legacy && !context.config.include_legacy {
+            // Mark prefixes as used in legacy elements - check for any xlink attributes
+            let has_xlink_attrs = element.attributes.keys().any(|key| {
+                context.xlink_prefixes.iter().any(|prefix| key.starts_with(&format!("{}:", prefix)))
+            });
+            
+            if has_xlink_attrs {
+                for prefix in &context.xlink_prefixes {
+                    if !context.used_in_legacy.contains(prefix) {
+                        context.used_in_legacy.push(prefix.clone());
+                    }
+                }
+            }
+        } else {
+            // Convert xlink:href to href if no href exists
+            self.convert_href_attributes(element, &context.xlink_prefixes);
+        }
+
+        // Only convert other xlink attributes if not a legacy element or include_legacy is true
+        if !is_legacy || context.config.include_legacy {
+            // Handle xlink:show conversion to target
+            self.convert_show_attributes(element, &context.xlink_prefixes);
+
+            // Handle xlink:title conversion to <title> element
+            self.convert_title_attributes(element, &context.xlink_prefixes);
+
+            // Remove unused xlink attributes
+            self.remove_unused_xlink_attributes(element, &context.xlink_prefixes, &context.used_in_legacy);
+        }
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut elem) = child {
+                self.process_element(elem, context);
+            }
+        }
+
+        // Remove xlink namespace declarations if not used in legacy elements
+        for prefix in &current_xlink_prefixes {
+            if !context.used_in_legacy.contains(prefix) {
+                let xmlns_key = format!("xmlns:{}", prefix);
+                element.attributes.shift_remove(&xmlns_key);
+            }
+        }
+
+        // Remove processed prefixes from context
+        for prefix in &current_xlink_prefixes {
+            context.xlink_prefixes.retain(|p| p != prefix);
+        }
+    }
+
+    fn convert_href_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
+        // Find xlink:href attributes
+        let href_attrs: Vec<String> = element.attributes.keys()
+            .filter(|key| {
+                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:href", prefix))
+            })
+            .cloned()
+            .collect();
+
+        for href_attr in href_attrs {
+            if let Some(href_value) = element.attributes.get(&href_attr).cloned() {
+                // Only convert if no href attribute exists
+                if !element.attributes.contains_key("href") {
+                    element.attributes.insert("href".to_string(), href_value);
+                }
+                element.attributes.shift_remove(&href_attr);
+            }
+        }
+    }
+
+    fn convert_show_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
+        // Find xlink:show attributes
+        let show_attrs: Vec<String> = element.attributes.keys()
+            .filter(|key| {
+                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:show", prefix))
+            })
+            .cloned()
+            .collect();
+
+        for show_attr in show_attrs {
+            if let Some(show_value) = element.attributes.get(&show_attr).cloned() {
+                // Convert to target attribute if no target exists
+                if !element.attributes.contains_key("target") {
+                    let target_value = match show_value.as_str() {
+                        "new" => "_blank",
+                        "replace" => "_self", 
+                        _ => {
+                            // Remove unknown values
+                            element.attributes.shift_remove(&show_attr);
+                            continue;
+                        }
+                    };
+                    element.attributes.insert("target".to_string(), target_value.to_string());
+                }
+                element.attributes.shift_remove(&show_attr);
+            }
+        }
+    }
+
+    fn convert_title_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
+        // Find xlink:title attributes
+        let title_attrs: Vec<String> = element.attributes.keys()
+            .filter(|key| {
+                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:title", prefix))
+            })
+            .cloned()
+            .collect();
+
+        for title_attr in title_attrs {
+            if let Some(title_value) = element.attributes.get(&title_attr).cloned() {
+                // Check if element already has a title child
+                let has_title_child = element.children.iter().any(|child| {
+                    matches!(child, Node::Element(elem) if elem.name == "title")
+                });
+
+                if !has_title_child {
+                    // Create title element
+                    let title_element = Element {
+                        name: "title".to_string(),
+                        attributes: indexmap::IndexMap::new(),
+                        namespaces: HashMap::new(),
+                        children: vec![Node::Text(title_value)],
+                    };
+                    element.children.insert(0, Node::Element(title_element));
+                }
+                element.attributes.shift_remove(&title_attr);
+            }
+        }
+    }
+
+    fn remove_unused_xlink_attributes(&self, element: &mut Element, xlink_prefixes: &[String], used_in_legacy: &[String]) {
+        // Remove any remaining xlink attributes that weren't converted
+        let attrs_to_remove: Vec<String> = element.attributes.keys()
+            .filter(|key| {
+                if let Some(colon_pos) = key.find(':') {
+                    let prefix = &key[..colon_pos];
+                    xlink_prefixes.contains(&prefix.to_string()) && 
+                    !used_in_legacy.contains(&prefix.to_string())
+                } else {
+                    false
+                }
+            })
+            .cloned()
+            .collect();
+
+        for attr in attrs_to_remove {
+            element.attributes.shift_remove(&attr);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = RemoveXlinkPlugin;
+        assert_eq!(plugin.name(), "removeXlink");
+        assert_eq!(plugin.description(), "remove xlink namespace and replaces attributes with the SVG 2 equivalent where applicable");
+    }
+
+    #[test]
+    fn test_convert_xlink_href_to_href() {
+        let mut document = create_test_document();
+        
+        // Add xlink namespace
+        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+        
+        // Add element with xlink:href
+        let mut use_attrs = IndexMap::new();
+        use_attrs.insert("xlink:href".to_string(), "#symbol1".to_string());
+        
+        let use_element = Element {
+            name: "use".to_string(),
+            attributes: use_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(use_element)];
+
+        let mut plugin = RemoveXlinkPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // xlink:href should be converted to href
+        if let Node::Element(ref use_elem) = document.root.children[0] {
+            assert!(!use_elem.attributes.contains_key("xlink:href"));
+            assert_eq!(use_elem.attributes.get("href"), Some(&"#symbol1".to_string()));
+        } else {
+            panic!("Expected use element");
+        }
+
+        // xlink namespace should be removed
+        assert!(!document.root.attributes.contains_key("xmlns:xlink"));
+    }
+
+    #[test]
+    fn test_preserve_existing_href() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+        
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("href".to_string(), "#existing".to_string());
+        element_attrs.insert("xlink:href".to_string(), "#xlink".to_string());
+        
+        let element = Element {
+            name: "a".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(element)];
+
+        let mut plugin = RemoveXlinkPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should preserve existing href and remove xlink:href
+        if let Node::Element(ref elem) = document.root.children[0] {
+            assert!(!elem.attributes.contains_key("xlink:href"));
+            assert_eq!(elem.attributes.get("href"), Some(&"#existing".to_string()));
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_convert_xlink_show_to_target() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+        
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("xlink:show".to_string(), "new".to_string());
+        
+        let element = Element {
+            name: "a".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(element)];
+
+        let mut plugin = RemoveXlinkPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // xlink:show="new" should become target="_blank"
+        if let Node::Element(ref elem) = document.root.children[0] {
+            assert!(!elem.attributes.contains_key("xlink:show"));
+            assert_eq!(elem.attributes.get("target"), Some(&"_blank".to_string()));
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_convert_xlink_title_to_title_element() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+        
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("xlink:title".to_string(), "Element title".to_string());
+        
+        let element = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(element)];
+
+        let mut plugin = RemoveXlinkPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // xlink:title should be converted to title element
+        if let Node::Element(ref elem) = document.root.children[0] {
+            assert!(!elem.attributes.contains_key("xlink:title"));
+            assert_eq!(elem.children.len(), 1);
+            
+            if let Node::Element(ref title) = elem.children[0] {
+                assert_eq!(title.name, "title");
+                assert_eq!(title.children.len(), 1);
+                if let Node::Text(ref text) = title.children[0] {
+                    assert_eq!(text, "Element title");
+                } else {
+                    panic!("Expected text in title");
+                }
+            } else {
+                panic!("Expected title element");
+            }
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_preserve_legacy_elements() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+        
+        let mut filter_attrs = IndexMap::new();
+        filter_attrs.insert("xlink:href".to_string(), "#filter1".to_string());
+        
+        let filter_element = Element {
+            name: "filter".to_string(),
+            attributes: filter_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(filter_element)];
+
+        let mut plugin = RemoveXlinkPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Legacy elements should preserve xlink attributes by default
+        if let Node::Element(ref filter) = document.root.children[0] {
+            assert!(filter.attributes.contains_key("xlink:href"));
+            assert!(!filter.attributes.contains_key("href"));
+        } else {
+            panic!("Expected filter element");
+        }
+
+        // xlink namespace should be preserved for legacy usage
+        assert!(document.root.attributes.contains_key("xmlns:xlink"));
+    }
+
+    #[test]
+    fn test_include_legacy_option() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+        
+        let mut filter_attrs = IndexMap::new();
+        filter_attrs.insert("xlink:href".to_string(), "#filter1".to_string());
+        
+        let filter_element = Element {
+            name: "filter".to_string(),
+            attributes: filter_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(filter_element)];
+
+        let params = serde_json::json!({"includeLegacy": true});
+        let mut plugin = RemoveXlinkPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&params));
+        assert!(result.is_ok());
+
+        // With includeLegacy=true, should convert even legacy elements
+        if let Node::Element(ref filter) = document.root.children[0] {
+            assert!(!filter.attributes.contains_key("xlink:href"));
+            assert_eq!(filter.attributes.get("href"), Some(&"#filter1".to_string()));
+        } else {
+            panic!("Expected filter element");
+        }
+    }
+}
+</file>
+
 <file path="svgn/src/plugins/remove_xml_proc_inst.rs">
 // this_file: svgn/src/plugins/remove_xml_proc_inst.rs
 
@@ -10403,6 +10605,245 @@ mod tests {
             matches!(n, Node::ProcessingInstruction { target, .. } if target == "xml-stylesheet")
         });
         assert!(has_stylesheet_pi);
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/remove_xmlns.rs">
+// this_file: svgn/src/plugins/remove_xmlns.rs
+
+//! Plugin to remove xmlns attribute from SVG elements
+//!
+//! This plugin removes the xmlns attribute when present, which is useful for inline SVG
+//! where the namespace declaration is not needed. This plugin is disabled by default.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+
+/// Plugin to remove xmlns attribute from SVG elements
+pub struct RemoveXMLNSPlugin;
+
+impl Plugin for RemoveXMLNSPlugin {
+    fn name(&self) -> &'static str {
+        "removeXMLNS"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes xmlns attribute (for inline svg, disabled by default)"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        self.process_element(&mut document.root);
+        Ok(())
+    }
+}
+
+impl RemoveXMLNSPlugin {
+    fn process_element(&self, element: &mut Element) {
+        // Remove xmlns attribute from SVG elements
+        if element.name == "svg" {
+            element.attributes.shift_remove("xmlns");
+        }
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut elem) = child {
+                self.process_element(elem);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = RemoveXMLNSPlugin;
+        assert_eq!(plugin.name(), "removeXMLNS");
+        assert_eq!(plugin.description(), "removes xmlns attribute (for inline svg, disabled by default)");
+    }
+
+    #[test]
+    fn test_remove_xmlns_from_svg() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        document.root.attributes.insert("viewBox".to_string(), "0 0 100 100".to_string());
+
+        let mut plugin = RemoveXMLNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // xmlns should be removed, other attributes preserved
+        assert!(!document.root.attributes.contains_key("xmlns"));
+        assert!(document.root.attributes.contains_key("viewBox"));
+        assert_eq!(document.root.attributes["viewBox"], "0 0 100 100");
+    }
+
+    #[test]
+    fn test_remove_xmlns_from_nested_svg() {
+        let mut document = create_test_document();
+        
+        // Add nested SVG element with xmlns
+        let mut nested_svg_attrs = IndexMap::new();
+        nested_svg_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        nested_svg_attrs.insert("width".to_string(), "50".to_string());
+        
+        let nested_svg = Element {
+            name: "svg".to_string(),
+            attributes: nested_svg_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(nested_svg)];
+
+        let mut plugin = RemoveXMLNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // xmlns should be removed from nested SVG
+        if let Node::Element(ref nested) = document.root.children[0] {
+            assert_eq!(nested.name, "svg");
+            assert!(!nested.attributes.contains_key("xmlns"));
+            assert!(nested.attributes.contains_key("width"));
+            assert_eq!(nested.attributes["width"], "50");
+        } else {
+            panic!("Expected nested svg element");
+        }
+    }
+
+    #[test]
+    fn test_preserve_other_xmlns_attributes() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        document.root.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
+        document.root.attributes.insert("xmlns:custom".to_string(), "http://example.com/custom".to_string());
+
+        let mut plugin = RemoveXMLNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Only xmlns should be removed, namespaced xmlns attributes preserved
+        assert!(!document.root.attributes.contains_key("xmlns"));
+        assert!(document.root.attributes.contains_key("xmlns:xlink"));
+        assert!(document.root.attributes.contains_key("xmlns:custom"));
+    }
+
+    #[test]
+    fn test_ignore_non_svg_elements() {
+        let mut document = create_test_document();
+        
+        // Add a non-SVG element with xmlns (shouldn't happen but test anyway)
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        rect_attrs.insert("width".to_string(), "100".to_string());
+        
+        let rect_element = Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(rect_element)];
+
+        let mut plugin = RemoveXMLNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // xmlns should be preserved on non-SVG elements
+        if let Node::Element(ref rect) = document.root.children[0] {
+            assert_eq!(rect.name, "rect");
+            assert!(rect.attributes.contains_key("xmlns"));
+            assert_eq!(rect.attributes["xmlns"], "http://www.w3.org/2000/svg");
+        } else {
+            panic!("Expected rect element");
+        }
+    }
+
+    #[test]
+    fn test_no_xmlns_attribute() {
+        let mut document = create_test_document();
+        
+        document.root.attributes.insert("viewBox".to_string(), "0 0 100 100".to_string());
+        document.root.attributes.insert("width".to_string(), "100".to_string());
+
+        let mut plugin = RemoveXMLNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should work fine even without xmlns attribute
+        assert!(document.root.attributes.contains_key("viewBox"));
+        assert!(document.root.attributes.contains_key("width"));
+        assert_eq!(document.root.attributes.len(), 2);
+    }
+
+    #[test]
+    fn test_complex_nested_structure() {
+        let mut document = create_test_document();
+        
+        // Root SVG with xmlns
+        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        
+        // Nested structure: svg -> g -> svg
+        let mut inner_svg_attrs = IndexMap::new();
+        inner_svg_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        inner_svg_attrs.insert("x".to_string(), "10".to_string());
+        
+        let inner_svg = Element {
+            name: "svg".to_string(),
+            attributes: inner_svg_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        let g_element = Element {
+            name: "g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![Node::Element(inner_svg)],
+        };
+
+        document.root.children = vec![Node::Element(g_element)];
+
+        let mut plugin = RemoveXMLNSPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Both root and nested SVG should have xmlns removed
+        assert!(!document.root.attributes.contains_key("xmlns"));
+        
+        if let Node::Element(ref g) = document.root.children[0] {
+            if let Node::Element(ref inner_svg) = g.children[0] {
+                assert_eq!(inner_svg.name, "svg");
+                assert!(!inner_svg.attributes.contains_key("xmlns"));
+                assert_eq!(inner_svg.attributes["x"], "10");
+            } else {
+                panic!("Expected inner svg element");
+            }
+        } else {
+            panic!("Expected g element");
+        }
     }
 }
 </file>
@@ -10814,6 +11255,426 @@ mod tests {
         let mut plugin = SortAttrsPlugin;
         assert_eq!(plugin.name(), "sortAttrs");
         assert_eq!(plugin.description(), "Sort element attributes for better compression");
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/sort_defs_children.rs">
+// this_file: svgn/src/plugins/sort_defs_children.rs
+
+//! Plugin to sort children of `<defs>` elements to improve compression
+//!
+//! This plugin sorts children of defs in order to improve compression. Elements are
+//! sorted first by frequency (most frequent first), then by element name length 
+//! (longer names first), then alphabetically by element name.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::cmp::Ordering;
+
+/// Plugin to sort defs children for better compression
+pub struct SortDefsChildrenPlugin;
+
+impl Plugin for SortDefsChildrenPlugin {
+    fn name(&self) -> &'static str {
+        "sortDefsChildren"
+    }
+
+    fn description(&self) -> &'static str {
+        "Sorts children of <defs> to improve compression"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        self.process_element(&mut document.root);
+        Ok(())
+    }
+}
+
+impl SortDefsChildrenPlugin {
+    fn process_element(&self, element: &mut Element) {
+        // Sort children if this is a defs element
+        if element.name == "defs" {
+            self.sort_defs_children(element);
+        }
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut elem) = child {
+                self.process_element(elem);
+            }
+        }
+    }
+
+    fn sort_defs_children(&self, defs: &mut Element) {
+        // Count frequencies of element names
+        let mut frequencies: HashMap<String, usize> = HashMap::new();
+        
+        for child in &defs.children {
+            if let Node::Element(ref elem) = child {
+                *frequencies.entry(elem.name.clone()).or_insert(0) += 1;
+            }
+        }
+
+        // Sort children based on frequency, name length, and name
+        defs.children.sort_by(|a, b| {
+            match (a, b) {
+                (Node::Element(elem_a), Node::Element(elem_b)) => {
+                    // First, sort by frequency (descending)
+                    let freq_a = frequencies.get(&elem_a.name).unwrap_or(&0);
+                    let freq_b = frequencies.get(&elem_b.name).unwrap_or(&0);
+                    
+                    match freq_b.cmp(freq_a) {
+                        Ordering::Equal => {
+                            // Then by name length (descending)
+                            match elem_b.name.len().cmp(&elem_a.name.len()) {
+                                Ordering::Equal => {
+                                    // Finally by name (descending/reverse alphabetical)
+                                    elem_b.name.cmp(&elem_a.name)
+                                }
+                                other => other
+                            }
+                        }
+                        other => other
+                    }
+                }
+                // Non-element nodes maintain their relative order
+                _ => Ordering::Equal
+            }
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    fn create_element(name: &str) -> Element {
+        Element {
+            name: name.to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = SortDefsChildrenPlugin;
+        assert_eq!(plugin.name(), "sortDefsChildren");
+        assert_eq!(plugin.description(), "Sorts children of <defs> to improve compression");
+    }
+
+    #[test]
+    fn test_sort_by_frequency() {
+        let mut document = create_test_document();
+        
+        let defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Element(create_element("pattern")),
+                Node::Element(create_element("linearGradient")),
+                Node::Element(create_element("pattern")),
+                Node::Element(create_element("mask")),
+                Node::Element(create_element("pattern")),
+                Node::Element(create_element("linearGradient")),
+            ],
+        };
+
+        document.root.children = vec![Node::Element(defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should be sorted by frequency: pattern (3), linearGradient (2), mask (1)
+        if let Node::Element(ref defs) = document.root.children[0] {
+            let names: Vec<&str> = defs.children.iter()
+                .filter_map(|child| {
+                    if let Node::Element(elem) = child {
+                        Some(elem.name.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            assert_eq!(names, vec!["pattern", "pattern", "pattern", "linearGradient", "linearGradient", "mask"]);
+        } else {
+            panic!("Expected defs element");
+        }
+    }
+
+    #[test]
+    fn test_sort_by_name_length() {
+        let mut document = create_test_document();
+        
+        let defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Element(create_element("g")),
+                Node::Element(create_element("use")),
+                Node::Element(create_element("path")),
+                Node::Element(create_element("rect")),
+            ],
+        };
+
+        document.root.children = vec![Node::Element(defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should be sorted by name length (all have frequency 1)
+        if let Node::Element(ref defs) = document.root.children[0] {
+            let names: Vec<&str> = defs.children.iter()
+                .filter_map(|child| {
+                    if let Node::Element(elem) = child {
+                        Some(elem.name.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            // Length 4 elements come first, then sorted alphabetically in reverse
+            assert_eq!(names, vec!["rect", "path", "use", "g"]);
+        } else {
+            panic!("Expected defs element");
+        }
+    }
+
+    #[test]
+    fn test_sort_alphabetically() {
+        let mut document = create_test_document();
+        
+        let defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Element(create_element("abc")),
+                Node::Element(create_element("xyz")),
+                Node::Element(create_element("def")),
+                Node::Element(create_element("mno")),
+            ],
+        };
+
+        document.root.children = vec![Node::Element(defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should be sorted reverse alphabetically (all same length and frequency)
+        if let Node::Element(ref defs) = document.root.children[0] {
+            let names: Vec<&str> = defs.children.iter()
+                .filter_map(|child| {
+                    if let Node::Element(elem) = child {
+                        Some(elem.name.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            assert_eq!(names, vec!["xyz", "mno", "def", "abc"]);
+        } else {
+            panic!("Expected defs element");
+        }
+    }
+
+    #[test]
+    fn test_preserve_non_element_nodes() {
+        let mut document = create_test_document();
+        
+        let defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Comment(" Start ".to_string()),
+                Node::Element(create_element("pattern")),
+                Node::Text(" whitespace ".to_string()),
+                Node::Element(create_element("mask")),
+                Node::Comment(" End ".to_string()),
+            ],
+        };
+
+        document.root.children = vec![Node::Element(defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Non-element nodes should maintain relative position
+        if let Node::Element(ref defs) = document.root.children[0] {
+            assert_eq!(defs.children.len(), 5);
+            // Comments and text nodes are preserved
+            assert!(matches!(defs.children[0], Node::Comment(_)));
+            assert!(matches!(defs.children[2], Node::Text(_)));
+            assert!(matches!(defs.children[4], Node::Comment(_)));
+        } else {
+            panic!("Expected defs element");
+        }
+    }
+
+    #[test]
+    fn test_nested_defs() {
+        let mut document = create_test_document();
+        
+        // Create nested defs structure
+        let inner_defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Element(create_element("rect")),
+                Node::Element(create_element("circle")),
+            ],
+        };
+
+        let outer_defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                Node::Element(create_element("path")),
+                Node::Element(inner_defs),
+                Node::Element(create_element("ellipse")),
+            ],
+        };
+
+        document.root.children = vec![Node::Element(outer_defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Both outer and inner defs should be sorted
+        if let Node::Element(ref outer_defs) = document.root.children[0] {
+            // Check outer defs sorting
+            let outer_names: Vec<&str> = outer_defs.children.iter()
+                .filter_map(|child| {
+                    if let Node::Element(elem) = child {
+                        Some(elem.name.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            // Should be sorted by length: ellipse(7), path(4), defs(4)
+            assert_eq!(outer_names, vec!["ellipse", "path", "defs"]);
+            
+            // Check inner defs sorting
+            if let Node::Element(ref inner_defs) = outer_defs.children[2] {
+                let inner_names: Vec<&str> = inner_defs.children.iter()
+                    .filter_map(|child| {
+                        if let Node::Element(elem) = child {
+                            Some(elem.name.as_str())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                
+                // Should be sorted by length: circle(6), rect(4)
+                assert_eq!(inner_names, vec!["circle", "rect"]);
+            }
+        } else {
+            panic!("Expected outer defs element");
+        }
+    }
+
+    #[test]
+    fn test_empty_defs() {
+        let mut document = create_test_document();
+        
+        let defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+
+        document.root.children = vec![Node::Element(defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        // Should handle empty defs gracefully
+        if let Node::Element(ref defs) = document.root.children[0] {
+            assert_eq!(defs.children.len(), 0);
+        } else {
+            panic!("Expected defs element");
+        }
+    }
+
+    #[test]
+    fn test_complex_sorting() {
+        let mut document = create_test_document();
+        
+        let defs = Element {
+            name: "defs".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                // Mix of frequencies and lengths
+                Node::Element(create_element("a")),     // freq=1, len=1
+                Node::Element(create_element("bb")),    // freq=2, len=2
+                Node::Element(create_element("ccc")),   // freq=1, len=3
+                Node::Element(create_element("a")),     // freq=2 now
+                Node::Element(create_element("bb")),    // freq=2, len=2
+                Node::Element(create_element("dddd")),  // freq=1, len=4
+            ],
+        };
+
+        document.root.children = vec![Node::Element(defs)];
+
+        let mut plugin = SortDefsChildrenPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
+        assert!(result.is_ok());
+
+        if let Node::Element(ref defs) = document.root.children[0] {
+            let names: Vec<&str> = defs.children.iter()
+                .filter_map(|child| {
+                    if let Node::Element(elem) = child {
+                        Some(elem.name.as_str())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            
+            // Expected order:
+            // - First by frequency: a(2), bb(2), then ccc(1), dddd(1)
+            // - Within same frequency, by length: bb(2) before a(1), dddd(4) before ccc(3)
+            assert_eq!(names, vec!["bb", "bb", "a", "a", "dddd", "ccc"]);
+        } else {
+            panic!("Expected defs element");
+        }
     }
 }
 </file>
@@ -13450,12 +14311,6 @@ fn test_remove_title_01() {
 
     run_plugin_test(input, expected, "removeTitle", None);
 }
-</file>
-
-<file path="svgn/TODO.md">
-# TODO for svgn
-
-- [ ] No compiler warnings or test failures observed.
 </file>
 
 <file path=".cursorrules">
@@ -18479,14 +19334,10 @@ mod tests {
 }
 </file>
 
-<file path=".gitignore">
-*.pdb
-**/*.rs.bk
-**/mutants.out*/
-.idea/
-debug
-ref/
-target
+<file path="svgn/TODO.md">
+# TODO for svgn
+
+- [ ] No compiler warnings or test failures observed.
 </file>
 
 <file path="README.md">
@@ -18603,6 +19454,17 @@ criterion = "0.5"
 [[bench]]
 name = "optimization"
 harness = false
+</file>
+
+<file path=".gitignore">
+*.pdb
+**/*.rs.bk
+**/mutants.out*/
+.idea/
+debug
+ref/
+ref/svgo/
+target/
 </file>
 
 <file path="Cargo.toml">
@@ -20788,295 +21650,6 @@ collections:
     output: true
 </file>
 
-<file path="CHANGELOG.md">
-- Ran `yarn test` in `ref/svgo`.
-- Documented `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`.
-- Ran `cargo test` in `svgn`.
-- Documented `svgn` compiler warnings in `svgn/TODO.md`.
-- Updated `TODO.md` and `PLAN.md` with test results and issues.
-- Re-ran tests and confirmed existing issues in `ref/svgo` and `svgn`.
-- Fixed Rust compiler warnings in svgn by removing unused imports and variables.
-- Added event attribute collections (ANIMATION_EVENT_ATTRS, DOCUMENT_EVENT_ATTRS, etc.) to collections.rs.
-- Implemented removeScripts plugin with comprehensive event attribute removal and javascript: URL handling.
-- Implemented removeUselessDefs plugin to remove unused definitions without IDs.
-- Implemented removeViewBox plugin to remove redundant viewBox attributes.
-- Progress: 30/54 plugins completed (56%), 240+ tests passing.
-- Implemented removeUnusedNS plugin to remove unused namespace declarations.
-- Implemented removeXlink plugin with SVG 2 conversion (xlink:href → href, xlink:show → target, etc.).
-- Implemented removeXMLNS plugin to remove xmlns attribute from SVG elements.
-- Progress: 33/54 plugins completed (61%), 260+ tests passing.
-</file>
-
-<file path="PLAN.md">
-# svgn: Implementation Plan
-
-This document outlines the detailed plan for building `svgn`, a high-performance, native Rust port of the `svgo` SVG optimizer. The goal is to achieve full functional and API compatibility with the original JavaScript version while leveraging Rust's performance and safety features.
-
-## Phase 1: Foundation & Core Infrastructure - COMPLETED ✅
-
-This phase focused on setting up the project and building the fundamental components that all other parts will rely on.
-
--   **[x] 1.1. Basic Project Setup**
-    -   [x] Create Rust project structure with `Cargo.toml`
-    -   [x] Set up basic `src/lib.rs` with SVGO-compatible API structure
-    -   [x] Set up basic `src/main.rs` with CLI interface
-    -   [x] Add core dependencies: `clap`, `serde`, `anyhow`, `quick-xml`, `roxmltree`, `regex`, `indexmap`, `base64`, `urlencoding`
-    -   [x] Configure project for release optimization (LTO, single codegen unit)
-
--   **[x] 1.2. Core API Structure**
-    -   [x] Define `optimize` function with SVGO-compatible signature
-    -   [x] Implement `Config`, `PluginConfig`, `Js2SvgOptions` structs
-    -   [x] Create `OptimizeResult` and `OptimizeInfo` for result metadata
-    -   [x] Set up basic error handling with `anyhow`
-
--   **[x] 1.3. CLI Interface**
-    -   [x] Implement command-line interface with `clap`
-    -   [x] Support for input/output files, pretty printing, multipass, data URI output
-    -   [x] Handle data URI formats (base64, encoded, unencoded)
-    -   [x] Basic optimization workflow (read → optimize → write)
-
--   **[x] 1.4. GitHub Actions CI**
-    -   [x] Enhanced CI workflow with Rust toolchain setup
-    -   [x] Added dependency caching for faster builds
-    -   [x] Integrated clippy and formatting checks
-    -   [x] Fixed build failures due to missing Cargo.toml
-
-**Next Phase**: Need to implement the actual AST, parser, stringifier, and plugin system before proceeding with plugin porting.
-
-## Phase 2: CLI and Initial Optimization
-
-This phase focuses on creating a usable command-line tool and proving the core pipeline with a few initial plugins.
-
--   **[x] 2.1. Command-Line Interface (CLI)**
-    -   [x] Use `clap` to build the CLI, matching the options of the original `svgo` CLI (`-i`, `-o`, `-f`, `--config`, etc.).
-    -   [x] The CLI will parse arguments, load the configuration, read the input SVG, call the core `optimize` function, and write the output.
-
--   **[x] 2.2. `optimize` Function**
-    -   [x] Implement the main `optimize` function that orchestrates the entire process: `parse -> apply plugins -> stringify`.
-    -   [x] This function will be the primary entry point for both the library and the CLI.
-
--   **[x] 2.3. Port Initial Plugins**
-    -   [x] Port a few simple, representative plugins to test the entire pipeline end-to-end.
-        -   [x] `removeComments`
-        -   [x] `removeMetadata`
-        -   [x] `removeTitle`
-    -   [x] Port the corresponding tests for these plugins to validate their correctness.
-
-## Phase 3: Full Plugin Porting
-
-This is the most extensive phase, involving the porting of all `svgo` plugins to Rust.
-
-### Plugin Implementation Strategy
-
-For efficient plugin porting, we'll categorize plugins by complexity and dependencies:
-
-**Simple Plugins** (attribute/element removal):
-- These plugins simply remove or modify specific elements/attributes
-- Estimated time: 30-60 minutes each
-- Examples: removeDoctype, removeXMLProcInst, removeDesc
-
-**Medium Complexity Plugins** (pattern matching and transformation):
-- These require regex patterns and more complex logic
-- Estimated time: 1-2 hours each
-- Examples: cleanupNumericValues, removeEmptyAttrs, sortAttrs
-
-**Complex Plugins** (deep transformations):
-- These require parsing CSS, transforms, or path data
-- Estimated time: 2-4 hours each
-- Examples: convertPathData, minifyStyles, convertTransform
-
-**Plugin Dependencies to Add**:
-- CSS parsing: Already have `cssparser`
-- Color manipulation: May need `palette` or custom implementation
-- Transform matrix operations: Custom implementation or `nalgebra`
-- Path parsing/manipulation: Already have `lyon`
-
--   **[ ] 3.1. Plugin Porting Checklist**
-    -   A checklist will be maintained here to track the status of each plugin.
-    -   *Status: (P)lanned, (I)n-Progress, (D)one*
-    -   [D] `addAttributesToSVGElement`
-    -   [D] `addClassesToSVGElement`
-    -   [D] `cleanupAttrs`
-    -   [D] `cleanupEnableBackground`
-    -   [D] `cleanupIds`
-    -   [D] `cleanupListOfValues`
-    -   [D] `cleanupNumericValues`
-    -   [D] `collapseGroups`
-    -   [D] `convertColors`
-    -   [D] `convertEllipseToCircle`
-    -   [P] `convertOneStopGradients`
-    -   [P] `convertPathData`
-    -   [P] `convertShapeToPath`
-    -   [D] `convertStyleToAttrs`
-    -   [P] `convertTransform`
-    -   [P] `inlineStyles`
-    -   [P] `mergePaths`
-    -   [D] `mergeStyles`
-    -   [P] `minifyStyles`
-    -   [P] `moveElemsAttrsToGroup`
-    -   [P] `moveGroupAttrsToElems`
-    -   [P] `prefixIds`
-    -   [D] `removeAttributesBySelector`
-    -   [D] `removeAttrs`
-    -   [D] `removeComments`
-    -   [D] `removeDeprecatedAttrs`
-    -   [D] `removeDesc`
-    -   [P] `removeDimensions`
-    -   [D] `removeDoctype`
-    -   [P] `removeEditorsNSData`
-    -   [P] `removeElementsByAttr`
-    -   [D] `removeEmptyAttrs`
-    -   [D] `removeEmptyContainers`
-    -   [D] `removeEmptyText`
-    -   [P] `removeHiddenElems`
-    -   [D] `removeMetadata`
-    -   [P] `removeNonInheritableGroupAttrs`
-    -   [P] `removeOffCanvasPaths`
-    -   [P] `removeRasterImages`
-    -   [D] `removeScripts`
-    -   [D] `removeStyleElement`
-    -   [D] `removeTitle`
-    -   [D] `removeUnknownsAndDefaults`
-    -   [D] `removeUnusedNS`
-    -   [D] `removeUselessDefs`
-    -   [P] `removeUselessStrokeAndFill`
-    -   [D] `removeViewBox`
-    -   [D] `removeXlink`
-    -   [D] `removeXMLNS`
-    -   [D] `removeXMLProcInst`
-    -   [P] `reusePaths`
-    -   [D] `sortAttrs`
-    -   [P] `sortDefsChildren`
-
-### Implementation Progress Summary
-
-**Total Plugins Completed: 33/54 (61%)**
-
-**Completed Batches:**
-- ✅ **Simple Removers (6 plugins)**: removeComments, removeDesc, removeDoctype, removeMetadata, removeTitle, removeXMLProcInst
-- ✅ **Numeric/Value Cleaners (4 plugins)**: cleanupAttrs, cleanupIds, cleanupNumericValues, cleanupListOfValues  
-- ✅ **Empty Element Cleaners (3 plugins)**: removeEmptyAttrs, removeEmptyContainers, removeEmptyText
-- ✅ **Attribute Processors (6 plugins)**: sortAttrs, removeAttrs, removeUnknownsAndDefaults, addAttributesToSVGElement, addClassesToSVGElement, removeDeprecatedAttrs
-- ✅ **Style and Color Handlers (4 plugins)**: removeStyleElement, mergeStyles, convertStyleToAttrs, convertColors
-- ✅ **Cleanup and Validation (1 plugin)**: cleanupEnableBackground
-- ✅ **Additional Optimizers (2 plugins)**: removeDeprecatedAttrs, convertEllipseToCircle
-- ✅ **Structural Optimizers (1 plugin)**: collapseGroups
-
-**Key Technical Achievements:**
-- ✅ Fixed Plugin trait compilation issues and enhanced with PluginInfo parameter
-- ✅ Fixed HashMap ordering issue by migrating to IndexMap for attribute preservation
-- ✅ Implemented comprehensive regex-based pattern matching for removeAttrs
-- ✅ Added simplified SVG specification compliance for removeUnknownsAndDefaults
-- ✅ Implemented CSS parsing regex for style attribute conversion
-- ✅ Added PRESENTATION_ATTRS collection for SVG presentation attributes
-- ✅ Added comprehensive color conversion algorithms with full SVG color name support
-- ✅ Comprehensive test coverage: **260+ tests passing**
-
-### Next Implementation Priorities
-
-Based on complexity and usefulness, the recommended order for next plugins:
-
-1.  **Style and color handlers**:
-    - `minifyStyles` (requires CSS parsing)
-    - `inlineStyles`
-
-2.  **Transform and path optimizers**:
-    - `convertTransform`
-    - `convertPathData` (most complex, uses lyon)
-    - `convertShapeToPath`
-
-## Phase 4: Testing, Benchmarking, and CI
-
-This phase focuses on ensuring the correctness, performance, and stability of the project.
-
--   **[I] 4.1. Test Suite Porting**
-    -   [ ] Systematically port the entire `svgo` test suite from `ref/svgo/test/`.
-    -   [ ] Create a test runner that can easily execute these tests and compare the output of `svgn` with the expected output from `svgo`.
-
--   **[I] 4.2. Benchmarking**
-    -   [ ] Create a comprehensive benchmark suite using `cargo bench`.
-    -   [ ] Benchmarks should cover parsing, stringifying, and each of the major plugins.
-    -   [ ] Compare the performance of `svgn` against the original `svgo` to quantify the performance gains.
-
--   **[I] 4.3. Continuous Integration (CI)**
-    -   [ ] Set up a CI pipeline using GitHub Actions.
-    -   [x] The CI pipeline will:
-        -   [x] Run `cargo test` on every push and pull request.
-        -   [ ] Run `cargo clippy` to enforce code quality.
-        -   [ ] Run `cargo fmt --check` to ensure consistent formatting.
-        -   (Optional) Run benchmarks and report on performance changes.
-
-## Phase 5: WebAssembly (WASM) Target
-
-This phase focuses on making `svgn` available in web environments.
-
--   **[ ] 5.1. WASM Build Setup**
-    -   [ ] Integrate `wasm-pack` into the build process.
-    -   [ ] Ensure the codebase is compatible with the WASM target.
-
--   **[ ] 5.2. WASM Bindings**
-    -   [ ] Create a WASM-compatible `optimize` function using `wasm-bindgen`.
-    -   [ ] This function will accept a string and a `JsValue` for configuration, and return the optimized string.
-
--   **[ ] 5.3. Web Demo**
-    -   [ ] Create a simple web page that uses the WASM-compiled `svgn` to optimize SVGs in the browser.
-    -   [ ] This will serve as a proof-of-concept and a demonstration of the WASM capabilities.
-
-## Phase 6: Documentation and Release
-
-This final phase focuses on preparing the project for public use.
-
--   **[ ] 6.1. Code Documentation**
-    -   [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions.
-
--   **[x] 6.2. User Documentation**
-    -   [x] Create user-friendly documentation in the `docs/` directory.
-    -   [x] This will include guides on how to use the CLI, the Rust library, and the WASM module.
-    -   [x] Provide a detailed reference for all configuration options and plugins.
-
--   **[ ] 6.3. Release**
-    -   [ ] Publish the `svgn` crate to `crates.io`.
-    -   [ ] Publish the WASM package to `npm`.
-    -   [ ] Create a GitHub release with release notes.
-
-## Technical Architecture Decisions
-
-### XML Parsing Strategy
-- Use `quick-xml` for initial parsing (streaming, fast, WASM-compatible)
-- Build custom mutable AST rather than using XML library's tree
-- This provides optimal performance for the read → transform → write pipeline
-
-### Path Processing
-- Leverage `lyon` crate for complex path data transformations
-- This will be crucial for the `convertPathData` plugin which is one of the most sophisticated
-
-### Plugin Architecture  
-- Use trait objects for dynamic plugin loading
-- Each plugin implements a common `Plugin` trait
-- Support both built-in plugins and potential future extensibility
-
-### WASM Considerations
-- All chosen libraries are WASM-compatible
-- Avoid file I/O in core library (use readers/writers)
-- Use `wasm-bindgen` for JavaScript interop
-
-### Performance Priorities
-1. Memory efficiency for large SVG files
-2. Fast parsing and stringification
-3. Efficient tree traversal and mutation
-4. Minimize allocations during optimization passes
-
-## Issues Identified During Testing
-
-### `ref/svgo` Issues:
-- **ExperimentalWarning: VM Modules**: This is a Node.js warning about an experimental feature. It doesn't indicate a functional error but should be noted.
-- **`cleanupListOfValues` warning**: The plugin `cleanupListOfValues` is being configured outside of `preset-default` in a way that triggers a warning. This might indicate a misconfiguration in the test setup or a need to adjust how plugins are enabled/disabled.
-- **`removeAttrs` warning**: The `removeAttrs` plugin is being used without the required `attrs` parameter, making it a no-op. This also points to a potential misconfiguration in the test setup.
-
-### `svgn` Issues:
-- No compiler warnings or test failures observed.
-</file>
-
 <file path="svgn/src/plugin.rs">
 // this_file: svgn/src/plugin.rs
 
@@ -21406,6 +21979,288 @@ mod tests {
 }
 </file>
 
+<file path="PLAN.md">
+# svgn: Implementation Plan
+
+This document outlines the detailed plan for building `svgn`, a high-performance, native Rust port of the `svgo` SVG optimizer. The goal is to achieve full functional and API compatibility with the original JavaScript version while leveraging Rust's performance and safety features.
+
+## Phase 1: Foundation & Core Infrastructure - COMPLETED ✅
+
+This phase focused on setting up the project and building the fundamental components that all other parts will rely on.
+
+-   **[x] 1.1. Basic Project Setup**
+    -   [x] Create Rust project structure with `Cargo.toml`
+    -   [x] Set up basic `src/lib.rs` with SVGO-compatible API structure
+    -   [x] Set up basic `src/main.rs` with CLI interface
+    -   [x] Add core dependencies: `clap`, `serde`, `anyhow`, `quick-xml`, `roxmltree`, `regex`, `indexmap`, `base64`, `urlencoding`
+    -   [x] Configure project for release optimization (LTO, single codegen unit)
+
+-   **[x] 1.2. Core API Structure**
+    -   [x] Define `optimize` function with SVGO-compatible signature
+    -   [x] Implement `Config`, `PluginConfig`, `Js2SvgOptions` structs
+    -   [x] Create `OptimizeResult` and `OptimizeInfo` for result metadata
+    -   [x] Set up basic error handling with `anyhow`
+
+-   **[x] 1.3. CLI Interface**
+    -   [x] Implement command-line interface with `clap`
+    -   [x] Support for input/output files, pretty printing, multipass, data URI output
+    -   [x] Handle data URI formats (base64, encoded, unencoded)
+    -   [x] Basic optimization workflow (read → optimize → write)
+
+-   **[x] 1.4. GitHub Actions CI**
+    -   [x] Enhanced CI workflow with Rust toolchain setup
+    -   [x] Added dependency caching for faster builds
+    -   [x] Integrated clippy and formatting checks
+    -   [x] Fixed build failures due to missing Cargo.toml
+
+**Next Phase**: Need to implement the actual AST, parser, stringifier, and plugin system before proceeding with plugin porting.
+
+## Phase 2: CLI and Initial Optimization
+
+This phase focuses on creating a usable command-line tool and proving the core pipeline with a few initial plugins.
+
+-   **[x] 2.1. Command-Line Interface (CLI)**
+    -   [x] Use `clap` to build the CLI, matching the options of the original `svgo` CLI (`-i`, `-o`, `-f`, `--config`, etc.).
+    -   [x] The CLI will parse arguments, load the configuration, read the input SVG, call the core `optimize` function, and write the output.
+
+-   **[x] 2.2. `optimize` Function**
+    -   [x] Implement the main `optimize` function that orchestrates the entire process: `parse -> apply plugins -> stringify`.
+    -   [x] This function will be the primary entry point for both the library and the CLI.
+
+-   **[x] 2.3. Port Initial Plugins**
+    -   [x] Port a few simple, representative plugins to test the entire pipeline end-to-end.
+        -   [x] `removeComments`
+        -   [x] `removeMetadata`
+        -   [x] `removeTitle`
+    -   [x] Port the corresponding tests for these plugins to validate their correctness.
+
+## Phase 3: Full Plugin Porting
+
+This is the most extensive phase, involving the porting of all `svgo` plugins to Rust.
+
+### Plugin Implementation Strategy
+
+For efficient plugin porting, we'll categorize plugins by complexity and dependencies:
+
+**Simple Plugins** (attribute/element removal):
+- These plugins simply remove or modify specific elements/attributes
+- Estimated time: 30-60 minutes each
+- Examples: removeDoctype, removeXMLProcInst, removeDesc
+
+**Medium Complexity Plugins** (pattern matching and transformation):
+- These require regex patterns and more complex logic
+- Estimated time: 1-2 hours each
+- Examples: cleanupNumericValues, removeEmptyAttrs, sortAttrs
+
+**Complex Plugins** (deep transformations):
+- These require parsing CSS, transforms, or path data
+- Estimated time: 2-4 hours each
+- Examples: convertPathData, minifyStyles, convertTransform
+
+**Plugin Dependencies to Add**:
+- CSS parsing: Already have `cssparser`
+- Color manipulation: May need `palette` or custom implementation
+- Transform matrix operations: Custom implementation or `nalgebra`
+- Path parsing/manipulation: Already have `lyon`
+
+-   **[ ] 3.1. Plugin Porting Checklist**
+    -   A checklist will be maintained here to track the status of each plugin.
+    -   *Status: (P)lanned, (I)n-Progress, (D)one*
+    -   [D] `addAttributesToSVGElement`
+    -   [D] `addClassesToSVGElement`
+    -   [D] `cleanupAttrs`
+    -   [D] `cleanupEnableBackground`
+    -   [D] `cleanupIds`
+    -   [D] `cleanupListOfValues`
+    -   [D] `cleanupNumericValues`
+    -   [D] `collapseGroups`
+    -   [D] `convertColors`
+    -   [D] `convertEllipseToCircle`
+    -   [P] `convertOneStopGradients`
+    -   [P] `convertPathData`
+    -   [P] `convertShapeToPath`
+    -   [D] `convertStyleToAttrs`
+    -   [P] `convertTransform`
+    -   [P] `inlineStyles`
+    -   [P] `mergePaths`
+    -   [D] `mergeStyles`
+    -   [P] `minifyStyles`
+    -   [P] `moveElemsAttrsToGroup`
+    -   [P] `moveGroupAttrsToElems`
+    -   [P] `prefixIds`
+    -   [D] `removeAttributesBySelector`
+    -   [D] `removeAttrs`
+    -   [D] `removeComments`
+    -   [D] `removeDeprecatedAttrs`
+    -   [D] `removeDesc`
+    -   [D] `removeDimensions`
+    -   [D] `removeDoctype`
+    -   [P] `removeEditorsNSData`
+    -   [P] `removeElementsByAttr`
+    -   [D] `removeEmptyAttrs`
+    -   [D] `removeEmptyContainers`
+    -   [D] `removeEmptyText`
+    -   [P] `removeHiddenElems`
+    -   [D] `removeMetadata`
+    -   [P] `removeNonInheritableGroupAttrs`
+    -   [P] `removeOffCanvasPaths`
+    -   [P] `removeRasterImages`
+    -   [D] `removeScripts`
+    -   [D] `removeStyleElement`
+    -   [D] `removeTitle`
+    -   [D] `removeUnknownsAndDefaults`
+    -   [D] `removeUnusedNS`
+    -   [D] `removeUselessDefs`
+    -   [P] `removeUselessStrokeAndFill`
+    -   [D] `removeViewBox`
+    -   [D] `removeXlink`
+    -   [D] `removeXMLNS`
+    -   [D] `removeXMLProcInst`
+    -   [P] `reusePaths`
+    -   [D] `sortAttrs`
+    -   [P] `sortDefsChildren`
+
+### Implementation Progress Summary
+
+**Total Plugins Completed: 33/54 (61%)**
+
+**Completed Batches:**
+- ✅ **Simple Removers (6 plugins)**: removeComments, removeDesc, removeDoctype, removeMetadata, removeTitle, removeXMLProcInst
+- ✅ **Numeric/Value Cleaners (4 plugins)**: cleanupAttrs, cleanupIds, cleanupNumericValues, cleanupListOfValues  
+- ✅ **Empty Element Cleaners (3 plugins)**: removeEmptyAttrs, removeEmptyContainers, removeEmptyText
+- ✅ **Attribute Processors (6 plugins)**: sortAttrs, removeAttrs, removeUnknownsAndDefaults, addAttributesToSVGElement, addClassesToSVGElement, removeDeprecatedAttrs
+- ✅ **Style and Color Handlers (4 plugins)**: removeStyleElement, mergeStyles, convertStyleToAttrs, convertColors
+- ✅ **Cleanup and Validation (1 plugin)**: cleanupEnableBackground
+- ✅ **Additional Optimizers (2 plugins)**: removeDeprecatedAttrs, convertEllipseToCircle
+- ✅ **Structural Optimizers (1 plugin)**: collapseGroups
+
+**Key Technical Achievements:**
+- ✅ Fixed Plugin trait compilation issues and enhanced with PluginInfo parameter
+- ✅ Fixed HashMap ordering issue by migrating to IndexMap for attribute preservation
+- ✅ Implemented comprehensive regex-based pattern matching for removeAttrs
+- ✅ Added simplified SVG specification compliance for removeUnknownsAndDefaults
+- ✅ Implemented CSS parsing regex for style attribute conversion
+- ✅ Added PRESENTATION_ATTRS collection for SVG presentation attributes
+- ✅ Added comprehensive color conversion algorithms with full SVG color name support
+- ✅ Comprehensive test coverage: **260+ tests passing**
+
+### Next Implementation Priorities
+
+Based on complexity and usefulness, the recommended order for next plugins:
+
+1.  **Style and color handlers**:
+    - `minifyStyles` (requires CSS parsing)
+    - `inlineStyles`
+
+2.  **Transform and path optimizers**:
+    - `convertTransform`
+    - `convertPathData` (most complex, uses lyon)
+    - `convertShapeToPath`
+
+## Phase 4: Testing, Benchmarking, and CI
+
+This phase focuses on ensuring the correctness, performance, and stability of the project.
+
+-   **[I] 4.1. Test Suite Porting**
+    -   [ ] Systematically port the entire `svgo` test suite from `ref/svgo/test/`.
+    -   [ ] Create a test runner that can easily execute these tests and compare the output of `svgn` with the expected output from `svgo`.
+
+-   **[I] 4.2. Benchmarking**
+    -   [ ] Create a comprehensive benchmark suite using `cargo bench`.
+    -   [ ] Benchmarks should cover parsing, stringifying, and each of the major plugins.
+    -   [ ] Compare the performance of `svgn` against the original `svgo` to quantify the performance gains.
+
+-   **[I] 4.3. Continuous Integration (CI)**
+    -   [ ] Set up a CI pipeline using GitHub Actions.
+    -   [x] The CI pipeline will:
+        -   [x] Run `cargo test` on every push and pull request.
+        -   [ ] Run `cargo clippy` to enforce code quality.
+        -   [ ] Run `cargo fmt --check` to ensure consistent formatting.
+        -   (Optional) Run benchmarks and report on performance changes.
+
+## Phase 5: WebAssembly (WASM) Target
+
+This phase focuses on making `svgn` available in web environments.
+
+-   **[ ] 5.1. WASM Build Setup**
+    -   [ ] Integrate `wasm-pack` into the build process.
+    -   [ ] Ensure the codebase is compatible with the WASM target.
+
+-   **[ ] 5.2. WASM Bindings**
+    -   [ ] Create a WASM-compatible `optimize` function using `wasm-bindgen`.
+    -   [ ] This function will accept a string and a `JsValue` for configuration, and return the optimized string.
+
+-   **[ ] 5.3. Web Demo**
+    -   [ ] Create a simple web page that uses the WASM-compiled `svgn` to optimize SVGs in the browser.
+    -   [ ] This will serve as a proof-of-concept and a demonstration of the WASM capabilities.
+
+## Phase 6: Documentation and Release
+
+This final phase focuses on preparing the project for public use.
+
+-   **[ ] 6.1. Code Documentation**
+    -   [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions.
+
+-   **[x] 6.2. User Documentation**
+    -   [x] Create user-friendly documentation in the `docs/` directory.
+    -   [x] This will include guides on how to use the CLI, the Rust library, and the WASM module.
+    -   [x] Provide a detailed reference for all configuration options and plugins.
+
+-   **[ ] 6.3. Release**
+    -   [ ] Publish the `svgn` crate to `crates.io`.
+    -   [ ] Publish the WASM package to `npm`.
+    -   [ ] Create a GitHub release with release notes.
+
+## Technical Architecture Decisions
+
+### XML Parsing Strategy
+- Use `quick-xml` for initial parsing (streaming, fast, WASM-compatible)
+- Build custom mutable AST rather than using XML library's tree
+- This provides optimal performance for the read → transform → write pipeline
+
+### Path Processing
+- Leverage `lyon` crate for complex path data transformations
+- This will be crucial for the `convertPathData` plugin which is one of the most sophisticated
+
+### Plugin Architecture  
+- Use trait objects for dynamic plugin loading
+- Each plugin implements a common `Plugin` trait
+- Support both built-in plugins and potential future extensibility
+
+### WASM Considerations
+- All chosen libraries are WASM-compatible
+- Avoid file I/O in core library (use readers/writers)
+- Use `wasm-bindgen` for JavaScript interop
+
+### Performance Priorities
+1. Memory efficiency for large SVG files
+2. Fast parsing and stringification
+3. Efficient tree traversal and mutation
+4. Minimize allocations during optimization passes
+
+## Issues Identified During Testing
+
+### `ref/svgo` Issues:
+- **ExperimentalWarning: VM Modules**: This is a Node.js warning about an experimental feature. It doesn't indicate a functional error but should be noted.
+- **`cleanupListOfValues` warning**: The plugin `cleanupListOfValues` is being configured outside of `preset-default` in a way that triggers a warning. This might indicate a misconfiguration in the test setup or a need to adjust how plugins are enabled/disabled.
+- **`removeAttrs` warning**: The `removeAttrs` plugin is being used without the required `attrs` parameter, making it a no-op. This also points to a potential misconfiguration in the test setup.
+- **Timeout errors in CLI tests**: Several CLI tests (`test/cli/cli.test.js` and `test/coa/_index.test.js`) are timing out. This indicates a potential issue with the test environment or the CLI's execution, possibly related to how it handles input/output streams or long-running operations.
+
+### `svgn` Issues:
+- No compiler warnings or test failures observed.
+</file>
+
+<file path="CHANGELOG.md">
+- Ran `yarn test` in `ref/svgo`.
+- Documented `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`.
+- Ran `cargo test` in `svgn`.
+- Documented `svgn` compiler warnings in `svgn/TODO.md`.
+- Updated `TODO.md` and `PLAN.md` with test results and issues.
+- Re-ran tests and confirmed existing issues in `ref/svgo` and `svgn`.
+- Re-ran tests again and confirmed persistent issues in `ref/svgo`.
+- Re-ran tests and confirmed persistent issues in `ref/svgo`.
+</file>
+
 <file path="svgn/src/plugins/mod.rs">
 // this_file: svgn/src/plugins/mod.rs
 
@@ -21452,7 +22307,9 @@ pub mod remove_unused_ns;
 pub mod remove_view_box;
 pub mod remove_xlink;
 pub mod remove_xmlns;
+pub mod remove_raster_images;
 pub mod sort_defs_children;
+pub mod remove_hidden_elems;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -21493,7 +22350,9 @@ pub use remove_unused_ns::RemoveUnusedNSPlugin;
 pub use remove_view_box::RemoveViewBoxPlugin;
 pub use remove_xlink::RemoveXlinkPlugin;
 pub use remove_xmlns::RemoveXMLNSPlugin;
+pub use remove_raster_images::RemoveRasterImagesPlugin;
 pub use sort_defs_children::SortDefsChildrenPlugin;
+pub use remove_hidden_elems::RemoveHiddenElemsPlugin;
 </file>
 
 <file path="TODO.md">
