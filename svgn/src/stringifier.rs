@@ -257,14 +257,16 @@ impl Stringifier {
 
     /// Write element attributes
     fn write_attributes(&self, element: &Element, output: &mut String) -> StringifyResult<()> {
-        // Collect attributes and sort to match SVGO order (xmlns first, then alphabetical)
+        // Collect attributes and sort to match SVGO order
         let mut attrs: Vec<_> = element.attributes.iter().collect();
         attrs.sort_by(|(a_name, _), (b_name, _)| {
-            // Put xmlns first, then sort alphabetically
-            match (a_name.starts_with("xmlns"), b_name.starts_with("xmlns")) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a_name.cmp(b_name),
+            let a_priority = get_attribute_priority(a_name);
+            let b_priority = get_attribute_priority(b_name);
+            
+            // First sort by priority, then alphabetically within the same priority
+            match a_priority.cmp(&b_priority) {
+                std::cmp::Ordering::Equal => a_name.cmp(b_name),
+                other => other,
             }
         });
 
@@ -346,6 +348,30 @@ impl Stringifier {
         for _ in 0..depth {
             output.push_str(&self.indent_string);
         }
+    }
+}
+
+/// Get attribute priority for SVGO-compatible ordering
+/// Lower numbers come first
+fn get_attribute_priority(attr_name: &str) -> u8 {
+    match attr_name {
+        // xmlns attributes come first
+        name if name.starts_with("xmlns") => 0,
+        // id comes early
+        "id" => 1,
+        // positioning attributes (x, y, cx, cy)
+        "x" | "y" | "cx" | "cy" => 2,
+        // size attributes (width, height before radius)
+        "width" | "height" => 3,
+        "r" | "rx" | "ry" => 4,
+        // viewBox and transform
+        "viewBox" => 5,
+        "transform" => 6,
+        // style and presentation attributes come later
+        "style" => 8,
+        "fill" | "stroke" | "opacity" => 9,
+        // everything else
+        _ => 10,
     }
 }
 

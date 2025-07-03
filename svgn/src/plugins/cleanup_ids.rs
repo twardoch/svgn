@@ -293,12 +293,16 @@ fn find_references(attribute: &str, value: &str) -> Vec<String> {
 
 /// Generate the next ID in sequence
 fn generate_id(current_id: Option<Vec<usize>>) -> Option<Vec<usize>> {
-    let mut id = current_id.unwrap_or_else(|| vec![0]);
+    let mut id = current_id.unwrap_or_else(|| vec![usize::MAX]); // Start before 'a'
     let max_index = GENERATE_ID_CHARS.len() - 1;
     
     // Increment the ID
     let last_idx = id.len() - 1;
-    id[last_idx] += 1;
+    if id[last_idx] == usize::MAX {
+        id[last_idx] = 0; // First call: go from MAX to 0 ('a')
+    } else {
+        id[last_idx] += 1;
+    }
     
     // Handle carry-over
     for i in (1..id.len()).rev() {

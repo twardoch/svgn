@@ -19,11 +19,14 @@ fn test_optimization(input: &str, expected: &str, plugin_names: Vec<&str>, param
         plugins.push(plugin);
     }
     
+    // If expected output is the same as input, use inline format (no change expected)
+    let use_pretty = input != expected;
+    
     let config = Config {
         plugins,
         multipass: false,
         js2svg: Js2SvgOptions {
-            pretty: true,
+            pretty: use_pretty,
             indent: 4,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
