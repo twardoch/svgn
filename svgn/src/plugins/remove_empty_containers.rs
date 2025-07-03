@@ -112,6 +112,7 @@ fn should_remove_empty_container(element: &Element, parent_name: Option<&str>) -
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};

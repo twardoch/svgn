@@ -372,6 +372,7 @@ fn update_references(element: &mut Element, id_mappings: &HashMap<String, String
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;

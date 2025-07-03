@@ -109,6 +109,7 @@ fn should_remove_empty_text_element(element: &Element, config: &RemoveEmptyTextP
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};

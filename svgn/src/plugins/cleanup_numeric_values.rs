@@ -242,6 +242,7 @@ fn remove_leading_zero(value: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::{Document, Element};

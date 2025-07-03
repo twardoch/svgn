@@ -122,6 +122,7 @@ fn strip_css_comments(value: &str) -> String {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;

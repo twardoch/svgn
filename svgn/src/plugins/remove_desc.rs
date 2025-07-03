@@ -90,6 +90,7 @@ fn should_remove_desc(desc_element: &Element, remove_any: bool) -> bool {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;

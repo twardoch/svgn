@@ -4,6 +4,17 @@
 //!
 //! These tests are ported from the SVGO test suite to ensure compatibility
 
+// Include individual plugin test modules
+mod cleanup_attrs;
+mod cleanup_ids;
+mod convert_colors;
+mod convert_ellipse_to_circle;
+mod remove_attributes_by_selector;
+mod remove_comments;
+mod remove_deprecated_attrs;
+mod remove_dimensions;
+mod remove_empty_attrs;
+
 use svgn::{optimize_with_config, Config, PluginConfig};
 use serde_json::json;
 

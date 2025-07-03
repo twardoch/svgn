@@ -1,6 +1,6 @@
 // Example program to test the new style plugins
 
-use svgn::ast::{Document, Element, Node};
+use svgn::ast::Document;
 use svgn::parser::Parser;
 use svgn::stringifier::Stringifier;
 use svgn::plugin::{Plugin, PluginInfo};

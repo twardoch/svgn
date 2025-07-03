@@ -341,6 +341,7 @@ fn format_number(value: f64, precision: Option<u8>) -> String {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::ast::Element;

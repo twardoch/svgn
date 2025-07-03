@@ -35,6 +35,7 @@ impl Plugin for RemoveDoctypePlugin {
 }
 
 #[cfg(test)]
+#[allow(unused_mut)]
 mod tests {
     use super::*;
     use crate::parser::Parser;
