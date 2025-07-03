@@ -1,0 +1,7 @@
+Building the svgn project...
+    Finished `release` profile [optimized] target(s) in 0.11s
+Running tests...
+   Compiling svgn v0.1.0 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
+error: couldn't create a temp dir: Operation not permitted (os error 1) at path "/var/folders/05/clcynl0509ldxltl599hhhx40000gn/T/rustcz9L9RP"
+
+error: could not compile `svgn` (test "integration_test") due to 1 previous error

@@ -15,7 +15,7 @@ CARGO_TOML="Cargo.toml"
 # Update version in [workspace.package]
 if [ -f "$CARGO_TOML" ]; then
   # Substitute version = "..."
-  perl -pi -e "s/^version = \"[0-9][^\"]*\"/version = \"$VERSION\"/ if $inws; if (/^\\[workspace\\.package\\]/) { $inws=1 } elsif (/^\\[/ && !/^\\[workspace\\.package\\]/) { $inws=0 }" "$CARGO_TOML"
+  perl -pi -e 'BEGIN { $inws=0 } s/^version = "[0-9][^\"]*"/version = "'$VERSION'"/ if $inws; if (/^\[workspace\.package\]/) { $inws=1 } elsif (/^\[/ && !/^\[workspace\.package\]/) { $inws=0 }' "$CARGO_TOML"
   echo "Updated $CARGO_TOML: version = $VERSION"
 else
   echo "Error: $CARGO_TOML not found."

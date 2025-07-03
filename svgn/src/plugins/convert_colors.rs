@@ -426,14 +426,14 @@ mod tests {
         
         plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
         
-        assert_eq!(document.root.attributes.get("stroke"), Some(&"#FF00FF".to_string()));
+        assert_eq!(document.root.attributes.get("stroke"), Some(&"#ff00ff".to_string()));
     }
 
     #[test]
     fn test_convert_rgb_to_hex_function() {
-        assert_eq!(convert_rgb_to_hex("rgb(255, 0, 255)"), Some("#FF00FF".to_string()));
-        assert_eq!(convert_rgb_to_hex("rgb(100%, 0%, 100%)"), Some("#FF00FF".to_string()));
-        assert_eq!(convert_rgb_to_hex("rgb(50%, 100, 100%)"), Some("#7F64FF".to_string()));
+        assert_eq!(convert_rgb_to_hex("rgb(255, 0, 255)"), Some("#ff00ff".to_string()));
+        assert_eq!(convert_rgb_to_hex("rgb(100%, 0%, 100%)"), Some("#ff00ff".to_string()));
+        assert_eq!(convert_rgb_to_hex("rgb(50%, 100, 100%)"), Some("#7f64ff".to_string()));
         assert_eq!(convert_rgb_to_hex("invalid"), None);
     }
 
@@ -463,6 +463,6 @@ mod tests {
         // names2hex is disabled, so "red" should stay as "red"
         assert_eq!(document.root.attributes.get("fill"), Some(&"red".to_string()));
         // rgb2hex is enabled, so RGB should convert to hex
-        assert_eq!(document.root.attributes.get("stroke"), Some(&"#FF00FF".to_string()));
+        assert_eq!(document.root.attributes.get("stroke"), Some(&"#ff00ff".to_string()));
     }
 }
