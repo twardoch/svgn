@@ -1,7 +1,22 @@
-- [ ] Run tests in all subprojects and document issues into respective TODO.md files
+- [x] Run tests in all subprojects and document issues into respective TODO.md files
   - [x] Run `yarn test` in `ref/svgo`
   - [x] Document `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`
   - [x] Run `cargo test` in `svgn`
   - [x] Document `svgn` compiler warnings in `svgn/TODO.md`
+- [x] Implement 40+ plugins (achieved: 43 plugins)
+- [ ] Port remaining plugins to reach 100% compatibility:
+  - [ ] convertPathData (complex path optimization)
+  - [ ] convertShapeToPath (shape to path conversion)
+  - [ ] convertTransform (transform optimization)
+  - [ ] inlineStyles (style inlining)
+  - [ ] mergePaths (path merging)
+  - [ ] minifyStyles (CSS minification)
+  - [ ] moveElemsAttrsToGroup (attribute grouping)
+  - [ ] moveGroupAttrsToElems (attribute distribution)
+  - [ ] removeUselessStrokeAndFill (stroke/fill optimization)
+  - [ ] reusePaths (path deduplication)
 - [ ] Address issues documented in `ref/svgo/TODO.md`
 - [ ] Address issues documented in `svgn/TODO.md`
+- [ ] Port svgo test suite to svgn
+- [ ] Implement WASM target
+- [ ] Create comprehensive benchmarks
