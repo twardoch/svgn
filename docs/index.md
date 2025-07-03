@@ -1,3 +1,8 @@
+---
+layout: default
+title: SVGN Specification
+---
+
 # SVGO Specification
 
 ## 1. Introduction
