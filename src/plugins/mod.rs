@@ -16,3 +16,4 @@ pub mod remove_unknowns_and_defaults;
 pub mod remove_xml_proc_inst;
 pub mod sort_attrs;
 pub mod convert_colors;
+pub mod minify_styles;
