@@ -1,6 +1,8 @@
 ---
 layout: default
-title: SVGN Plugins
+title: Plugins
+nav_order: 3
+description: "SVGN plugin architecture and available plugins"
 ---
 
 # SVGN Plugins

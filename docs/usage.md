@@ -1,6 +1,8 @@
 ---
 layout: default
-title: SVGN Usage
+title: Usage
+nav_order: 2
+description: "How to use SVGN CLI and library"
 ---
 
 # SVGN Usage

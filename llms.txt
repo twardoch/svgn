@@ -46,13 +46,15 @@ The content is organized as follows:
 .specstory/
   .what-is-this.md
 docs/
-  _layouts/
-    default.html
-  assets/
-    css/
-      style.css
+  _sass/
+    custom/
+      custom.scss
   _config.yml
+  architecture.md
+  comparison.md
   index.md
+  plugins.md
+  usage.md
 issues/
   201.txt
   202.txt
@@ -707,12 +709,16 @@ svgn/
       convert_style_to_attrs.rs
       merge_styles.rs
       mod.rs
+      prefix_ids.rs
       remove_attributes_by_selector.rs
       remove_attrs.rs
       remove_comments.rs
       remove_deprecated_attrs.rs
       remove_desc.rs
+      remove_dimensions.rs
       remove_doctype.rs
+      remove_editors_ns_data.rs
+      remove_elements_by_attr.rs
       remove_empty_attrs.rs
       remove_empty_containers.rs
       remove_empty_text.rs
@@ -755,6 +761,58 @@ TODO.md
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="docs/_sass/custom/custom.scss">
+// Custom styles for SVGN documentation
+
+// Color theme overrides
+$body-background-color: $white;
+$sidebar-color: $grey-lt-100;
+$border-color: $grey-lt-100;
+
+// Custom styling
+.code-example {
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: $grey-lt-000;
+}
+
+// Table styling improvements
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  
+  th, td {
+    border: 1px solid $border-color;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  
+  th {
+    background-color: $grey-lt-000;
+    font-weight: 600;
+  }
+}
+
+// Improve code block styling
+pre.highlight {
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid $border-color;
+}
+
+// Better link styling
+a {
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+</file>
 
 <file path="ref/svgo/.github/ISSUE_TEMPLATE/bug_report.md">
 ---
@@ -30857,6 +30915,318 @@ export default [
 }
 </file>
 
+<file path="svgn/src/plugins/remove_dimensions.rs">
+// this_file: svgn/src/plugins/remove_dimensions.rs
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+
+pub struct RemoveDimensionsPlugin;
+
+impl RemoveDimensionsPlugin {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn process_svg_element(&self, element: &mut Element) {
+        if element.name != "svg" {
+            return;
+        }
+
+        // If viewBox already exists, just remove width and height
+        if element.attributes.contains_key("viewBox") {
+            element.attributes.shift_remove("width");
+            element.attributes.shift_remove("height");
+        } else {
+            // Try to create viewBox from width and height if both are present and numeric
+            let width_str = element.attributes.get("width");
+            let height_str = element.attributes.get("height");
+
+            if let (Some(width_str), Some(height_str)) = (width_str, height_str) {
+                // Try to parse width and height as numbers
+                if let (Ok(width), Ok(height)) = (width_str.parse::<f64>(), height_str.parse::<f64>()) {
+                    // Only proceed if both are valid numbers (not NaN)
+                    if !width.is_nan() && !height.is_nan() {
+                        // Create viewBox and remove width/height
+                        let viewbox = format!("0 0 {} {}", width, height);
+                        element.attributes.insert("viewBox".to_string(), viewbox);
+                        element.attributes.shift_remove("width");
+                        element.attributes.shift_remove("height");
+                    }
+                }
+            }
+        }
+    }
+
+    fn process_element(&self, element: &mut Element) {
+        // Process this element if it's an SVG element
+        self.process_svg_element(element);
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.process_element(child_elem);
+            }
+        }
+    }
+}
+
+impl Plugin for RemoveDimensionsPlugin {
+    fn name(&self) -> &'static str {
+        "removeDimensions"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes width and height in presence of viewBox (opposite to removeViewBox)"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        self.process_element(&mut document.root);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::PluginInfo;
+    use indexmap::IndexMap;
+    use std::collections::HashMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            prologue: vec![],
+            epilogue: vec![],
+            metadata: crate::ast::DocumentMetadata {
+                path: None,
+                encoding: None,
+                version: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = RemoveDimensionsPlugin::new();
+        assert_eq!(plugin.name(), "removeDimensions");
+        assert_eq!(plugin.description(), "removes width and height in presence of viewBox (opposite to removeViewBox)");
+    }
+
+    #[test]
+    fn test_remove_dimensions_with_existing_viewbox() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with width, height, and viewBox
+        doc.root.attributes.insert("width".to_string(), "100".to_string());
+        doc.root.attributes.insert("height".to_string(), "50".to_string());
+        doc.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should be removed, viewBox should remain unchanged
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
+    }
+
+    #[test]
+    fn test_create_viewbox_from_dimensions() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with only width and height
+        doc.root.attributes.insert("width".to_string(), "100".to_string());
+        doc.root.attributes.insert("height".to_string(), "50".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should be removed, viewBox should be created
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
+    }
+
+    #[test]
+    fn test_decimal_dimensions() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with decimal dimensions
+        doc.root.attributes.insert("width".to_string(), "100.5".to_string());
+        doc.root.attributes.insert("height".to_string(), "50.25".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should be removed, viewBox should be created with decimals
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100.5 50.25".to_string()));
+    }
+
+    #[test]
+    fn test_invalid_dimensions_ignored() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with invalid dimensions
+        doc.root.attributes.insert("width".to_string(), "invalid".to_string());
+        doc.root.attributes.insert("height".to_string(), "50".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should remain since they're not both valid numbers
+        assert_eq!(doc.root.attributes.get("width"), Some(&"invalid".to_string()));
+        assert_eq!(doc.root.attributes.get("height"), Some(&"50".to_string()));
+        assert!(!doc.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_missing_dimension_ignored() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with only width
+        doc.root.attributes.insert("width".to_string(), "100".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width should remain since height is missing
+        assert_eq!(doc.root.attributes.get("width"), Some(&"100".to_string()));
+        assert!(!doc.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_only_processes_svg_elements() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add a rect element with width and height (should not be processed)
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("width".to_string(), "100".to_string());
+        rect_attrs.insert("height".to_string(), "50".to_string());
+        rect_attrs.insert("x".to_string(), "10".to_string());
+        rect_attrs.insert("y".to_string(), "10".to_string());
+        
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Rect dimensions should remain unchanged
+        if let Node::Element(rect) = &doc.root.children[0] {
+            assert_eq!(rect.attributes.get("width"), Some(&"100".to_string()));
+            assert_eq!(rect.attributes.get("height"), Some(&"50".to_string()));
+            assert!(!rect.attributes.contains_key("viewBox"));
+        } else {
+            panic!("Expected rect element");
+        }
+    }
+
+    #[test]
+    fn test_nested_svg_elements() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up root SVG
+        doc.root.attributes.insert("width".to_string(), "200".to_string());
+        doc.root.attributes.insert("height".to_string(), "100".to_string());
+        
+        // Add nested SVG element
+        let mut nested_svg_attrs = IndexMap::new();
+        nested_svg_attrs.insert("width".to_string(), "100".to_string());
+        nested_svg_attrs.insert("height".to_string(), "50".to_string());
+        
+        doc.root.children.push(Node::Element(Element {
+            name: "svg".to_string(),
+            attributes: nested_svg_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Root SVG should have viewBox and no dimensions
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
+        
+        // Nested SVG should also be processed
+        if let Node::Element(nested_svg) = &doc.root.children[0] {
+            assert!(!nested_svg.attributes.contains_key("width"));
+            assert!(!nested_svg.attributes.contains_key("height"));
+            assert_eq!(nested_svg.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
+        } else {
+            panic!("Expected nested SVG element");
+        }
+    }
+
+    #[test]
+    fn test_zero_dimensions() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with zero dimensions
+        doc.root.attributes.insert("width".to_string(), "0".to_string());
+        doc.root.attributes.insert("height".to_string(), "0".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Should still create viewBox even with zero dimensions
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 0 0".to_string()));
+    }
+
+    #[test]
+    fn test_no_dimensions_no_change() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // SVG with no width, height, or viewBox
+        let original_count = doc.root.attributes.len();
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Should not add any attributes
+        assert_eq!(doc.root.attributes.len(), original_count);
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert!(!doc.root.attributes.contains_key("viewBox"));
+    }
+}
+</file>
+
 <file path=".github/workflows/rust.yml">
 name: Rust
 
@@ -30954,34 +31324,356 @@ You can control auto-saving behavior in Cursor or VSCode:
 Auto-save occurs when changes are detected in the sqlite database, or every 2 minutes as a safety net.
 </file>
 
-<file path="docs/_layouts/default.html">
+<file path="docs/architecture.md">
 ---
 layout: default
+title: Architecture
+nav_order: 5
+description: "SVGN internal architecture and design"
 ---
 
-<!DOCTYPE html>
-<html lang="en-US">
-  <head>
-    <meta charset="UTF-8">
-    <title>{{ page.title | default: site.title }}</title>
-    <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
-  </head>
-  <body>
-    <div class="container-lg px-3 my-5 markdown-body">
-      {{ content }}
-    </div>
-  </body>
-</html>
+# SVGN Architecture
+
+`svgn` is designed as a native Rust port of `svgo`, aiming to replicate its core architectural principles while leveraging Rust's strengths for performance and reliability. The architecture closely mirrors `svgo`'s modular design, consisting of a core engine, parser, stringifier, and a robust plugin system.
+
+## Core Components
+
+### 1. Core Engine (`svgn/src/optimizer.rs`)
+
+Similar to `svgo`'s `lib/svgo.js`, the `svgn` core engine orchestrates the SVG optimization process. It takes an SVG string and a configuration object, then applies a pipeline of plugins to the parsed SVG Abstract Syntax Tree (AST). The engine manages the order of plugin execution and handles multi-pass optimizations if configured.
+
+### 2. Parser (`svgn/src/parser.rs`)
+
+The parser component is responsible for transforming an SVG string into an Abstract Syntax Tree (AST). In `svgo`, this is handled by `lib/parser.js`, which uses a SAX-like approach. `svgn` implements its own efficient SVG parser in Rust, converting the raw SVG XML into a structured, traversable AST representation that plugins can operate on.
+
+### 3. Plugins (`svgn/src/plugins/`)
+
+Plugins are the heart of `svgn`'s optimization capabilities. Each plugin is a self-contained module that performs a specific optimization or transformation on the SVG AST. `svgn`'s plugin system is designed to be compatible with `svgo`'s plugin API concepts, allowing for a systematic porting of existing `svgo` plugins.
+
+-   **Modularity**: Each optimization is encapsulated within its own plugin, promoting code organization and reusability.
+-   **AST Transformation**: Plugins receive and modify the SVG AST, enabling complex manipulations of SVG elements, attributes, and styles.
+-   **Configurability**: Plugins can be enabled, disabled, and configured with specific parameters via the `SvgnConfig` object.
+
+### 4. Stringifier (`svgn/src/stringifier.rs`)
+
+After all plugins have processed the AST, the stringifier component converts the optimized AST back into a minified SVG string. This component is analogous to `svgo`'s `lib/stringifier.js`. The stringifier handles proper XML serialization, including attribute ordering, whitespace management, and numeric precision, to ensure the smallest possible output size while maintaining valid SVG syntax.
+
+### 5. Command-Line Interface (CLI) (`svgn/src/bin/svgn.rs`)
+
+The `svgn` CLI provides a user-friendly interface for optimizing SVG files directly from the terminal. It parses command-line arguments, loads configuration, invokes the core optimization engine, and outputs the results. This component mirrors the functionality of `svgo`'s `bin/svgo` and `lib/svgo-node.js`.
+
+## Design Principles
+
+`svgn`'s architecture is guided by several key design principles:
+
+-   **Performance**: Leveraging Rust's capabilities for zero-cost abstractions, memory safety, and concurrency to achieve superior optimization speeds.
+-   **Functional Parity**: Ensuring that `svgn` produces identical optimization results to `svgo` for the same inputs and configurations.
+-   **Modularity**: Maintaining a clear separation of concerns between parsing, optimization, and stringification, and promoting a plugin-based approach for extensibility.
+-   **API Compatibility**: Designing the Rust API to be conceptually similar to `svgo`'s JavaScript API where appropriate, to ease migration for developers.
+-   **WASM Readiness**: Structuring the codebase to facilitate efficient compilation to WebAssembly, enabling broad deployment scenarios.
+
+By adhering to these principles, `svgn` aims to be a robust, high-performance, and functionally equivalent alternative to `svgo` in the Rust ecosystem.
 </file>
 
-<file path="docs/assets/css/style.css">
-body {
-    font-family: sans-serif;
+<file path="docs/comparison.md">
+---
+layout: default
+title: Comparison
+nav_order: 4
+description: "SVGN vs. SVGO: A detailed comparison"
+---
+
+# SVGN vs. SVGO: A Comparison
+
+`svgn` is a native Rust port of `svgo`, the popular JavaScript-based SVG optimizer. While `svgn` aims for functional parity and API compatibility with `svgo`, there are fundamental differences stemming from their underlying technologies (Rust vs. JavaScript) that impact performance, deployment, and ecosystem integration.
+
+## Key Differences
+
+| Feature             | SVGN (Rust)                                     | SVGO (JavaScript)                               |
+| :------------------ | :---------------------------------------------- | :---------------------------------------------- |
+| **Language**        | Rust                                            | JavaScript (Node.js)                            |
+| **Performance**     | Generally faster due to Rust's native execution and memory management. Ideal for CPU-bound tasks. | Good performance, but limited by JavaScript runtime overhead. |
+| **Memory Usage**    | Lower memory footprint due to Rust's ownership model and lack of garbage collector. | Higher memory usage due to JavaScript's garbage collection and runtime. |
+| **Ecosystem**       | Integrates seamlessly with Rust projects and the Cargo ecosystem. | Integrates with Node.js projects and the npm/Yarn ecosystem. |
+| **Deployment**      | Compiles to native executables, WebAssembly (WASM), or can be used as a library. | Requires Node.js runtime for execution. Browser usage requires bundling. |
+| **Concurrency**     | Leverages Rust's strong concurrency primitives for potential parallel processing of SVG optimization tasks. | Primarily single-threaded, though asynchronous operations are common. |
+| **Error Handling**  | Rust's robust type system and `Result`/`Option` enums enforce explicit error handling at compile time. | Relies on exceptions and runtime error handling. |
+| **Binary Size**     | Native executables can be larger due to static linking, but WASM output can be compact. | Smaller package size, but requires Node.js runtime. |
+| **Use Cases**       | High-performance backend services, desktop applications, CLI tools, WASM in browsers. | Web development workflows, build tools, Node.js applications, browser-based optimization (with bundling). |
+
+## Functional Parity
+
+`svgn`'s primary goal is to achieve full functional parity with `svgo` v4.0.0. This means that for a given SVG input and configuration, `svgn` should produce an identical (or byte-for-byte equivalent) optimized SVG output as `svgo`.
+
+-   **Plugin Porting**: All `svgo` plugins are being systematically ported to `svgn`, ensuring that the same optimization rules and logic are applied.
+-   **Test Suite Replication**: `svgn` utilizes a comprehensive test suite that includes many of `svgo`'s original test cases, ensuring that the output matches the reference implementation.
+-   **Configuration Mapping**: `svgn`'s configuration structure (`SvgnConfig`) is designed to directly map to `svgo`'s configuration object, allowing for easy migration of existing `svgo` configurations.
+
+## When to Choose SVGN?
+
+Consider using `svgn` if:
+
+-   You require maximum performance for SVG optimization, especially for large batches of files or in performance-critical environments.
+-   You are working within a Rust ecosystem and prefer a native solution without Node.js dependencies.
+-   You plan to deploy SVG optimization to WebAssembly (WASM) for client-side or edge computing scenarios.
+-   You value strong type safety and compile-time error checking.
+
+## When to Choose SVGO?
+
+`svgo` remains an excellent choice if:
+
+-   You are already heavily invested in the Node.js/JavaScript ecosystem.
+-   Your performance requirements are met by `svgo`'s current capabilities.
+-   You need immediate access to the latest `svgo` features and plugins as they are released (as `svgn` will have a slight lag for porting).
+-   You prefer the flexibility and rapid development cycles often associated with JavaScript.
+
+Ultimately, the choice between `svgn` and `svgo` depends on your specific project requirements, performance needs, and technology stack preferences.
+</file>
+
+<file path="docs/plugins.md">
+---
+layout: default
+title: Plugins
+nav_order: 3
+description: "SVGN plugin architecture and available plugins"
+---
+
+# SVGN Plugins
+
+Plugins are the core of `svgn`'s optimization capabilities, just as they are for `svgo`. They perform specific transformations on the SVG's Abstract Syntax Tree (AST) to reduce file size and improve rendering efficiency. `svgn` aims to port all of `svgo`'s plugins, maintaining functional parity and API compatibility where it makes sense in a Rust context.
+
+## Plugin Architecture
+
+Similar to `svgo`, `svgn` utilizes a plugin-based architecture. Each plugin is a distinct module responsible for a specific optimization task. This modularity allows for flexible configuration and extensibility.
+
+In `svgn`, plugins are implemented as Rust functions or structs that operate on the SVG's AST. The core optimizer iterates through the enabled plugins, applying their transformations sequentially.
+
+## Default Preset
+
+`svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. The specific plugins included in the default preset and their order of execution will mirror `svgo`'s `preset-default` as closely as possible.
+
+## Ported Plugins
+
+The following `svgo` plugins have been ported to `svgn`:
+
+-   **`addAttributesToSVGElement`**: Adds attributes to the root `<svg>` element.
+-   **`addClassesToSVGElement`**: Adds class names to the root `<svg>` element.
+-   **`cleanupAttrs`**: Cleans up attributes from newlines, trailing, and repeating spaces.
+-   **`cleanupEnableBackground`**: Removes or cleans up the `enable-background` attribute.
+-   **`cleanupIds`**: Minifies and removes unused IDs.
+-   **`cleanupListOfValues`**: Rounds numeric values in attributes that have a list of numbers (like `viewBox` or `stroke-dasharray`).
+-   **`cleanupNumericValues`**: Rounds numeric values to a fixed precision.
+-   **`collapseGroups`**: Collapses useless groups (`<g>`).
+-   **`convertColors`**: Converts colors from `rgb()` to `#rrggbb`, `rgba()` to `#rrggbbaa`, and color names to hex values.
+-   **`convertEllipseToCircle`**: Converts `<ellipse>` elements to `<circle>` elements when possible.
+-   **`convertOneStopGradients`**: Converts gradients with only one stop to a solid color.
+-   **`convertStyleToAttrs`**: Converts styles from `<style>` elements to attributes.
+-   **`mergeStyles`**: Merges multiple `<style>` elements into one.
+-   **`removeAttributesBySelector`**: Removes attributes of elements that match a CSS selector.
+-   **`removeAttrs`**: Removes attributes by name.
+-   **`removeComments`**: Removes comments.
+-   **`removeDeprecatedAttrs`**: Removes deprecated attributes.
+-   **`removeDesc`**: Removes `<desc>` elements.
+-   **`removeDoctype`**: Removes doctype declarations.
+-   **`removeEmptyAttrs`**: Removes empty attributes.
+-   **`removeEmptyContainers`**: Removes empty container elements.
+-   **`removeEmptyText`**: Removes empty text elements.
+-   **`removeMetadata`**: Removes `<metadata>` elements.
+-   **`removeStyleElement`**: Removes `<style>` elements.
+-   **`removeTitle`**: Removes `<title>` elements.
+-   **`removeUnknownsAndDefaults`**: Removes unknown elements' content and attributes, and removes default attribute values.
+-   **`removeXMLProcInst`**: Removes XML processing instructions.
+-   **`sortAttrs`**: Sorts element attributes for better gzip compression.
+
+*(This list will be updated as more plugins are ported and verified.)*
+
+## Plugin Configuration
+
+Configuring plugins in `svgn` is similar to `svgo`. You can enable or disable plugins, and for some, provide specific parameters to control their behavior. This is done through the `SvgnConfig` structure, as shown in the [Usage documentation](./usage.md).
+
+### Example: Disabling a Plugin
+
+To disable a plugin, you would omit it from your `plugins` list in the `SvgnConfig` or explicitly set it to `false` if using a preset override mechanism (which will be implemented to mirror `svgo`'s behavior).
+
+### Example: Configuring a Plugin with Parameters
+
+```rust
+use svgn::config::{SvgnConfig, PluginConfig};
+use serde_json::json;
+
+let config = SvgnConfig {
+    plugins: vec![
+        PluginConfig::WithParams {
+            name: "cleanupNumericValues".to_string(),
+            params: json!({
+                "floatPrecision": 2,
+                "leadingZero": false,
+            }),
+        },
+    ],
+    ..SvgnConfig::default()
+};
+```
+
+This example demonstrates how to configure the `cleanupNumericValues` plugin to round to 2 decimal places and keep leading zeros, mirroring `svgo`'s parameter structure.
+</file>
+
+<file path="docs/usage.md">
+---
+layout: default
+title: Usage
+nav_order: 2
+description: "How to use SVGN CLI and library"
+---
+
+# SVGN Usage
+
+`svgn` provides a powerful and efficient way to optimize SVG files, leveraging the performance benefits of Rust. It aims for API compatibility with `svgo` where applicable, making the transition for users familiar with the JavaScript version as smooth as possible.
+
+## Command-Line Interface (CLI)
+
+`svgn` offers a command-line interface for direct file optimization, similar to `svgo`.
+
+### Basic Usage
+
+To optimize a single SVG file:
+
+```bash
+svgn input.svg -o output.svg
+```
+
+To optimize all SVG files in a folder and overwrite them:
+
+```bash
+svgn -f input_folder
+```
+
+### Options
+
+`svgn` CLI options largely mirror `svgo`'s, providing a familiar experience:
+
+-   `-i, --input <file|dir>`: Input file or directory. (Similar to `svgo`)
+-   `-o, --output <file|dir>`: Output file or directory. (Similar to `svgo`)
+-   `-f, --folder <dir>`: Input folder, optimize and rewrite all `*.svg` files. (Similar to `svgo`)
+-   `-p, --pretty`: Make SVG pretty printed. (Similar to `svgo`)
+-   `--config <file>`: Custom config file. (Similar to `svgo`)
+-   `--disable <plugin_name>`: Disable a plugin by name. (Similar to `svgo`)
+-   `--enable <plugin_name>`: Enable a plugin by name. (Similar to `svgo`)
+-   `--datauri <type>`: Output as Data URI string (`'base64'`, `'enc'`, or `'unenc'`). (Similar to `svgo`)
+-   `--multipass`: Optimize SVG multiple times. (Similar to `svgo`)
+-   `--quiet`: Only output error messages. (Similar to `svgo`)
+-   `-v, --version`: Show version.
+-   `-h, --help`: Show help.
+
+## As a Rust Library
+
+`svgn` can be integrated directly into your Rust projects for programmatic SVG optimization. The core optimization function is designed to be intuitive and efficient.
+
+### Basic Example
+
+To use `svgn` in your Rust code, first ensure you've added it to your `Cargo.toml` (as described in the [Installation](/#installation) section). Then, you can use the `optimize` function:
+
+```rust
+use svgn::optimize;
+use svgn::config::SvgnConfig;
+
+fn main() {
+    let svg_string = r#"
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="0 0 100 100">
+  <text x="50" y="50" text-anchor="middle">•ᴗ•</text>
+</svg>
+"#;
+
+    let config = SvgnConfig::default();
+    let result = optimize(svg_string, &config);
+
+    match result {
+        Ok(optimized_svg) => {
+            println!("Optimized SVG:\n{}", optimized_svg.data);
+        }
+        Err(e) => {
+            eprintln!("Error optimizing SVG: {}", e);
+        }
+    }
 }
-</file>
+```
 
-<file path="docs/_config.yml">
-theme: jekyll-theme-minimal
+### Configuration
+
+The `optimize` function in `svgn` takes an SVG string and a configuration object, similar to `svgo`'s `optimize(input, config)`.
+
+```rust
+pub struct SvgnConfig {
+    pub path: Option<String>,
+    pub plugins: Vec<PluginConfig>,
+    pub multipass: bool,
+    pub js2svg: Js2SvgConfig,
+    pub datauri: Option<String>,
+}
+
+pub struct Js2SvgConfig {
+    pub pretty: bool,
+    pub indent: usize,
+}
+
+pub enum PluginConfig {
+    // Represents a plugin enabled by its name (e.g., "removeDimensions")
+    Enabled(String),
+    // Represents a plugin with custom parameters
+    WithParams {
+        name: String,
+        params: serde_json::Value, // Use serde_json::Value for flexible parameters
+    },
+}
+```
+
+**Comparison with `svgo`'s Configuration:**
+
+`svgn`'s `SvgnConfig` directly maps to `svgo`'s configuration object. The `plugins` array in `svgo` can contain either plugin names (strings) or objects with `name` and `params`. In `svgn`, this is represented by the `PluginConfig` enum, allowing for both simple enablement and parameter customization.
+
+### Example with Custom Plugins
+
+```rust
+use svgn::optimize;
+use svgn::config::{SvgnConfig, PluginConfig};
+use serde_json::json;
+
+fn main() {
+    let svg_string = r#"<svg width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="red"/></svg>"#;
+
+    let config = SvgnConfig {
+        plugins: vec![
+            PluginConfig::Enabled("removeDimensions".to_string()),
+            PluginConfig::WithParams {
+                name: "sortAttrs".to_string(),
+                params: json!({
+                    "xmlnsOrder": "alphabetical",
+                }),
+            },
+        ],
+        ..SvgnConfig::default()
+    };
+
+    let result = optimize(svg_string, &config);
+
+    match result {
+        Ok(optimized_svg) => {
+            println!("Optimized SVG:\n{}", optimized_svg.data);
+        }
+        Err(e) => {
+            eprintln!("Error optimizing SVG: {}", e);
+        }
+    }
+}
+```
+
+## WebAssembly (WASM)
+
+`svgn` is designed to be compiled to WebAssembly, allowing you to run SVG optimization directly in the browser or other WASM environments. This provides a significant performance boost compared to JavaScript-based optimizers in the browser.
+
+*(Details on WASM usage will be added as the WASM compilation target matures.)*
 </file>
 
 <file path="issues/201.txt">
@@ -34026,504 +34718,6 @@ mod tests {
 }
 </file>
 
-<file path="svgn/src/plugins/convert_one_stop_gradients.rs">
-// this_file: svgn/src/plugins/convert_one_stop_gradients.rs
-
-use crate::ast::{Document, Element, Node};
-use crate::collections::COLORS_PROPS;
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-use std::collections::{HashMap, HashSet};
-
-pub struct ConvertOneStopGradientsPlugin;
-
-impl ConvertOneStopGradientsPlugin {
-    pub fn new() -> Self {
-        Self
-    }
-
-    fn process_element(
-        &self,
-        element: &mut Element,
-        gradients_to_remove: &mut HashMap<String, String>,
-        parent_is_defs: bool,
-        affected_defs: &mut HashSet<String>,
-    ) {
-        // Track defs elements
-        if element.name == "defs" && element.attributes.contains_key("id") {
-            if let Some(id) = element.attributes.get("id") {
-                affected_defs.insert(id.clone());
-            }
-        }
-
-        // Process gradient elements
-        if element.name == "linearGradient" || element.name == "radialGradient" {
-            if let Some(id) = element.attributes.get("id") {
-                // Count stop elements
-                let stops: Vec<&Element> = element
-                    .children
-                    .iter()
-                    .filter_map(|child| {
-                        if let Node::Element(ref elem) = child {
-                            if elem.name == "stop" {
-                                Some(elem)
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-
-                // Check if this gradient references another gradient
-                let href = element
-                    .attributes
-                    .get("xlink:href")
-                    .or_else(|| element.attributes.get("href"));
-
-                // If this gradient has no stops and references another, skip for now
-                // (would need to resolve references, which is complex)
-                if stops.is_empty() && href.is_some() {
-                    return;
-                }
-
-                // Only process gradients with exactly one stop
-                if stops.len() == 1 {
-                    let stop = stops[0];
-                    
-                    // Get the stop color
-                    let stop_color = stop
-                        .attributes
-                        .get("stop-color")
-                        .cloned()
-                        .or_else(|| {
-                            // Check style attribute for stop-color
-                            stop.attributes.get("style").and_then(|style| {
-                                // Simple regex-like parsing for stop-color in style
-                                if let Some(idx) = style.find("stop-color:") {
-                                    let start = idx + 11;
-                                    let rest = &style[start..].trim_start();
-                                    let end = rest.find(';').unwrap_or(rest.len());
-                                    Some(rest[..end].trim().to_string())
-                                } else {
-                                    None
-                                }
-                            })
-                        })
-                        .unwrap_or_else(|| "black".to_string()); // Default stop-color is black
-
-                    // Mark this gradient for removal and store its replacement color
-                    gradients_to_remove.insert(id.clone(), stop_color);
-
-                    if parent_is_defs {
-                        affected_defs.insert("parent_defs".to_string());
-                    }
-                }
-            }
-        }
-
-        // Process child elements recursively
-        let is_defs = element.name == "defs";
-        for child in &mut element.children {
-            if let Node::Element(ref mut child_elem) = child {
-                self.process_element(child_elem, gradients_to_remove, is_defs, affected_defs);
-            }
-        }
-    }
-
-    fn replace_gradient_references(
-        &self,
-        element: &mut Element,
-        gradients_to_remove: &HashMap<String, String>,
-    ) {
-        // Replace gradient references in color properties
-        for color_prop in COLORS_PROPS.iter() {
-            if let Some(value) = element.attributes.get_mut(color_prop) {
-                if let Some(gradient_id) = self.extract_gradient_id(value) {
-                    if let Some(replacement_color) = gradients_to_remove.get(&gradient_id) {
-                        *value = replacement_color.clone();
-                    }
-                }
-            }
-        }
-
-        // Replace gradient references in style attribute
-        if let Some(style) = element.attributes.get_mut("style") {
-            let mut new_style = style.clone();
-            for (gradient_id, replacement_color) in gradients_to_remove {
-                let url_pattern = format!("url(#{})", gradient_id);
-                new_style = new_style.replace(&url_pattern, replacement_color);
-            }
-            if new_style != *style {
-                *style = new_style;
-            }
-        }
-
-        // Process children
-        for child in &mut element.children {
-            if let Node::Element(ref mut child_elem) = child {
-                self.replace_gradient_references(child_elem, gradients_to_remove);
-            }
-        }
-    }
-
-    fn extract_gradient_id(&self, value: &str) -> Option<String> {
-        if value.starts_with("url(#") && value.ends_with(')') {
-            let id = &value[5..value.len() - 1];
-            Some(id.to_string())
-        } else {
-            None
-        }
-    }
-
-    fn remove_gradients(
-        &self,
-        element: &mut Element,
-        gradients_to_remove: &HashMap<String, String>,
-    ) {
-        // Remove gradient elements
-        element.children.retain(|child| {
-            if let Node::Element(ref elem) = child {
-                if elem.name == "linearGradient" || elem.name == "radialGradient" {
-                    if let Some(id) = elem.attributes.get("id") {
-                        return !gradients_to_remove.contains_key(id.as_str());
-                    }
-                }
-            }
-            true
-        });
-
-        // Process children
-        for child in &mut element.children {
-            if let Node::Element(ref mut child_elem) = child {
-                self.remove_gradients(child_elem, gradients_to_remove);
-            }
-        }
-    }
-
-    fn remove_empty_defs(&self, element: &mut Element) {
-        // Remove empty defs elements
-        element.children.retain(|child| {
-            if let Node::Element(ref elem) = child {
-                if elem.name == "defs" && elem.children.is_empty() {
-                    return false;
-                }
-            }
-            true
-        });
-
-        // Process children
-        for child in &mut element.children {
-            if let Node::Element(ref mut child_elem) = child {
-                self.remove_empty_defs(child_elem);
-            }
-        }
-    }
-
-    fn remove_unused_xlink_namespace(&self, document: &mut Document) {
-        // Check if any xlink:href attributes remain
-        let mut has_xlink = false;
-        
-        fn check_xlink(element: &Element) -> bool {
-            if element.attributes.contains_key("xlink:href") {
-                return true;
-            }
-            
-            for child in &element.children {
-                if let Node::Element(ref elem) = child {
-                    if check_xlink(elem) {
-                        return true;
-                    }
-                }
-            }
-            false
-        }
-
-        if let Some(root) = &document.root {
-            has_xlink = check_xlink(root);
-        }
-
-        // Remove xmlns:xlink if no xlink:href attributes remain
-        if !has_xlink {
-            if let Some(root) = &mut document.root {
-                root.namespaces.shift_remove("xlink");
-                root.attributes.shift_remove("xmlns:xlink");
-            }
-        }
-    }
-}
-
-impl Plugin for ConvertOneStopGradientsPlugin {
-    fn name(&self) -> &'static str {
-        "convertOneStopGradients"
-    }
-
-    fn description(&self) -> &'static str {
-        "converts one-stop (single color) gradients to a plain color"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        let mut gradients_to_remove = HashMap::new();
-        let mut affected_defs = HashSet::new();
-
-        // First pass: identify gradients with only one stop
-        if let Some(root) = &mut document.root {
-            self.process_element(root, &mut gradients_to_remove, false, &mut affected_defs);
-        }
-
-        // Second pass: replace gradient references with solid colors
-        if !gradients_to_remove.is_empty() {
-            if let Some(root) = &mut document.root {
-                self.replace_gradient_references(root, &gradients_to_remove);
-            }
-
-            // Third pass: remove the gradient elements
-            if let Some(root) = &mut document.root {
-                self.remove_gradients(root, &gradients_to_remove);
-            }
-
-            // Fourth pass: remove empty defs elements
-            if let Some(root) = &mut document.root {
-                self.remove_empty_defs(root);
-            }
-
-            // Remove unused xlink namespace
-            self.remove_unused_xlink_namespace(document);
-        }
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_convert_one_stop_gradient() {
-        let mut doc = parse_svg(r#"
-            <svg xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad1">
-                        <stop stop-color="red"/>
-                    </linearGradient>
-                </defs>
-                <rect fill="url(#grad1)" width="100" height="100"/>
-            </svg>
-        "#);
-        let plugin = ConvertOneStopGradientsPlugin::new();
-        plugin.apply(&mut doc, &None, &PluginInfo::default()).unwrap();
-        
-        let root = doc.root.as_ref().unwrap();
-        if let Node::Element(elem) = root {
-            // Check that defs is removed (because it becomes empty)
-            assert!(!elem.children.iter().any(|child| {
-                if let Node::Element(e) = child {
-                    e.name == "defs"
-                } else {
-                    false
-                }
-            }));
-            
-            // Check that rect now has solid fill
-            let rect = elem.children.iter().find_map(|child| {
-                if let Node::Element(e) = child {
-                    if e.name == "rect" {
-                        Some(e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }).unwrap();
-            
-            assert_eq!(rect.attributes.get("fill"), Some(&"red".to_string()));
-        }
-    }
-
-    #[test]
-    fn test_convert_radial_gradient() {
-        let mut doc = parse_svg(r#"
-            <svg xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <radialGradient id="grad1">
-                        <stop stop-color="#ff0000"/>
-                    </radialGradient>
-                </defs>
-                <circle fill="url(#grad1)" cx="50" cy="50" r="40"/>
-            </svg>
-        "#);
-        let plugin = ConvertOneStopGradientsPlugin::new();
-        plugin.apply(&mut doc, &None, &PluginInfo::default()).unwrap();
-        
-        let root = doc.root.as_ref().unwrap();
-        if let Node::Element(elem) = root {
-            let circle = elem.children.iter().find_map(|child| {
-                if let Node::Element(e) = child {
-                    if e.name == "circle" {
-                        Some(e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }).unwrap();
-            
-            assert_eq!(circle.attributes.get("fill"), Some(&"#ff0000".to_string()));
-        }
-    }
-
-    #[test]
-    fn test_preserve_multi_stop_gradient() {
-        let mut doc = parse_svg(r#"
-            <svg xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad1">
-                        <stop offset="0%" stop-color="red"/>
-                        <stop offset="100%" stop-color="blue"/>
-                    </linearGradient>
-                </defs>
-                <rect fill="url(#grad1)" width="100" height="100"/>
-            </svg>
-        "#);
-        let plugin = ConvertOneStopGradientsPlugin::new();
-        let original = doc.clone();
-        plugin.apply(&mut doc, &None, &PluginInfo::default()).unwrap();
-        
-        // Document should remain unchanged
-        let root = doc.root.as_ref().unwrap();
-        if let Node::Element(elem) = root {
-            // Gradient should still be there
-            assert!(elem.children.iter().any(|child| {
-                if let Node::Element(e) = child {
-                    e.name == "defs"
-                } else {
-                    false
-                }
-            }));
-            
-            // Rect should still reference gradient
-            let rect = elem.children.iter().find_map(|child| {
-                if let Node::Element(e) = child {
-                    if e.name == "rect" {
-                        Some(e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }).unwrap();
-            
-            assert_eq!(rect.attributes.get("fill"), Some(&"url(#grad1)".to_string()));
-        }
-    }
-
-    #[test]
-    fn test_style_attribute() {
-        let mut doc = parse_svg(r#"
-            <svg xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad1">
-                        <stop stop-color="blue"/>
-                    </linearGradient>
-                </defs>
-                <rect style="fill: url(#grad1); stroke: black" width="100" height="100"/>
-            </svg>
-        "#);
-        let plugin = ConvertOneStopGradientsPlugin::new();
-        plugin.apply(&mut doc, &None, &PluginInfo::default()).unwrap();
-        
-        let root = doc.root.as_ref().unwrap();
-        if let Node::Element(elem) = root {
-            let rect = elem.children.iter().find_map(|child| {
-                if let Node::Element(e) = child {
-                    if e.name == "rect" {
-                        Some(e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }).unwrap();
-            
-            assert_eq!(rect.attributes.get("style"), Some(&"fill: blue; stroke: black".to_string()));
-        }
-    }
-
-    #[test]
-    fn test_stop_color_in_style() {
-        let mut doc = parse_svg(r#"
-            <svg xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad1">
-                        <stop style="stop-color: green"/>
-                    </linearGradient>
-                </defs>
-                <rect fill="url(#grad1)" width="100" height="100"/>
-            </svg>
-        "#);
-        let plugin = ConvertOneStopGradientsPlugin::new();
-        plugin.apply(&mut doc, &None, &PluginInfo::default()).unwrap();
-        
-        let root = doc.root.as_ref().unwrap();
-        if let Node::Element(elem) = root {
-            let rect = elem.children.iter().find_map(|child| {
-                if let Node::Element(e) = child {
-                    if e.name == "rect" {
-                        Some(e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }).unwrap();
-            
-            assert_eq!(rect.attributes.get("fill"), Some(&"green".to_string()));
-        }
-    }
-
-    #[test]
-    fn test_default_stop_color() {
-        let mut doc = parse_svg(r#"
-            <svg xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="grad1">
-                        <stop/>
-                    </linearGradient>
-                </defs>
-                <rect fill="url(#grad1)" width="100" height="100"/>
-            </svg>
-        "#);
-        let plugin = ConvertOneStopGradientsPlugin::new();
-        plugin.apply(&mut doc, &None, &PluginInfo::default()).unwrap();
-        
-        let root = doc.root.as_ref().unwrap();
-        if let Node::Element(elem) = root {
-            let rect = elem.children.iter().find_map(|child| {
-                if let Node::Element(e) = child {
-                    if e.name == "rect" {
-                        Some(e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }).unwrap();
-            
-            // Default stop-color is black
-            assert_eq!(rect.attributes.get("fill"), Some(&"black".to_string()));
-        }
-    }
-}
-</file>
-
 <file path="svgn/src/plugins/merge_styles.rs">
 // this_file: svgn/src/plugins/merge_styles.rs
 
@@ -34748,6 +34942,454 @@ mod tests {
             }
         }
         count
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/prefix_ids.rs">
+// this_file: svgn/src/plugins/prefix_ids.rs
+
+use crate::ast::{Document, Element, Node};
+use crate::collections::REFERENCES_PROPS;
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use regex::Regex;
+use serde_json::Value;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+pub struct PrefixIdsConfig {
+    /// The prefix to use. Can be a string or auto-generated from file path
+    pub prefix: Option<String>,
+    /// Delimiter between prefix and original ID
+    pub delim: String,
+    /// Whether to prefix IDs
+    pub prefix_ids: bool,
+    /// Whether to prefix class names
+    pub prefix_class_names: bool,
+}
+
+impl Default for PrefixIdsConfig {
+    fn default() -> Self {
+        Self {
+            prefix: None,
+            delim: "__".to_string(),
+            prefix_ids: true,
+            prefix_class_names: true,
+        }
+    }
+}
+
+pub struct PrefixIdsPlugin;
+
+impl PrefixIdsPlugin {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn parse_config(&self, params: Option<&Value>) -> PrefixIdsConfig {
+        let mut config = PrefixIdsConfig::default();
+        
+        if let Some(Value::Object(obj)) = params {
+            if let Some(Value::String(prefix)) = obj.get("prefix") {
+                config.prefix = Some(prefix.clone());
+            }
+            
+            if let Some(Value::String(delim)) = obj.get("delim") {
+                config.delim = delim.clone();
+            }
+            
+            if let Some(Value::Bool(prefix_ids)) = obj.get("prefixIds") {
+                config.prefix_ids = *prefix_ids;
+            }
+            
+            if let Some(Value::Bool(prefix_class_names)) = obj.get("prefixClassNames") {
+                config.prefix_class_names = *prefix_class_names;
+            }
+        }
+        
+        config
+    }
+
+    fn get_basename(path: &str) -> String {
+        // Extract everything after latest slash or backslash
+        if let Some(captures) = Regex::new(r"[/\\]?([^/\\]+)$").unwrap().captures(path) {
+            if let Some(matched) = captures.get(1) {
+                return matched.as_str().to_string();
+            }
+        }
+        String::new()
+    }
+
+    fn escape_identifier_name(s: &str) -> String {
+        s.replace(['.', ' '], "_")
+    }
+
+    fn generate_prefix(&self, config: &PrefixIdsConfig, info: &PluginInfo) -> String {
+        if let Some(prefix) = &config.prefix {
+            return format!("{}{}", prefix, config.delim);
+        }
+        
+        if let Some(path) = &info.path {
+            let basename = Self::get_basename(path);
+            if !basename.is_empty() {
+                return format!("{}{}", Self::escape_identifier_name(&basename), config.delim);
+            }
+        }
+        
+        format!("prefix{}", config.delim)
+    }
+
+    fn prefix_id(&self, prefix: &str, id: &str) -> String {
+        if id.starts_with(prefix) {
+            id.to_string()
+        } else {
+            format!("{}{}", prefix, id)
+        }
+    }
+
+    fn prefix_reference(&self, prefix: &str, reference: &str) -> Option<String> {
+        if reference.starts_with('#') {
+            let id = &reference[1..];
+            Some(format!("#{}", self.prefix_id(prefix, id)))
+        } else {
+            None
+        }
+    }
+
+    fn process_element(&self, element: &mut Element, prefix: &str, config: &PrefixIdsConfig) {
+        // Prefix ID attribute
+        if config.prefix_ids {
+            if let Some(id) = element.attributes.get_mut("id") {
+                if !id.is_empty() {
+                    *id = self.prefix_id(prefix, id);
+                }
+            }
+        }
+
+        // Prefix class attribute
+        if config.prefix_class_names {
+            if let Some(class) = element.attributes.get_mut("class") {
+                if !class.is_empty() {
+                    let classes: Vec<String> = class
+                        .split_whitespace()
+                        .map(|name| self.prefix_id(prefix, name))
+                        .collect();
+                    *class = classes.join(" ");
+                }
+            }
+        }
+
+        // Prefix href and xlink:href attributes
+        for attr_name in ["href", "xlink:href"] {
+            if let Some(href) = element.attributes.get_mut(attr_name) {
+                if !href.is_empty() {
+                    if let Some(prefixed) = self.prefix_reference(prefix, href) {
+                        *href = prefixed;
+                    }
+                }
+            }
+        }
+
+        // Prefix URL references in specific attributes
+        for attr_name in REFERENCES_PROPS.iter() {
+            if let Some(attr_value) = element.attributes.get_mut(*attr_name) {
+                if !attr_value.is_empty() {
+                    *attr_value = self.process_url_references(attr_value, prefix);
+                }
+            }
+        }
+
+        // Prefix begin/end attributes (for animation)
+        for attr_name in ["begin", "end"] {
+            if let Some(attr_value) = element.attributes.get_mut(attr_name) {
+                if !attr_value.is_empty() {
+                    *attr_value = self.process_animation_references(attr_value, prefix);
+                }
+            }
+        }
+
+        // Process style elements (simplified - no CSS parsing for now)
+        if element.name == "style" {
+            for child in &mut element.children {
+                if let Node::Text(ref mut text) = child {
+                    *text = self.process_style_content(text, prefix, config);
+                }
+            }
+        }
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.process_element(child_elem, prefix, config);
+            }
+        }
+    }
+
+    fn process_url_references(&self, value: &str, prefix: &str) -> String {
+        // Simple regex to match url(#id) patterns
+        let url_regex = Regex::new(r#"\burl\(([\"']?)(#[^)]+)\1\)"#).unwrap();
+        
+        url_regex.replace_all(value, |caps: &regex::Captures| {
+            let quote = caps.get(1).map_or("", |m| m.as_str());
+            let url = caps.get(2).map_or("", |m| m.as_str());
+            
+            if let Some(prefixed) = self.prefix_reference(prefix, url) {
+                format!("url({}{}{})", quote, prefixed, quote)
+            } else {
+                caps.get(0).unwrap().as_str().to_string()
+            }
+        }).to_string()
+    }
+
+    fn process_animation_references(&self, value: &str, prefix: &str) -> String {
+        let parts: Vec<String> = value
+            .split(';')
+            .map(|part| {
+                let trimmed = part.trim();
+                if trimmed.ends_with(".end") || trimmed.ends_with(".start") {
+                    let mut split_parts = trimmed.split('.');
+                    if let Some(id) = split_parts.next() {
+                        let postfix = split_parts.collect::<Vec<_>>().join(".");
+                        format!("{}.{}", self.prefix_id(prefix, id), postfix)
+                    } else {
+                        trimmed.to_string()
+                    }
+                } else {
+                    trimmed.to_string()
+                }
+            })
+            .collect();
+        
+        parts.join("; ")
+    }
+
+    fn process_style_content(&self, content: &str, prefix: &str, config: &PrefixIdsConfig) -> String {
+        let mut result = content.to_string();
+        
+        // Simple patterns for ID and class selectors (without full CSS parsing)
+        if config.prefix_ids {
+            // Match #id selectors
+            let id_regex = Regex::new(r"#([a-zA-Z][\w-]*)").unwrap();
+            result = id_regex.replace_all(&result, |caps: &regex::Captures| {
+                let id = caps.get(1).unwrap().as_str();
+                format!("#{}", self.prefix_id(prefix, id))
+            }).to_string();
+        }
+        
+        if config.prefix_class_names {
+            // Match .class selectors
+            let class_regex = Regex::new(r"\.([a-zA-Z][\w-]*)").unwrap();
+            result = class_regex.replace_all(&result, |caps: &regex::Captures| {
+                let class = caps.get(1).unwrap().as_str();
+                format!(".{}", self.prefix_id(prefix, class))
+            }).to_string();
+        }
+        
+        // Also handle url() references in CSS
+        result = self.process_url_references(&result, prefix);
+        
+        result
+    }
+}
+
+impl Plugin for PrefixIdsPlugin {
+    fn name(&self) -> &'static str {
+        "prefixIds"
+    }
+
+    fn description(&self) -> &'static str {
+        "prefix IDs"
+    }
+
+    fn apply(&mut self, document: &mut Document, info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let config = self.parse_config(params);
+        let prefix = self.generate_prefix(&config, info);
+        
+        self.process_element(&mut document.root, &prefix, &config);
+        
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::PluginInfo;
+    use indexmap::IndexMap;
+    use std::collections::HashMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            prologue: vec![],
+            epilogue: vec![],
+            metadata: crate::ast::DocumentMetadata {
+                path: None,
+                encoding: None,
+                version: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = PrefixIdsPlugin::new();
+        assert_eq!(plugin.name(), "prefixIds");
+        assert_eq!(plugin.description(), "prefix IDs");
+    }
+
+    #[test]
+    fn test_get_basename() {
+        assert_eq!(PrefixIdsPlugin::get_basename("/path/to/file.svg"), "file.svg");
+        assert_eq!(PrefixIdsPlugin::get_basename("C:\\path\\to\\file.svg"), "file.svg");
+        assert_eq!(PrefixIdsPlugin::get_basename("file.svg"), "file.svg");
+        assert_eq!(PrefixIdsPlugin::get_basename(""), "");
+    }
+
+    #[test]
+    fn test_escape_identifier_name() {
+        assert_eq!(PrefixIdsPlugin::escape_identifier_name("my file.svg"), "my_file_svg");
+        assert_eq!(PrefixIdsPlugin::escape_identifier_name("normal"), "normal");
+    }
+
+    #[test]
+    fn test_generate_prefix() {
+        let plugin = PrefixIdsPlugin::new();
+        
+        // Test with custom prefix
+        let config = PrefixIdsConfig {
+            prefix: Some("custom".to_string()),
+            delim: "__".to_string(),
+            prefix_ids: true,
+            prefix_class_names: true,
+        };
+        let info = PluginInfo::default();
+        assert_eq!(plugin.generate_prefix(&config, &info), "custom__");
+        
+        // Test with file path
+        let config = PrefixIdsConfig::default();
+        let mut info = PluginInfo::default();
+        info.path = Some("/path/to/test.svg".to_string());
+        assert_eq!(plugin.generate_prefix(&config, &info), "test_svg__");
+        
+        // Test default
+        let config = PrefixIdsConfig::default();
+        let info = PluginInfo::default();
+        assert_eq!(plugin.generate_prefix(&config, &info), "prefix__");
+    }
+
+    #[test]
+    fn test_prefix_id() {
+        let plugin = PrefixIdsPlugin::new();
+        
+        // Test normal prefixing
+        assert_eq!(plugin.prefix_id("test__", "myid"), "test__myid");
+        
+        // Test when already prefixed
+        assert_eq!(plugin.prefix_id("test__", "test__myid"), "test__myid");
+    }
+
+    #[test]
+    fn test_prefix_reference() {
+        let plugin = PrefixIdsPlugin::new();
+        
+        // Test valid reference
+        assert_eq!(plugin.prefix_reference("test__", "#myid"), Some("#test__myid".to_string()));
+        
+        // Test invalid reference
+        assert_eq!(plugin.prefix_reference("test__", "myid"), None);
+    }
+
+    #[test]
+    fn test_apply_with_ids() {
+        let mut plugin = PrefixIdsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add element with ID
+        let mut attrs = IndexMap::new();
+        attrs.insert("id".to_string(), "myId".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Check that ID was prefixed
+        if let Node::Element(rect) = &doc.root.children[0] {
+            assert_eq!(rect.attributes.get("id"), Some(&"prefix__myId".to_string()));
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_apply_with_href() {
+        let mut plugin = PrefixIdsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add element with href
+        let mut attrs = IndexMap::new();
+        attrs.insert("href".to_string(), "#myTarget".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "use".to_string(),
+            attributes: attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Check that href was prefixed
+        if let Node::Element(use_elem) = &doc.root.children[0] {
+            assert_eq!(use_elem.attributes.get("href"), Some(&"#prefix__myTarget".to_string()));
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_apply_with_custom_config() {
+        let mut plugin = PrefixIdsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add element with ID
+        let mut attrs = IndexMap::new();
+        attrs.insert("id".to_string(), "myId".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let config = serde_json::json!({
+            "prefix": "custom",
+            "delim": "_"
+        });
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, Some(&config));
+        assert!(result.is_ok());
+        
+        // Check that ID was prefixed with custom config
+        if let Node::Element(rect) = &doc.root.children[0] {
+            assert_eq!(rect.attributes.get("id"), Some(&"custom_myId".to_string()));
+        } else {
+            panic!("Expected element");
+        }
     }
 }
 </file>
@@ -35997,6 +36639,846 @@ mod tests {
         let mut plugin = RemoveDoctypePlugin;
         // Should not fail on documents without DOCTYPE
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/remove_editors_ns_data.rs">
+// this_file: svgn/src/plugins/remove_editors_ns_data.rs
+
+use crate::ast::{Document, Element, Node};
+use crate::collections::EDITOR_NAMESPACES;
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+use std::collections::HashSet;
+
+#[derive(Debug, Clone)]
+pub struct RemoveEditorsNSDataConfig {
+    /// Additional namespaces to remove besides the default editor namespaces
+    pub additional_namespaces: Vec<String>,
+}
+
+impl Default for RemoveEditorsNSDataConfig {
+    fn default() -> Self {
+        Self {
+            additional_namespaces: Vec::new(),
+        }
+    }
+}
+
+pub struct RemoveEditorsNSDataPlugin;
+
+impl RemoveEditorsNSDataPlugin {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn parse_config(&self, params: Option<&Value>) -> RemoveEditorsNSDataConfig {
+        let mut config = RemoveEditorsNSDataConfig::default();
+        
+        if let Some(Value::Object(obj)) = params {
+            if let Some(Value::Array(additional)) = obj.get("additionalNamespaces") {
+                config.additional_namespaces = additional
+                    .iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect();
+            }
+        }
+        
+        config
+    }
+
+    fn collect_editor_prefixes(&self, element: &mut Element, config: &RemoveEditorsNSDataConfig) -> Vec<String> {
+        let mut prefixes = Vec::new();
+        
+        if element.name == "svg" {
+            // Create a combined set of namespaces to check
+            let mut namespaces_to_remove = HashSet::new();
+            for ns in EDITOR_NAMESPACES.iter() {
+                namespaces_to_remove.insert(*ns);
+            }
+            for ns in &config.additional_namespaces {
+                namespaces_to_remove.insert(ns.as_str());
+            }
+            
+            // Collect namespace prefixes and remove xmlns declarations
+            let mut attrs_to_remove = Vec::new();
+            
+            for (name, value) in &element.attributes {
+                if name.starts_with("xmlns:") && namespaces_to_remove.contains(value.as_str()) {
+                    let prefix = &name[6..]; // Remove "xmlns:" prefix
+                    prefixes.push(prefix.to_string());
+                    attrs_to_remove.push(name.clone());
+                }
+            }
+            
+            // Remove the xmlns declarations
+            for attr in attrs_to_remove {
+                element.attributes.shift_remove(&attr);
+            }
+        }
+        
+        prefixes
+    }
+
+    fn remove_editor_attributes(&self, element: &mut Element, prefixes: &[String]) {
+        let mut attrs_to_remove = Vec::new();
+        
+        for name in element.attributes.keys() {
+            if name.contains(':') {
+                if let Some(colon_pos) = name.find(':') {
+                    let prefix = &name[..colon_pos];
+                    if prefixes.contains(&prefix.to_string()) {
+                        attrs_to_remove.push(name.clone());
+                    }
+                }
+            }
+        }
+        
+        // Remove the editor attributes
+        for attr in attrs_to_remove {
+            element.attributes.shift_remove(&attr);
+        }
+    }
+
+    fn should_remove_element(&self, element: &Element, prefixes: &[String]) -> bool {
+        if element.name.contains(':') {
+            if let Some(colon_pos) = element.name.find(':') {
+                let prefix = &element.name[..colon_pos];
+                return prefixes.contains(&prefix.to_string());
+            }
+        }
+        false
+    }
+
+    fn process_element(&self, element: &mut Element, prefixes: &mut Vec<String>, config: &RemoveEditorsNSDataConfig) {
+        // If this is the SVG root element, collect editor prefixes
+        if element.name == "svg" && prefixes.is_empty() {
+            *prefixes = self.collect_editor_prefixes(element, config);
+        }
+
+        // Remove editor attributes from this element
+        self.remove_editor_attributes(element, prefixes);
+
+        // Process children, removing editor elements
+        element.children.retain_mut(|child| {
+            match child {
+                Node::Element(ref mut child_elem) => {
+                    // Check if this element should be removed
+                    if self.should_remove_element(child_elem, prefixes) {
+                        return false; // Remove this element
+                    }
+                    
+                    // Recursively process this child element
+                    self.process_element(child_elem, prefixes, config);
+                    true // Keep this element
+                }
+                _ => true, // Keep non-element nodes
+            }
+        });
+    }
+}
+
+impl Plugin for RemoveEditorsNSDataPlugin {
+    fn name(&self) -> &'static str {
+        "removeEditorsNSData"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes editors namespaces, elements and attributes"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let config = self.parse_config(params);
+        let mut prefixes = Vec::new();
+        
+        self.process_element(&mut document.root, &mut prefixes, &config);
+        
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::PluginInfo;
+    use indexmap::IndexMap;
+    use std::collections::HashMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            prologue: vec![],
+            epilogue: vec![],
+            metadata: crate::ast::DocumentMetadata {
+                path: None,
+                encoding: None,
+                version: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = RemoveEditorsNSDataPlugin::new();
+        assert_eq!(plugin.name(), "removeEditorsNSData");
+        assert_eq!(plugin.description(), "removes editors namespaces, elements and attributes");
+    }
+
+    #[test]
+    fn test_collect_editor_prefixes() {
+        let plugin = RemoveEditorsNSDataPlugin::new();
+        let config = RemoveEditorsNSDataConfig::default();
+        
+        let mut svg_element = Element {
+            name: "svg".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        // Add some editor namespace declarations
+        svg_element.attributes.insert("xmlns:sodipodi".to_string(), "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd".to_string());
+        svg_element.attributes.insert("xmlns:inkscape".to_string(), "http://www.inkscape.org/namespaces/inkscape".to_string());
+        svg_element.attributes.insert("xmlns:normal".to_string(), "http://normal.namespace".to_string());
+        
+        let prefixes = plugin.collect_editor_prefixes(&mut svg_element, &config);
+        
+        // Should have collected the editor prefixes and removed xmlns declarations
+        assert!(prefixes.contains(&"sodipodi".to_string()));
+        assert!(prefixes.contains(&"inkscape".to_string()));
+        assert!(!prefixes.contains(&"normal".to_string()));
+        
+        // Editor xmlns declarations should be removed
+        assert!(!svg_element.attributes.contains_key("xmlns:sodipodi"));
+        assert!(!svg_element.attributes.contains_key("xmlns:inkscape"));
+        
+        // Normal xmlns should remain
+        assert!(svg_element.attributes.contains_key("xmlns:normal"));
+    }
+
+    #[test]
+    fn test_remove_editor_attributes() {
+        let plugin = RemoveEditorsNSDataPlugin::new();
+        let prefixes = vec!["sodipodi".to_string(), "inkscape".to_string()];
+        
+        let mut element = Element {
+            name: "path".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        // Add various attributes
+        element.attributes.insert("d".to_string(), "M0,0 L10,10".to_string());
+        element.attributes.insert("sodipodi:nodetypes".to_string(), "cc".to_string());
+        element.attributes.insert("inkscape:connector-curvature".to_string(), "0".to_string());
+        element.attributes.insert("fill".to_string(), "red".to_string());
+        
+        plugin.remove_editor_attributes(&mut element, &prefixes);
+        
+        // Editor attributes should be removed
+        assert!(!element.attributes.contains_key("sodipodi:nodetypes"));
+        assert!(!element.attributes.contains_key("inkscape:connector-curvature"));
+        
+        // Normal attributes should remain
+        assert!(element.attributes.contains_key("d"));
+        assert!(element.attributes.contains_key("fill"));
+    }
+
+    #[test]
+    fn test_should_remove_element() {
+        let plugin = RemoveEditorsNSDataPlugin::new();
+        let prefixes = vec!["sodipodi".to_string()];
+        
+        let editor_element = Element {
+            name: "sodipodi:namedview".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        let normal_element = Element {
+            name: "path".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        assert!(plugin.should_remove_element(&editor_element, &prefixes));
+        assert!(!plugin.should_remove_element(&normal_element, &prefixes));
+    }
+
+    #[test]
+    fn test_apply_removes_editor_content() {
+        let mut plugin = RemoveEditorsNSDataPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG root with editor namespace
+        doc.root.attributes.insert("xmlns:sodipodi".to_string(), "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd".to_string());
+        
+        // Add editor element
+        let sodipodi_element = Element {
+            name: "sodipodi:namedview".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        doc.root.children.push(Node::Element(sodipodi_element));
+        
+        // Add normal element with editor attribute
+        let mut path_attrs = IndexMap::new();
+        path_attrs.insert("d".to_string(), "M0,0 L10,10".to_string());
+        path_attrs.insert("sodipodi:nodetypes".to_string(), "cc".to_string());
+        let path_element = Element {
+            name: "path".to_string(),
+            attributes: path_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        doc.root.children.push(Node::Element(path_element));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Editor namespace should be removed
+        assert!(!doc.root.attributes.contains_key("xmlns:sodipodi"));
+        
+        // Should have only one child (path element, sodipodi:namedview removed)
+        assert_eq!(doc.root.children.len(), 1);
+        
+        // Path element should have editor attribute removed
+        if let Node::Element(path) = &doc.root.children[0] {
+            assert_eq!(path.name, "path");
+            assert!(path.attributes.contains_key("d"));
+            assert!(!path.attributes.contains_key("sodipodi:nodetypes"));
+        } else {
+            panic!("Expected path element");
+        }
+    }
+
+    #[test]
+    fn test_apply_with_additional_namespaces() {
+        let mut plugin = RemoveEditorsNSDataPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG root with custom namespace
+        doc.root.attributes.insert("xmlns:custom".to_string(), "http://custom.editor/ns".to_string());
+        
+        // Add custom editor element
+        let custom_element = Element {
+            name: "custom:element".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        doc.root.children.push(Node::Element(custom_element));
+        
+        let config = serde_json::json!({
+            "additionalNamespaces": ["http://custom.editor/ns"]
+        });
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, Some(&config));
+        assert!(result.is_ok());
+        
+        // Custom namespace should be removed
+        assert!(!doc.root.attributes.contains_key("xmlns:custom"));
+        
+        // Custom element should be removed
+        assert_eq!(doc.root.children.len(), 0);
+    }
+
+    #[test]
+    fn test_apply_preserves_normal_content() {
+        let mut plugin = RemoveEditorsNSDataPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add normal element
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("x".to_string(), "10".to_string());
+        rect_attrs.insert("y".to_string(), "10".to_string());
+        rect_attrs.insert("width".to_string(), "100".to_string());
+        rect_attrs.insert("height".to_string(), "100".to_string());
+        let rect_element = Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        doc.root.children.push(Node::Element(rect_element));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Normal element should be preserved
+        assert_eq!(doc.root.children.len(), 1);
+        if let Node::Element(rect) = &doc.root.children[0] {
+            assert_eq!(rect.name, "rect");
+            assert_eq!(rect.attributes.len(), 4);
+        } else {
+            panic!("Expected rect element");
+        }
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/remove_elements_by_attr.rs">
+// this_file: svgn/src/plugins/remove_elements_by_attr.rs
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+use std::collections::HashSet;
+
+#[derive(Debug, Clone)]
+pub struct RemoveElementsByAttrConfig {
+    /// IDs of elements to remove
+    pub ids: Vec<String>,
+    /// Class names of elements to remove
+    pub classes: Vec<String>,
+}
+
+impl Default for RemoveElementsByAttrConfig {
+    fn default() -> Self {
+        Self {
+            ids: Vec::new(),
+            classes: Vec::new(),
+        }
+    }
+}
+
+pub struct RemoveElementsByAttrPlugin;
+
+impl RemoveElementsByAttrPlugin {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn parse_config(&self, params: Option<&Value>) -> RemoveElementsByAttrConfig {
+        let mut config = RemoveElementsByAttrConfig::default();
+        
+        if let Some(Value::Object(obj)) = params {
+            // Parse IDs
+            if let Some(id_value) = obj.get("id") {
+                match id_value {
+                    Value::String(id) => config.ids.push(id.clone()),
+                    Value::Array(ids) => {
+                        for id in ids {
+                            if let Value::String(id_str) = id {
+                                config.ids.push(id_str.clone());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            
+            // Parse classes
+            if let Some(class_value) = obj.get("class") {
+                match class_value {
+                    Value::String(class) => config.classes.push(class.clone()),
+                    Value::Array(classes) => {
+                        for class in classes {
+                            if let Value::String(class_str) = class {
+                                config.classes.push(class_str.clone());
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        
+        config
+    }
+
+    fn should_remove_element(&self, element: &Element, config: &RemoveElementsByAttrConfig) -> bool {
+        // Check if element ID matches any configured IDs
+        if !config.ids.is_empty() {
+            if let Some(id) = element.attributes.get("id") {
+                if config.ids.contains(id) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check if element class contains any of the configured classes
+        if !config.classes.is_empty() {
+            if let Some(class_attr) = element.attributes.get("class") {
+                let class_list: HashSet<&str> = class_attr.split_whitespace().collect();
+                for config_class in &config.classes {
+                    if class_list.contains(config_class.as_str()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+
+    fn process_element(&self, element: &mut Element, config: &RemoveElementsByAttrConfig) {
+        // Process children, removing elements that match the criteria
+        element.children.retain_mut(|child| {
+            match child {
+                Node::Element(ref mut child_elem) => {
+                    // Check if this element should be removed
+                    if self.should_remove_element(child_elem, config) {
+                        return false; // Remove this element
+                    }
+                    
+                    // Recursively process this child element
+                    self.process_element(child_elem, config);
+                    true // Keep this element
+                }
+                _ => true, // Keep non-element nodes
+            }
+        });
+    }
+}
+
+impl Plugin for RemoveElementsByAttrPlugin {
+    fn name(&self) -> &'static str {
+        "removeElementsByAttr"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes arbitrary elements by ID or className (disabled by default)"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let config = self.parse_config(params);
+        
+        // Only proceed if we have something to remove
+        if config.ids.is_empty() && config.classes.is_empty() {
+            return Ok(());
+        }
+        
+        self.process_element(&mut document.root, &config);
+        
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::PluginInfo;
+    use indexmap::IndexMap;
+    use std::collections::HashMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            prologue: vec![],
+            epilogue: vec![],
+            metadata: crate::ast::DocumentMetadata {
+                path: None,
+                encoding: None,
+                version: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        assert_eq!(plugin.name(), "removeElementsByAttr");
+        assert_eq!(plugin.description(), "removes arbitrary elements by ID or className (disabled by default)");
+    }
+
+    #[test]
+    fn test_parse_config_single_id() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config_json = serde_json::json!({
+            "id": "elementToRemove"
+        });
+        
+        let config = plugin.parse_config(Some(&config_json));
+        assert_eq!(config.ids, vec!["elementToRemove"]);
+        assert!(config.classes.is_empty());
+    }
+
+    #[test]
+    fn test_parse_config_multiple_ids() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config_json = serde_json::json!({
+            "id": ["elementToRemove1", "elementToRemove2"]
+        });
+        
+        let config = plugin.parse_config(Some(&config_json));
+        assert_eq!(config.ids, vec!["elementToRemove1", "elementToRemove2"]);
+        assert!(config.classes.is_empty());
+    }
+
+    #[test]
+    fn test_parse_config_single_class() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config_json = serde_json::json!({
+            "class": "classToRemove"
+        });
+        
+        let config = plugin.parse_config(Some(&config_json));
+        assert!(config.ids.is_empty());
+        assert_eq!(config.classes, vec!["classToRemove"]);
+    }
+
+    #[test]
+    fn test_parse_config_multiple_classes() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config_json = serde_json::json!({
+            "class": ["classToRemove1", "classToRemove2"]
+        });
+        
+        let config = plugin.parse_config(Some(&config_json));
+        assert!(config.ids.is_empty());
+        assert_eq!(config.classes, vec!["classToRemove1", "classToRemove2"]);
+    }
+
+    #[test]
+    fn test_parse_config_mixed() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config_json = serde_json::json!({
+            "id": "elementToRemove",
+            "class": ["classToRemove1", "classToRemove2"]
+        });
+        
+        let config = plugin.parse_config(Some(&config_json));
+        assert_eq!(config.ids, vec!["elementToRemove"]);
+        assert_eq!(config.classes, vec!["classToRemove1", "classToRemove2"]);
+    }
+
+    #[test]
+    fn test_should_remove_element_by_id() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config = RemoveElementsByAttrConfig {
+            ids: vec!["removeMe".to_string()],
+            classes: vec![],
+        };
+        
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("id".to_string(), "removeMe".to_string());
+        let element = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        assert!(plugin.should_remove_element(&element, &config));
+        
+        // Test element that shouldn't be removed
+        let mut element_attrs2 = IndexMap::new();
+        element_attrs2.insert("id".to_string(), "keepMe".to_string());
+        let element2 = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs2,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        assert!(!plugin.should_remove_element(&element2, &config));
+    }
+
+    #[test]
+    fn test_should_remove_element_by_class() {
+        let plugin = RemoveElementsByAttrPlugin::new();
+        let config = RemoveElementsByAttrConfig {
+            ids: vec![],
+            classes: vec!["removeMe".to_string()],
+        };
+        
+        // Test element with matching class
+        let mut element_attrs = IndexMap::new();
+        element_attrs.insert("class".to_string(), "someClass removeMe anotherClass".to_string());
+        let element = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        assert!(plugin.should_remove_element(&element, &config));
+        
+        // Test element that shouldn't be removed
+        let mut element_attrs2 = IndexMap::new();
+        element_attrs2.insert("class".to_string(), "someClass keepMe anotherClass".to_string());
+        let element2 = Element {
+            name: "rect".to_string(),
+            attributes: element_attrs2,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        assert!(!plugin.should_remove_element(&element2, &config));
+    }
+
+    #[test]
+    fn test_apply_removes_by_id() {
+        let mut plugin = RemoveElementsByAttrPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add element to remove
+        let mut attrs_remove = IndexMap::new();
+        attrs_remove.insert("id".to_string(), "elementToRemove".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: attrs_remove,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        // Add element to keep
+        let mut attrs_keep = IndexMap::new();
+        attrs_keep.insert("id".to_string(), "elementToKeep".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "circle".to_string(),
+            attributes: attrs_keep,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let config = serde_json::json!({
+            "id": "elementToRemove"
+        });
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, Some(&config));
+        assert!(result.is_ok());
+        
+        // Should have only one element remaining
+        assert_eq!(doc.root.children.len(), 1);
+        if let Node::Element(element) = &doc.root.children[0] {
+            assert_eq!(element.name, "circle");
+            assert_eq!(element.attributes.get("id"), Some(&"elementToKeep".to_string()));
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_apply_removes_by_class() {
+        let mut plugin = RemoveElementsByAttrPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add element to remove
+        let mut attrs_remove = IndexMap::new();
+        attrs_remove.insert("class".to_string(), "some-class removeMe another-class".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: attrs_remove,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        // Add element to keep
+        let mut attrs_keep = IndexMap::new();
+        attrs_keep.insert("class".to_string(), "some-class keep-me another-class".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "circle".to_string(),
+            attributes: attrs_keep,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let config = serde_json::json!({
+            "class": "removeMe"
+        });
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, Some(&config));
+        assert!(result.is_ok());
+        
+        // Should have only one element remaining
+        assert_eq!(doc.root.children.len(), 1);
+        if let Node::Element(element) = &doc.root.children[0] {
+            assert_eq!(element.name, "circle");
+            assert_eq!(element.attributes.get("class"), Some(&"some-class keep-me another-class".to_string()));
+        } else {
+            panic!("Expected element");
+        }
+    }
+
+    #[test]
+    fn test_apply_no_config_does_nothing() {
+        let mut plugin = RemoveElementsByAttrPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add some elements
+        let mut attrs = IndexMap::new();
+        attrs.insert("id".to_string(), "someId".to_string());
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Should still have the element
+        assert_eq!(doc.root.children.len(), 1);
+    }
+
+    #[test]
+    fn test_apply_recursive() {
+        let mut plugin = RemoveElementsByAttrPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Create nested structure
+        let mut nested_attrs = IndexMap::new();
+        nested_attrs.insert("id".to_string(), "removeMe".to_string());
+        let nested_element = Element {
+            name: "rect".to_string(),
+            attributes: nested_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        };
+        
+        let mut group_attrs = IndexMap::new();
+        group_attrs.insert("id".to_string(), "group".to_string());
+        let mut group = Element {
+            name: "g".to_string(),
+            attributes: group_attrs,
+            namespaces: HashMap::new(),
+            children: vec![Node::Element(nested_element)],
+        };
+        
+        doc.root.children.push(Node::Element(group));
+        
+        let config = serde_json::json!({
+            "id": "removeMe"
+        });
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, Some(&config));
+        assert!(result.is_ok());
+        
+        // Group should remain but nested element should be removed
+        assert_eq!(doc.root.children.len(), 1);
+        if let Node::Element(group) = &doc.root.children[0] {
+            assert_eq!(group.name, "g");
+            assert_eq!(group.children.len(), 0); // Nested element removed
+        } else {
+            panic!("Expected group element");
+        }
     }
 }
 </file>
@@ -41668,12 +43150,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 </file>
 
-<file path="README.md">
-# `svgn`
-
-`svgn` is an API-compatible native Rust port of `ref/svgo`, the JS SVG optimizer, along with all its plugins. It can be integrated into desktop and CLI workflows, or transpiled to Wasm for use in web applications. It is aimed to be extremely fast, and to be functionally fully compatible with `svgo`.
-</file>
-
 <file path="SPEC.md">
 # SVGO Specification
 
@@ -41880,215 +43356,52 @@ svgo input.svg -o output.svg
 -   `-h, --help`: Show help.
 </file>
 
-<file path="docs/index.md">
----
-layout: default
-title: SVGN Specification
----
+<file path="docs/_config.yml">
+theme: just-the-docs
 
-# SVGO Specification
+# Site settings
+title: SVGN Documentation
+description: A native Rust SVG optimizer - API-compatible port of SVGO
+baseurl: ""
+url: "https://twardoch.github.io/svgn"
 
-## 1. Introduction
+# Just the Docs specific settings
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
 
-`svgo` is a powerful, Node.js-based tool for optimizing SVG vector graphics files. It removes redundant and useless information, minifies the code, and applies various optimizations to reduce the file size without affecting the rendering quality. This makes SVGs lighter and faster to load, especially in web environments.
+# Navigation
+nav_sort: case_insensitive
+nav_external_links:
+  - title: GitHub Repository
+    url: https://github.com/twardoch/svgn
+  - title: SVGO Reference
+    url: https://github.com/svg/svgo
 
-This document describes the structure, API, and plugins of the original JavaScript `svgo` package. It is based on the `svgo` reference implementation, which is the basis for `svgn`, a native Rust port of `svgo` and its plugins.
+# Footer
+footer_content: "Copyright &copy; 2024 Adam Twardoch. Distributed under the MIT License."
 
-## 2. Project Structure
+# Color scheme
+color_scheme: light
 
-The `svgo` repository is organized into several key directories:
+# Enable copy to clipboard
+enable_copy_code_button: true
 
--   **/bin**: Contains the executable script for the command-line interface (CLI).
--   **/docs**: Detailed documentation in Markdown (`.mdx`) format, covering usage, plugins, and APIs.
--   **/lib**: The core library source code, including the main `svgo.js` entry point, parser, and utility functions.
--   **/plugins**: The individual optimization plugins that form the core of `svgo`'s functionality. Each file corresponds to a specific optimization rule.
--   **/test**: A comprehensive suite of tests, including regression tests, fixtures, and plugin-specific test cases.
+# Aux links
+aux_links:
+  "View on GitHub":
+    - "https://github.com/twardoch/svgn"
 
-## 3. Core API
-
-The primary API of `svgo` is the `optimize` function, which takes an SVG string and a configuration object, and returns an object containing the optimized SVG data.
-
-### `optimize(input, config)`
-
--   **`input`** (string, required): The SVG string to be optimized.
--   **`config`** (object, optional): The configuration object to customize the optimization process.
-
-#### Configuration Object (`config`)
-
-The configuration object can have the following properties:
-
--   **`path`** (string): The path to the file, used for resolving relative paths and useful for plugins.
--   **`plugins`** (array): An array of plugin configurations. This is the most important part of the configuration, allowing you to enable, disable, and configure specific plugins.
--   **`multipass`** (boolean): If `true`, runs optimizations multiple times until no further changes can be made. Defaults to `false`.
--   **`js2svg`** (object): Options for the JS to SVG conversion (output formatting).
-    -   `pretty` (boolean): Whether to pretty-print the output SVG. Defaults to `false`.
-    -   `indent` (number): Indentation level for pretty-printing. Defaults to `2`.
--   **`datauri`** (string): Output as a data URI string (`'base64'`, `'enc'`, or `'unenc'`).
-
-#### Return Value
-
-The `optimize` function returns an object with the following properties:
-
--   **`data`** (string): The optimized SVG string.
--   **`info`** (object): Information about the optimization process, such as original and optimized sizes.
--   **`error`** (string): An error message if something went wrong.
--   **`modern`** (boolean): Indicates if the modern (and faster) parser was used.
-
-### Example Usage (Node.js)
-
-```javascript
-import { optimize } from 'svgo';
-
-const svgString = '<svg width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="red"/></svg>';
-
-const result = optimize(svgString, {
-  path: 'my-icon.svg',
-  plugins: [
-    'removeDimensions',
-    {
-      name: 'sortAttrs',
-      params: {
-        xmlnsOrder: 'alphabetical',
-      },
-    },
-  ],
-});
-
-console.log(result.data);
-```
-
-## 4. Plugins
-
-Plugins are the core of `svgo`. They perform the actual optimizations on the SVG's AST (Abstract Syntax Tree).
-
-### Plugin API
-
-Plugins are simple objects with a `name`, `fn` (the visitor function), and optional `params`. The `fn` function receives the root node of the AST and the plugin parameters.
-
-### Default Preset
-
-`svgo` includes a default preset of plugins that are safe to use and provide good optimization. This preset is enabled by default. The plugins in the default preset include:
-
--   `cleanupAttrs`
--   `cleanupEnableBackground`
--   `cleanupIds`
--   `cleanupListOfValues`
--   `cleanupNumericValues`
--   `collapseGroups`
--   `convertColors`
--   `convertPathData`
--   `convertShapeToPath`
--   `convertStyleToAttrs`
--   `convertTransform`
--   `inlineStyles`
--   `mergePaths`
--   `mergeStyles`
--   `minifyStyles`
--   `moveElemsAttrsToGroup`
--   `moveGroupAttrsToElems`
--   `removeComments`
--   `removeDesc`
--   `removeDoctype`
--   `removeEditorsNSData`
--   `removeEmptyAttrs`
--   `removeEmptyContainers`
--   `removeEmptyText`
--   `removeHiddenElems`
--   `removeMetadata`
--   `removeNonInheritableGroupAttrs`
--   `removeTitle`
--   `removeUnknownsAndDefaults`
--   `removeUnusedNS`
--   `removeUselessDefs`
--   `removeUselessStrokeAndFill`
--   `removeXMLProcInst`
--   `sortAttrs`
--   `sortDefsChildren`
-
-### Full Plugin Reference
-
-Below is a list of all available plugins in `svgo`.
-
--   **`addAttributesToSVGElement`**: Adds attributes to the root `<svg>` element.
--   **`addClassesToSVGElement`**: Adds class names to the root `<svg>` element.
--   **`cleanupAttrs`**: Cleans up attributes from newlines, trailing, and repeating spaces.
--   **`cleanupEnableBackground`**: Removes or cleans up the `enable-background` attribute.
--   **`cleanupIds`**: Minifies and removes unused IDs.
--   **`cleanupListOfValues`**: Rounds numeric values in attributes that have a list of numbers (like `viewBox` or `stroke-dasharray`).
--   **`cleanupNumericValues`**: Rounds numeric values to a fixed precision.
--   **`collapseGroups`**: Collapses useless groups (`<g>`).
--   **`convertColors`**: Converts colors from `rgb()` to `#rrggbb`, `rgba()` to `#rrggbbaa`, and color names to hex values.
--   **`convertEllipseToCircle`**: Converts `<ellipse>` elements to `<circle>` elements when possible.
--   **`convertOneStopGradients`**: Converts gradients with only one stop to a solid color.
--   **`convertPathData`**: Converts path data to relative or absolute, optimizes segments, and collapses sequences.
--   **`convertShapeToPath`**: Converts basic shapes (`<rect>`, `<circle>`, etc.) to `<path>` elements.
--   **`convertStyleToAttrs`**: Converts styles from `<style>` elements to attributes.
--   **`convertTransform`**: Collapses multiple transforms into one, converts matrices to shorter syntaxes, and more.
--   **`inlineStyles`**: Inlines styles from `<style>` elements to `style` attributes.
--   **`mergePaths`**: Merges multiple paths into one.
--   **`mergeStyles`**: Merges multiple `<style>` elements into one.
--   **`minifyStyles`**: Minifies CSS in `<style>` elements using `csso`.
--   **`moveElemsAttrsToGroup`**: Moves attributes from elements to their common group.
--   **`moveGroupAttrsToElems`**: Moves group attributes to the contained elements.
--   **`prefixIds`**: Adds a prefix to IDs.
--   **`preset-default`**: The default set of plugins.
--   **`removeAttributesBySelector`**: Removes attributes of elements that match a CSS selector.
--   **`removeAttrs`**: Removes attributes by name.
--   **`removeComments`**: Removes comments.
--   **`removeDeprecatedAttrs`**: Removes deprecated attributes.
--   **`removeDesc`**: Removes `<desc>` elements (enabled by default).
--   **`removeDimensions`**: Removes `width` and `height` attributes and preserves the `viewBox`.
--   **`removeDoctype`**: Removes doctype declarations.
--   **`removeEditorsNSData`**: Removes editor-specific namespaces, elements, and attributes.
--
--   **`removeElementsByAttr`**: Removes elements by ID or class name.
--   **`removeEmptyAttrs`**: Removes empty attributes.
--   **`removeEmptyContainers`**: Removes empty container elements.
--   **`removeEmptyText`**: Removes empty text elements.
--   **`removeHiddenElems`**: Removes hidden elements (`display="none"` or `visibility="hidden"`).
--   **`removeMetadata`**: Removes `<metadata>` elements.
--   **`removeNonInheritableGroupAttrs`**: Removes non-inheritable group's "presentation" attributes.
--   **`removeOffCanvasPaths`**: Removes elements that are drawn outside of the `viewBox`.
--   **`removeRasterImages`**: Removes raster images.
--   **`removeScripts`**: Removes `<script>` elements.
--   **`removeStyleElement`**: Removes `<style>` elements.
--   **`removeTitle`**: Removes `<title>` elements (enabled by default).
--   **`removeUnknownsAndDefaults`**: Removes unknown elements' content and attributes, and removes default attribute values.
--   **`removeUnusedNS`**: Removes unused namespace declarations.
--   **`removeUselessDefs`**: Removes elements in `<defs>` without an `id`.
--   **`removeUselessStrokeAndFill`**: Removes useless `stroke` and `fill` attributes.
--   **`removeViewBox`**: Removes the `viewBox` attribute when possible.
--   **`removeXlink`**: Removes `xlink` attributes.
--   **`removeXMLNS`**: Removes the `xmlns` attribute from the root `<svg>` element.
--   **`removeXMLProcInst`**: Removes XML processing instructions.
--   **`reusePaths`**: Replaces paths with `<use>` elements if they are identical.
--   **`sortAttrs`**: Sorts element attributes for better gzip compression.
--   **`sortDefsChildren`**: Sorts children of `<defs>` to improve compression.
-
-## 5. Command-Line Interface (CLI)
-
-`svgo` provides a CLI for optimizing files directly from the terminal.
-
-### Basic Usage
-
-```bash
-svgo input.svg -o output.svg
-```
-
-### Options
-
--   `-i, --input`: Input file or directory.
--   `-o, --output`: Output file or directory.
--   `-f, --folder`: Input folder, optimize and rewrite all `*.svg` files.
--   `-p, --pretty`: Make SVG pretty printed.
--   `--config`: Custom config file.
--   `--disable`: Disable a plugin by name.
--   `--enable`: Enable a plugin by name.
--   `--datauri`: Output as Data URI string.
--   `--multipass`: Optimize SVG multiple times.
--   `--quiet`: Only output error messages.
--   `-v, --version`: Show version.
--   `-h, --help`: Show help.
+# Collections
+collections:
+  data:
+    output: true
 </file>
 
 <file path="svgn/examples/test_style_plugins.rs">
@@ -44117,462 +45430,456 @@ mod tests {
 }
 </file>
 
-<file path="svgn/src/collections.rs">
+<file path="README.md">
+# SVGN: A Native Rust SVG Optimizer
+
+`svgn` is a high-performance, native Rust port of `svgo` (SVG Optimizer), the popular Node.js-based tool for optimizing SVG vector graphics files. Our goal is to provide a functionally compatible, yet significantly faster and more memory-efficient SVG optimization solution for the Rust ecosystem and WebAssembly environments.
+
+## Why SVGN?
+
+-   **Performance**: Leveraging Rust's native capabilities for superior speed.
+-   **Native Integration**: Seamlessly integrate into Rust applications, desktop tools, and CLIs.
+-   **WebAssembly (WASM)**: Designed for high-performance optimization directly in browsers or other WASM environments.
+-   **API Compatibility**: Strives for API compatibility with `svgo` v4.0.0 to ease migration.
+
+## Documentation
+
+For detailed information on `svgn`'s usage, plugins, architecture, and a comparison with `svgo`, please refer to our comprehensive documentation:
+
+-   [**Introduction**](https://twardoch.github.io/svgn/)
+-   [**Usage**](https://twardoch.github.io/svgn/usage.html)
+-   [**Plugins**](https://twardoch.github.io/svgn/plugins.html)
+-   [**Comparison: SVGN vs. SVGO**](https://twardoch.github.io/svgn/comparison.html)
+-   [**Architecture**](https://twardoch.github.io/svgn/architecture.html)
+
+## Development Setup
+
+### For `svgn` (Rust Implementation)
+
+```bash
+cargo build         # Build the project
+cargo test          # Run tests
+cargo fmt           # Format code
+cargo clippy        # Lint code
+cargo run -- [args] # Run the CLI
+```
+
+### For `svgo` (JavaScript Reference - in `ref/svgo/`)
+
+```bash
+cd ref/svgo
+yarn install        # Install dependencies
+yarn build          # Build bundles and types
+yarn test           # Run tests with coverage
+yarn lint           # Run ESLint and Prettier
+yarn qa             # Run all quality checks
+```
+</file>
+
+<file path="docs/index.md">
+---
+layout: default
+title: Home
+nav_order: 1
+description: "SVGN: A Native Rust SVG Optimizer"
+permalink: /
+---
+
+# SVGN: A Native Rust SVG Optimizer
+
+## 1. Introduction
+
+`svgn` is a high-performance, native Rust port of `svgo` (SVG Optimizer), the popular Node.js-based tool for optimizing SVG vector graphics files. While `svgo` has been instrumental in reducing SVG file sizes by removing redundant information, minifying code, and applying various optimizations, `svgn` aims to bring these benefits to a new level with the power and efficiency of Rust.
+
+This document describes `svgn`'s structure, API, and plugins, drawing parallels and highlighting differences with the original JavaScript `svgo` reference implementation.
+
+## 2. Why SVGN?
+
+The primary motivations behind developing `svgn` are:
+
+-   **Performance**: Rust's focus on performance and memory safety allows `svgn` to process SVG files significantly faster than its JavaScript counterpart, making it ideal for large-scale optimization tasks or real-time applications.
+-   **Native Integration**: As a native Rust library, `svgn` can be seamlessly integrated into other Rust applications, desktop tools, and command-line interfaces without the overhead of a Node.js runtime.
+-   **WebAssembly (WASM) Compatibility**: `svgn` is designed with WebAssembly compilation in mind, enabling high-performance SVG optimization directly within web browsers or other WASM environments.
+-   **API Compatibility**: `svgn` strives for API compatibility with `svgo` v4.0.0, making it easier for developers familiar with `svgo` to transition to `svgn`.
+
+## 3. Project Structure
+
+The `svgn` repository is organized to reflect its native Rust implementation while referencing the original `svgo` structure:
+
+-   **/svgn**: Contains the core Rust library and CLI application.
+-   **/src**: Rust source code for `svgn`, including the parser, optimizer, stringifier, and plugin implementations.
+-   **/ref/svgo**: The complete `svgo` v4.0.0 JavaScript reference implementation, used for functional parity testing and architectural guidance.
+-   **/docs**: This documentation.
+-   **/tests**: Comprehensive test suites for `svgn`, including integration and unit tests, often mirroring `svgo`'s test cases.
+
+## 4. Installation
+
+To get started with `svgn`, you'll need to have Rust and Cargo installed. If you don't have them, you can install them via `rustup`:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Once Rust is set up, you can install `svgn` as a command-line tool:
+
+```bash
+cargo install svgn
+```
+
+Or, if you want to use `svgn` as a library in your Rust project, add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+svgn = "0.1.0" # Use the latest version
+```
+</file>
+
+<file path="svgn/src/plugins/convert_one_stop_gradients.rs">
+// this_file: svgn/src/plugins/convert_one_stop_gradients.rs
+
+use crate::ast::{Document, Element, Node};
+use crate::collections::COLORS_PROPS;
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use once_cell::sync::Lazy;
 
-pub static COLORS_NAMES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
-    HashMap::from([
-        ("aliceblue", "#f0f8ff"),
-        ("antiquewhite", "#faebd7"),
-        ("aqua", "#00ffff"),
-        ("aquamarine", "#7fffd4"),
-        ("azure", "#f0ffff"),
-        ("beige", "#f5f5dc"),
-        ("bisque", "#ffe4c4"),
-        ("black", "#000000"),
-        ("blanchedalmond", "#ffebcd"),
-        ("blue", "#0000ff"),
-        ("blueviolet", "#8a2be2"),
-        ("brown", "#a52a2a"),
-        ("burlywood", "#deb887"),
-        ("cadetblue", "#5f9ea0"),
-        ("chartreuse", "#7fff00"),
-        ("chocolate", "#d2691e"),
-        ("coral", "#ff7f50"),
-        ("cornflowerblue", "#6495ed"),
-        ("cornsilk", "#fff8dc"),
-        ("crimson", "#dc143c"),
-        ("cyan", "#00ffff"),
-        ("darkblue", "#00008b"),
-        ("darkcyan", "#008b8b"),
-        ("darkgoldenrod", "#b8860b"),
-        ("darkgray", "#a9a9a9"),
-        ("darkgreen", "#006400"),
-        ("darkgrey", "#a9a9a9"),
-        ("darkkhaki", "#bdb76b"),
-        ("darkmagenta", "#8b008b"),
-        ("darkolivegreen", "#556b2f"),
-        ("darkorange", "#ff8c00"),
-        ("darkorchid", "#9932cc"),
-        ("darkred", "#8b0000"),
-        ("darksalmon", "#e9967a"),
-        ("darkseagreen", "#8fbc8f"),
-        ("darkslateblue", "#483d8b"),
-        ("darkslategray", "#2f4f4f"),
-        ("darkslategrey", "#2f4f4f"),
-        ("darkturquoise", "#00ced1"),
-        ("darkviolet", "#9400d3"),
-        ("deeppink", "#ff1493"),
-        ("deepskyblue", "#00bfff"),
-        ("dimgray", "#696969"),
-        ("dimgrey", "#696969"),
-        ("dodgerblue", "#1e90ff"),
-        ("firebrick", "#b22222"),
-        ("floralwhite", "#fffaf0"),
-        ("forestgreen", "#228b22"),
-        ("fuchsia", "#ff00ff"),
-        ("gainsboro", "#dcdcdc"),
-        ("ghostwhite", "#f8f8ff"),
-        ("gold", "#ffd700"),
-        ("goldenrod", "#daa520"),
-        ("gray", "#808080"),
-        ("green", "#008000"),
-        ("greenyellow", "#adff2f"),
-        ("grey", "#808080"),
-        ("honeydew", "#f0fff0"),
-        ("hotpink", "#ff69b4"),
-        ("indianred", "#cd5c5c"),
-        ("indigo", "#4b0082"),
-        ("ivory", "#fffff0"),
-        ("khaki", "#f0e68c"),
-        ("lavender", "#e6e6fa"),
-        ("lavenderblush", "#fff0f5"),
-        ("lawngreen", "#7cfc00"),
-        ("lemonchiffon", "#fffacd"),
-        ("lightblue", "#add8e6"),
-        ("lightcoral", "#f08080"),
-        ("lightcyan", "#e0ffff"),
-        ("lightgoldenrodyellow", "#fafad2"),
-        ("lightgray", "#d3d3d3"),
-        ("lightgreen", "#90ee90"),
-        ("lightgrey", "#d3d3d3"),
-        ("lightpink", "#ffb6c1"),
-        ("lightsalmon", "#ffa07a"),
-        ("lightseagreen", "#20b2aa"),
-        ("lightskyblue", "#87cefa"),
-        ("lightslategray", "#778899"),
-        ("lightslategrey", "#778899"),
-        ("lightsteelblue", "#b0c4de"),
-        ("lightyellow", "#ffffe0"),
-        ("lime", "#00ff00"),
-        ("limegreen", "#32cd32"),
-        ("linen", "#faf0e6"),
-        ("magenta", "#ff00ff"),
-        ("maroon", "#800000"),
-        ("mediumaquamarine", "#66cdaa"),
-        ("mediumblue", "#0000cd"),
-        ("mediumorchid", "#ba55d3"),
-        ("mediumpurple", "#9370db"),
-        ("mediumseagreen", "#3cb371"),
-        ("mediumslateblue", "#7b68ee"),
-        ("mediumspringgreen", "#00fa9a"),
-        ("mediumturquoise", "#48d1cc"),
-        ("mediumvioletred", "#c71585"),
-        ("midnightblue", "#191970"),
-        ("mintcream", "#f5fffa"),
-        ("mistyrose", "#ffe4e1"),
-        ("moccasin", "#ffe4b5"),
-        ("navajowhite", "#ffdead"),
-        ("navy", "#000080"),
-        ("oldlace", "#fdf5e6"),
-        ("olive", "#808000"),
-        ("olivedrab", "#6b8e23"),
-        ("orange", "#ffa500"),
-        ("orangered", "#ff4500"),
-        ("orchid", "#da70d6"),
-        ("palegoldenrod", "#eee8aa"),
-        ("palegreen", "#98fb98"),
-        ("paleturquoise", "#afeeee"),
-        ("palevioletred", "#db7093"),
-        ("papayawhip", "#ffefd5"),
-        ("peachpuff", "#ffdab9"),
-        ("peru", "#cd853f"),
-        ("pink", "#ffc0cb"),
-        ("plum", "#dda0dd"),
-        ("powderblue", "#b0e0e6"),
-        ("purple", "#800080"),
-        ("rebeccapurple", "#663399"),
-        ("red", "#ff0000"),
-        ("rosybrown", "#bc8f8f"),
-        ("royalblue", "#4169e1"),
-        ("saddlebrown", "#8b4513"),
-        ("salmon", "#fa8072"),
-        ("sandybrown", "#f4a460"),
-        ("seagreen", "#2e8b57"),
-        ("seashell", "#fff5ee"),
-        ("sienna", "#a0522d"),
-        ("silver", "#c0c0c0"),
-        ("skyblue", "#87ceeb"),
-        ("slateblue", "#6a5acd"),
-        ("slategray", "#708090"),
-        ("slategrey", "#708090"),
-        ("snow", "#fffafa"),
-        ("springgreen", "#00ff7f"),
-        ("steelblue", "#4682b4"),
-        ("tan", "#d2b48c"),
-        ("teal", "#008080"),
-        ("thistle", "#d8bfd8"),
-        ("tomato", "#ff6347"),
-        ("turquoise", "#40e0d0"),
-        ("violet", "#ee82ee"),
-        ("wheat", "#f5deb3"),
-        ("white", "#ffffff"),
-        ("whitesmoke", "#f5f5f5"),
-        ("yellow", "#ffff00"),
-        ("yellowgreen", "#9acd32"),
-    ])
-});
+pub struct ConvertOneStopGradientsPlugin;
 
-pub static COLORS_SHORT_NAMES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
-    HashMap::from([
-        ("#f0f8ff", "aliceblue"),
-        ("#faebd7", "antiquewhite"),
-        ("#00ffff", "aqua"),
-        ("#7fffd4", "aquamarine"),
-        ("#f0ffff", "azure"),
-        ("#f5f5dc", "beige"),
-        ("#ffe4c4", "bisque"),
-        ("#000000", "black"),
-        ("#ffebcd", "blanchedalmond"),
-        ("#0000ff", "blue"),
-        ("#8a2be2", "blueviolet"),
-        ("#a52a2a", "brown"),
-        ("#deb887", "burlywood"),
-        ("#5f9ea0", "cadetblue"),
-        ("#7fff00", "chartreuse"),
-        ("#d2691e", "chocolate"),
-        ("#ff7f50", "coral"),
-        ("#6495ed", "cornflowerblue"),
-        ("#fff8dc", "cornsilk"),
-        ("#dc143c", "crimson"),
-        ("#00ffff", "cyan"),
-        ("#00008b", "darkblue"),
-        ("#008b8b", "darkcyan"),
-        ("#b8860b", "darkgoldenrod"),
-        ("#a9a9a9", "darkgray"),
-        ("#006400", "darkgreen"),
-        ("#a9a9a9", "darkgrey"),
-        ("#bdb76b", "darkkhaki"),
-        ("#8b008b", "darkmagenta"),
-        ("#556b2f", "darkolivegreen"),
-        ("#ff8c00", "darkorange"),
-        ("#9932cc", "darkorchid"),
-        ("#8b0000", "darkred"),
-        ("#e9967a", "darksalmon"),
-        ("#8fbc8f", "darkseagreen"),
-        ("#483d8b", "darkslateblue"),
-        ("#2f4f4f", "darkslategray"),
-        ("#2f4f4f", "darkslategrey"),
-        ("#00ced1", "darkturquoise"),
-        ("#9400d3", "darkviolet"),
-        ("#ff1493", "deeppink"),
-        ("#00bfff", "deepskyblue"),
-        ("#696969", "dimgray"),
-        ("#696969", "dimgrey"),
-        ("#1e90ff", "dodgerblue"),
-        ("#b22222", "firebrick"),
-        ("#fffaf0", "floralwhite"),
-        ("#228b22", "forestgreen"),
-        ("#ff00ff", "fuchsia"),
-        ("#dcdcdc", "gainsboro"),
-        ("#f8f8ff", "ghostwhite"),
-        ("#ffd700", "gold"),
-        ("#daa520", "goldenrod"),
-        ("#808080", "gray"),
-        ("#008000", "green"),
-        ("#adff2f", "greenyellow"),
-        ("#808080", "grey"),
-        ("#f0fff0", "honeydew"),
-        ("#ff69b4", "hotpink"),
-        ("#cd5c5c", "indianred"),
-        ("#4b0082", "indigo"),
-        ("#fffff0", "ivory"),
-        ("#f0e68c", "khaki"),
-        ("#e6e6fa", "lavender"),
-        ("#fff0f5", "lavenderblush"),
-        ("#7cfc00", "lawngreen"),
-        ("#fffacd", "lemonchiffon"),
-        ("#add8e6", "lightblue"),
-        ("#f08080", "lightcoral"),
-        ("#e0ffff", "lightcyan"),
-        ("#fafad2", "lightgoldenrodyellow"),
-        ("#d3d3d3", "lightgray"),
-        ("#90ee90", "lightgreen"),
-        ("#d3d3d3", "lightgrey"),
-        ("#ffb6c1", "lightpink"),
-        ("#ffa07a", "lightsalmon"),
-        ("#20b2aa", "lightseagreen"),
-        ("#87cefa", "lightskyblue"),
-        ("#778899", "lightslategray"),
-        ("#778899", "lightslategrey"),
-        ("#b0c4de", "lightsteelblue"),
-        ("#ffffe0", "lightyellow"),
-        ("#00ff00", "lime"),
-        ("#32cd32", "limegreen"),
-        ("#faf0e6", "linen"),
-        ("#ff00ff", "magenta"),
-        ("#800000", "maroon"),
-        ("#66cdaa", "mediumaquamarine"),
-        ("#0000cd", "mediumblue"),
-        ("#ba55d3", "mediumorchid"),
-        ("#9370db", "mediumpurple"),
-        ("#3cb371", "mediumseagreen"),
-        ("#7b68ee", "mediumslateblue"),
-        ("#00fa9a", "mediumspringgreen"),
-        ("#48d1cc", "mediumturquoise"),
-        ("#c71585", "mediumvioletred"),
-        ("#191970", "midnightblue"),
-        ("f5fffa", "mintcream"),
-        ("#ffe4e1", "mistyrose"),
-        ("#ffe4b5", "moccasin"),
-        ("#ffdead", "navajowhite"),
-        ("#000080", "navy"),
-        ("#fdf5e6", "oldlace"),
-        ("#808000", "olive"),
-        ("#6b8e23", "olivedrab"),
-        ("#ffa500", "orange"),
-        ("#ff4500", "orangered"),
-        ("#da70d6", "orchid"),
-        ("#eee8aa", "palegoldenrod"),
-        ("#98fb98", "palegreen"),
-        ("#afeeee", "paleturquoise"),
-        ("#db7093", "palevioletred"),
-        ("#ffefd5", "papayawhip"),
-        ("#ffdab9", "peachpuff"),
-        ("#cd853f", "peru"),
-        ("#ffc0cb", "pink"),
-        ("#dda0dd", "plum"),
-        ("#b0e0e6", "powderblue"),
-        ("#800080", "purple"),
-        ("#663399", "rebeccapurple"),
-        ("#ff0000", "red"),
-        ("#bc8f8f", "rosybrown"),
-        ("#4169e1", "royalblue"),
-        ("#8b4513", "saddlebrown"),
-        ("#fa8072", "salmon"),
-        ("#f4a460", "sandybrown"),
-        ("#2e8b57", "seagreen"),
-        ("#fff5ee", "seashell"),
-        ("#a0522d", "sienna"),
-        ("#c0c0c0", "silver"),
-        ("#87ceeb", "skyblue"),
-        ("#6a5acd", "slateblue"),
-        ("#708090", "slategray"),
-        ("#708090", "slategrey"),
-        ("#fffafa", "snow"),
-        ("#00ff7f", "springgreen"),
-        ("#4682b4", "steelblue"),
-        ("#d2b48c", "tan"),
-        ("#008080", "teal"),
-        ("#d8bfd8", "thistle"),
-        ("#ff6347", "tomato"),
-        ("#40e0d0", "turquoise"),
-        ("#ee82ee", "violet"),
-        ("#f5deb3", "wheat"),
-        ("#ffffff", "white"),
-        ("#f5f5f5", "whitesmoke"),
-        ("#ffff00", "yellow"),
-        ("#9acd32", "yellowgreen"),
-    ])
-});
+impl ConvertOneStopGradientsPlugin {
+    pub fn new() -> Self {
+        Self
+    }
 
-pub static COLORS_PROPS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-    HashSet::from([
-        "fill",
-        "fill-opacity",
-        "stroke",
-        "stroke-opacity",
-        "stop-color",
-        "stop-opacity",
-        "flood-color",
-        "flood-opacity",
-        "lighting-color",
-        "color",
-    ])
-});
+    fn process_element(
+        &self,
+        element: &mut Element,
+        gradients_to_remove: &mut HashMap<String, String>,
+        parent_is_defs: bool,
+        affected_defs: &mut HashSet<String>,
+    ) {
+        // Track defs elements
+        if element.name == "defs" && element.attributes.contains_key("id") {
+            if let Some(id) = element.attributes.get("id") {
+                affected_defs.insert(id.clone());
+            }
+        }
 
-/// Animation elements in SVG
-pub static ANIMATION_ELEMS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-    HashSet::from([
-        "animate",
-        "animateColor",
-        "animateMotion",
-        "animateTransform",
-        "set",
-    ])
-});
+        // Process gradient elements
+        if element.name == "linearGradient" || element.name == "radialGradient" {
+            if let Some(id) = element.attributes.get("id") {
+                // Count stop elements
+                let stops: Vec<&Element> = element
+                    .children
+                    .iter()
+                    .filter_map(|child| {
+                        if let Node::Element(ref elem) = child {
+                            if elem.name == "stop" {
+                                Some(elem)
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
 
-/// Inheritable attributes in SVG
-pub static INHERITABLE_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-    HashSet::from([
-        "clip-rule",
-        "color-interpolation-filters",
-        "color-interpolation",
-        "color-profile",
-        "color-rendering",
-        "color",
-        "cursor",
-        "direction",
-        "display",
-        "dominant-baseline",
-        "fill-opacity",
-        "fill-rule",
-        "fill",
-        "font-family",
-        "font-size-adjust",
-        "font-size",
-        "font-stretch",
-        "font-style",
-        "font-variant",
-        "font-weight",
-        "font",
-        "glyph-orientation-horizontal",
-        "glyph-orientation-vertical",
-        "image-rendering",
-        "letter-spacing",
-        "marker-end",
-        "marker-mid",
-        "marker-start",
-        "marker",
-        "paint-order",
-        "pointer-events",
-        "shape-rendering",
-        "stroke-dasharray",
-        "stroke-dashoffset",
-        "stroke-linecap",
-        "stroke-linejoin",
-        "stroke-miterlimit",
-        "stroke-opacity",
-        "stroke-width",
-        "stroke",
-        "text-anchor",
-        "text-rendering",
-        "transform",
-        "visibility",
-        "word-spacing",
-        "writing-mode",
-    ])
-});
+                // Check if this gradient references another gradient
+                let href = element
+                    .attributes
+                    .get("xlink:href")
+                    .or_else(|| element.attributes.get("href"));
 
-/// SVG presentation attributes that can be set as attributes
-pub static PRESENTATION_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
-    HashSet::from([
-        "alignment-baseline",
-        "baseline-shift",
-        "clip-path",
-        "clip-rule",
-        "clip",
-        "color-interpolation-filters",
-        "color-interpolation",
-        "color-profile",
-        "color-rendering",
-        "color",
-        "cursor",
-        "direction",
-        "display",
-        "dominant-baseline",
-        "enable-background",
-        "fill-opacity",
-        "fill-rule",
-        "fill",
-        "filter",
-        "flood-color",
-        "flood-opacity",
-        "font-family",
-        "font-size-adjust",
-        "font-size",
-        "font-stretch",
-        "font-style",
-        "font-variant",
-        "font-weight",
-        "glyph-orientation-horizontal",
-        "glyph-orientation-vertical",
-        "image-rendering",
-        "letter-spacing",
-        "lighting-color",
-        "marker-end",
-        "marker-mid",
-        "marker-start",
-        "mask",
-        "opacity",
-        "overflow",
-        "paint-order",
-        "pointer-events",
-        "shape-rendering",
-        "stop-color",
-        "stop-opacity",
-        "stroke-dasharray",
-        "stroke-dashoffset",
-        "stroke-linecap",
-        "stroke-linejoin",
-        "stroke-miterlimit",
-        "stroke-opacity",
-        "stroke-width",
-        "stroke",
-        "text-anchor",
-        "text-decoration",
-        "text-overflow",
-        "text-rendering",
-        "transform-origin",
-        "transform",
-        "unicode-bidi",
-        "vector-effect",
-        "visibility",
-        "word-spacing",
-        "writing-mode",
-    ])
-});
+                // If this gradient has no stops and references another, skip for now
+                // (would need to resolve references, which is complex)
+                if stops.is_empty() && href.is_some() {
+                    return;
+                }
+
+                // Only process gradients with exactly one stop
+                if stops.len() == 1 {
+                    let stop = stops[0];
+                    
+                    // Get the stop color
+                    let stop_color = stop
+                        .attributes
+                        .get("stop-color")
+                        .cloned()
+                        .or_else(|| {
+                            // Check style attribute for stop-color
+                            stop.attributes.get("style").and_then(|style| {
+                                // Simple regex-like parsing for stop-color in style
+                                if let Some(idx) = style.find("stop-color:") {
+                                    let start = idx + 11;
+                                    let rest = &style[start..].trim_start();
+                                    let end = rest.find(';').unwrap_or(rest.len());
+                                    Some(rest[..end].trim().to_string())
+                                } else {
+                                    None
+                                }
+                            })
+                        })
+                        .unwrap_or_else(|| "black".to_string()); // Default stop-color is black
+
+                    // Mark this gradient for removal and store its replacement color
+                    gradients_to_remove.insert(id.clone(), stop_color);
+
+                    if parent_is_defs {
+                        affected_defs.insert("parent_defs".to_string());
+                    }
+                }
+            }
+        }
+
+        // Process child elements recursively
+        let is_defs = element.name == "defs";
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.process_element(child_elem, gradients_to_remove, is_defs, affected_defs);
+            }
+        }
+    }
+
+    fn replace_gradient_references(
+        &self,
+        element: &mut Element,
+        gradients_to_remove: &HashMap<String, String>,
+    ) {
+        // Replace gradient references in color properties
+        for color_prop in COLORS_PROPS.iter() {
+            if let Some(value) = element.attributes.get_mut(*color_prop) {
+                if let Some(gradient_id) = self.extract_gradient_id(value) {
+                    if let Some(replacement_color) = gradients_to_remove.get(&gradient_id) {
+                        *value = replacement_color.clone();
+                    }
+                }
+            }
+        }
+
+        // Replace gradient references in style attribute
+        if let Some(style) = element.attributes.get_mut("style") {
+            let mut new_style = style.clone();
+            for (gradient_id, replacement_color) in gradients_to_remove {
+                let url_pattern = format!("url(#{})", gradient_id);
+                new_style = new_style.replace(&url_pattern, replacement_color);
+            }
+            if new_style != *style {
+                *style = new_style;
+            }
+        }
+
+        // Process children
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.replace_gradient_references(child_elem, gradients_to_remove);
+            }
+        }
+    }
+
+    fn extract_gradient_id(&self, value: &str) -> Option<String> {
+        if value.starts_with("url(#") && value.ends_with(')') {
+            let id = &value[5..value.len() - 1];
+            Some(id.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn remove_gradients(
+        &self,
+        element: &mut Element,
+        gradients_to_remove: &HashMap<String, String>,
+    ) {
+        // Remove gradient elements
+        element.children.retain(|child| {
+            if let Node::Element(ref elem) = child {
+                if elem.name == "linearGradient" || elem.name == "radialGradient" {
+                    if let Some(id) = elem.attributes.get("id") {
+                        return !gradients_to_remove.contains_key(id.as_str());
+                    }
+                }
+            }
+            true
+        });
+
+        // Process children
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.remove_gradients(child_elem, gradients_to_remove);
+            }
+        }
+    }
+
+    fn remove_empty_defs(&self, element: &mut Element) {
+        // Remove empty defs elements
+        element.children.retain(|child| {
+            if let Node::Element(ref elem) = child {
+                if elem.name == "defs" && elem.children.is_empty() {
+                    return false;
+                }
+            }
+            true
+        });
+
+        // Process children
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.remove_empty_defs(child_elem);
+            }
+        }
+    }
+
+    fn remove_unused_xlink_namespace(&self, document: &mut Document) {
+        // Check if any xlink:href attributes remain
+        let mut has_xlink = false;
+        
+        fn check_xlink(element: &Element) -> bool {
+            if element.attributes.contains_key("xlink:href") {
+                return true;
+            }
+            
+            for child in &element.children {
+                if let Node::Element(ref elem) = child {
+                    if check_xlink(elem) {
+                        return true;
+                    }
+                }
+            }
+            false
+        }
+
+        has_xlink = check_xlink(&document.root);
+
+        // Remove xmlns:xlink if no xlink:href attributes remain
+        if !has_xlink {
+            document.root.namespaces.remove("xlink");
+            document.root.attributes.shift_remove("xmlns:xlink");
+        }
+    }
+}
+
+impl Plugin for ConvertOneStopGradientsPlugin {
+    fn name(&self) -> &'static str {
+        "convertOneStopGradients"
+    }
+
+    fn description(&self) -> &'static str {
+        "converts one-stop (single color) gradients to a plain color"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        let mut gradients_to_remove = HashMap::new();
+        let mut affected_defs = HashSet::new();
+
+        // First pass: identify gradients with only one stop
+        self.process_element(&mut document.root, &mut gradients_to_remove, false, &mut affected_defs);
+
+        // Second pass: replace gradient references with solid colors
+        if !gradients_to_remove.is_empty() {
+            self.replace_gradient_references(&mut document.root, &gradients_to_remove);
+
+            // Third pass: remove the gradient elements
+            self.remove_gradients(&mut document.root, &gradients_to_remove);
+
+            // Fourth pass: remove empty defs elements
+            self.remove_empty_defs(&mut document.root);
+
+            // Remove unused xlink namespace
+            self.remove_unused_xlink_namespace(document);
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::PluginInfo;
+    use indexmap::IndexMap;
+
+    fn create_test_document() -> Document {
+        use std::collections::HashMap;
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            prologue: vec![],
+            epilogue: vec![],
+            metadata: crate::ast::DocumentMetadata {
+                path: None,
+                encoding: None,
+                version: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = ConvertOneStopGradientsPlugin::new();
+        assert_eq!(plugin.name(), "convertOneStopGradients");
+        assert_eq!(plugin.description(), "converts one-stop (single color) gradients to a plain color");
+    }
+
+    #[test]
+    fn test_extract_gradient_id() {
+        let plugin = ConvertOneStopGradientsPlugin::new();
+        
+        // Test valid gradient ID extraction
+        assert_eq!(plugin.extract_gradient_id("url(#myGradient)"), Some("myGradient".to_string()));
+        assert_eq!(plugin.extract_gradient_id("url(#grad1)"), Some("grad1".to_string()));
+        
+        // Test invalid formats
+        assert_eq!(plugin.extract_gradient_id("red"), None);
+        assert_eq!(plugin.extract_gradient_id("url(myGradient)"), None);
+        assert_eq!(plugin.extract_gradient_id("#myGradient"), None);
+    }
+
+    #[test]
+    fn test_apply_with_empty_document() {
+        let mut plugin = ConvertOneStopGradientsPlugin::new();
+        let mut doc = create_test_document();
+        let info = PluginInfo::default();
+        
+        // Should not panic with empty document
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_apply_with_no_gradients() {
+        let mut plugin = ConvertOneStopGradientsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add a simple rect element
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("fill".to_string(), "red".to_string());
+        rect_attrs.insert("width".to_string(), "100".to_string());
+        rect_attrs.insert("height".to_string(), "100".to_string());
+        
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: std::collections::HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Document should remain unchanged
+        assert_eq!(doc.root.children.len(), 1);
+        if let Node::Element(rect) = &doc.root.children[0] {
+            assert_eq!(rect.name, "rect");
+            assert_eq!(rect.attributes.get("fill"), Some(&"red".to_string()));
+        }
+    }
+}
 </file>
 
 <file path="svgn/Cargo.toml">
@@ -45363,306 +46670,610 @@ mod tests {
 }
 </file>
 
+<file path="svgn/src/collections.rs">
+use std::collections::{HashMap, HashSet};
+use once_cell::sync::Lazy;
+
+pub static COLORS_NAMES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
+    HashMap::from([
+        ("aliceblue", "#f0f8ff"),
+        ("antiquewhite", "#faebd7"),
+        ("aqua", "#00ffff"),
+        ("aquamarine", "#7fffd4"),
+        ("azure", "#f0ffff"),
+        ("beige", "#f5f5dc"),
+        ("bisque", "#ffe4c4"),
+        ("black", "#000000"),
+        ("blanchedalmond", "#ffebcd"),
+        ("blue", "#0000ff"),
+        ("blueviolet", "#8a2be2"),
+        ("brown", "#a52a2a"),
+        ("burlywood", "#deb887"),
+        ("cadetblue", "#5f9ea0"),
+        ("chartreuse", "#7fff00"),
+        ("chocolate", "#d2691e"),
+        ("coral", "#ff7f50"),
+        ("cornflowerblue", "#6495ed"),
+        ("cornsilk", "#fff8dc"),
+        ("crimson", "#dc143c"),
+        ("cyan", "#00ffff"),
+        ("darkblue", "#00008b"),
+        ("darkcyan", "#008b8b"),
+        ("darkgoldenrod", "#b8860b"),
+        ("darkgray", "#a9a9a9"),
+        ("darkgreen", "#006400"),
+        ("darkgrey", "#a9a9a9"),
+        ("darkkhaki", "#bdb76b"),
+        ("darkmagenta", "#8b008b"),
+        ("darkolivegreen", "#556b2f"),
+        ("darkorange", "#ff8c00"),
+        ("darkorchid", "#9932cc"),
+        ("darkred", "#8b0000"),
+        ("darksalmon", "#e9967a"),
+        ("darkseagreen", "#8fbc8f"),
+        ("darkslateblue", "#483d8b"),
+        ("darkslategray", "#2f4f4f"),
+        ("darkslategrey", "#2f4f4f"),
+        ("darkturquoise", "#00ced1"),
+        ("darkviolet", "#9400d3"),
+        ("deeppink", "#ff1493"),
+        ("deepskyblue", "#00bfff"),
+        ("dimgray", "#696969"),
+        ("dimgrey", "#696969"),
+        ("dodgerblue", "#1e90ff"),
+        ("firebrick", "#b22222"),
+        ("floralwhite", "#fffaf0"),
+        ("forestgreen", "#228b22"),
+        ("fuchsia", "#ff00ff"),
+        ("gainsboro", "#dcdcdc"),
+        ("ghostwhite", "#f8f8ff"),
+        ("gold", "#ffd700"),
+        ("goldenrod", "#daa520"),
+        ("gray", "#808080"),
+        ("green", "#008000"),
+        ("greenyellow", "#adff2f"),
+        ("grey", "#808080"),
+        ("honeydew", "#f0fff0"),
+        ("hotpink", "#ff69b4"),
+        ("indianred", "#cd5c5c"),
+        ("indigo", "#4b0082"),
+        ("ivory", "#fffff0"),
+        ("khaki", "#f0e68c"),
+        ("lavender", "#e6e6fa"),
+        ("lavenderblush", "#fff0f5"),
+        ("lawngreen", "#7cfc00"),
+        ("lemonchiffon", "#fffacd"),
+        ("lightblue", "#add8e6"),
+        ("lightcoral", "#f08080"),
+        ("lightcyan", "#e0ffff"),
+        ("lightgoldenrodyellow", "#fafad2"),
+        ("lightgray", "#d3d3d3"),
+        ("lightgreen", "#90ee90"),
+        ("lightgrey", "#d3d3d3"),
+        ("lightpink", "#ffb6c1"),
+        ("lightsalmon", "#ffa07a"),
+        ("lightseagreen", "#20b2aa"),
+        ("lightskyblue", "#87cefa"),
+        ("lightslategray", "#778899"),
+        ("lightslategrey", "#778899"),
+        ("lightsteelblue", "#b0c4de"),
+        ("lightyellow", "#ffffe0"),
+        ("lime", "#00ff00"),
+        ("limegreen", "#32cd32"),
+        ("linen", "#faf0e6"),
+        ("magenta", "#ff00ff"),
+        ("maroon", "#800000"),
+        ("mediumaquamarine", "#66cdaa"),
+        ("mediumblue", "#0000cd"),
+        ("mediumorchid", "#ba55d3"),
+        ("mediumpurple", "#9370db"),
+        ("mediumseagreen", "#3cb371"),
+        ("mediumslateblue", "#7b68ee"),
+        ("mediumspringgreen", "#00fa9a"),
+        ("mediumturquoise", "#48d1cc"),
+        ("mediumvioletred", "#c71585"),
+        ("midnightblue", "#191970"),
+        ("mintcream", "#f5fffa"),
+        ("mistyrose", "#ffe4e1"),
+        ("moccasin", "#ffe4b5"),
+        ("navajowhite", "#ffdead"),
+        ("navy", "#000080"),
+        ("oldlace", "#fdf5e6"),
+        ("olive", "#808000"),
+        ("olivedrab", "#6b8e23"),
+        ("orange", "#ffa500"),
+        ("orangered", "#ff4500"),
+        ("orchid", "#da70d6"),
+        ("palegoldenrod", "#eee8aa"),
+        ("palegreen", "#98fb98"),
+        ("paleturquoise", "#afeeee"),
+        ("palevioletred", "#db7093"),
+        ("papayawhip", "#ffefd5"),
+        ("peachpuff", "#ffdab9"),
+        ("peru", "#cd853f"),
+        ("pink", "#ffc0cb"),
+        ("plum", "#dda0dd"),
+        ("powderblue", "#b0e0e6"),
+        ("purple", "#800080"),
+        ("rebeccapurple", "#663399"),
+        ("red", "#ff0000"),
+        ("rosybrown", "#bc8f8f"),
+        ("royalblue", "#4169e1"),
+        ("saddlebrown", "#8b4513"),
+        ("salmon", "#fa8072"),
+        ("sandybrown", "#f4a460"),
+        ("seagreen", "#2e8b57"),
+        ("seashell", "#fff5ee"),
+        ("sienna", "#a0522d"),
+        ("silver", "#c0c0c0"),
+        ("skyblue", "#87ceeb"),
+        ("slateblue", "#6a5acd"),
+        ("slategray", "#708090"),
+        ("slategrey", "#708090"),
+        ("snow", "#fffafa"),
+        ("springgreen", "#00ff7f"),
+        ("steelblue", "#4682b4"),
+        ("tan", "#d2b48c"),
+        ("teal", "#008080"),
+        ("thistle", "#d8bfd8"),
+        ("tomato", "#ff6347"),
+        ("turquoise", "#40e0d0"),
+        ("violet", "#ee82ee"),
+        ("wheat", "#f5deb3"),
+        ("white", "#ffffff"),
+        ("whitesmoke", "#f5f5f5"),
+        ("yellow", "#ffff00"),
+        ("yellowgreen", "#9acd32"),
+    ])
+});
+
+pub static COLORS_SHORT_NAMES: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
+    HashMap::from([
+        ("#f0f8ff", "aliceblue"),
+        ("#faebd7", "antiquewhite"),
+        ("#00ffff", "aqua"),
+        ("#7fffd4", "aquamarine"),
+        ("#f0ffff", "azure"),
+        ("#f5f5dc", "beige"),
+        ("#ffe4c4", "bisque"),
+        ("#000000", "black"),
+        ("#ffebcd", "blanchedalmond"),
+        ("#0000ff", "blue"),
+        ("#8a2be2", "blueviolet"),
+        ("#a52a2a", "brown"),
+        ("#deb887", "burlywood"),
+        ("#5f9ea0", "cadetblue"),
+        ("#7fff00", "chartreuse"),
+        ("#d2691e", "chocolate"),
+        ("#ff7f50", "coral"),
+        ("#6495ed", "cornflowerblue"),
+        ("#fff8dc", "cornsilk"),
+        ("#dc143c", "crimson"),
+        ("#00ffff", "cyan"),
+        ("#00008b", "darkblue"),
+        ("#008b8b", "darkcyan"),
+        ("#b8860b", "darkgoldenrod"),
+        ("#a9a9a9", "darkgray"),
+        ("#006400", "darkgreen"),
+        ("#a9a9a9", "darkgrey"),
+        ("#bdb76b", "darkkhaki"),
+        ("#8b008b", "darkmagenta"),
+        ("#556b2f", "darkolivegreen"),
+        ("#ff8c00", "darkorange"),
+        ("#9932cc", "darkorchid"),
+        ("#8b0000", "darkred"),
+        ("#e9967a", "darksalmon"),
+        ("#8fbc8f", "darkseagreen"),
+        ("#483d8b", "darkslateblue"),
+        ("#2f4f4f", "darkslategray"),
+        ("#2f4f4f", "darkslategrey"),
+        ("#00ced1", "darkturquoise"),
+        ("#9400d3", "darkviolet"),
+        ("#ff1493", "deeppink"),
+        ("#00bfff", "deepskyblue"),
+        ("#696969", "dimgray"),
+        ("#696969", "dimgrey"),
+        ("#1e90ff", "dodgerblue"),
+        ("#b22222", "firebrick"),
+        ("#fffaf0", "floralwhite"),
+        ("#228b22", "forestgreen"),
+        ("#ff00ff", "fuchsia"),
+        ("#dcdcdc", "gainsboro"),
+        ("#f8f8ff", "ghostwhite"),
+        ("#ffd700", "gold"),
+        ("#daa520", "goldenrod"),
+        ("#808080", "gray"),
+        ("#008000", "green"),
+        ("#adff2f", "greenyellow"),
+        ("#808080", "grey"),
+        ("#f0fff0", "honeydew"),
+        ("#ff69b4", "hotpink"),
+        ("#cd5c5c", "indianred"),
+        ("#4b0082", "indigo"),
+        ("#fffff0", "ivory"),
+        ("#f0e68c", "khaki"),
+        ("#e6e6fa", "lavender"),
+        ("#fff0f5", "lavenderblush"),
+        ("#7cfc00", "lawngreen"),
+        ("#fffacd", "lemonchiffon"),
+        ("#add8e6", "lightblue"),
+        ("#f08080", "lightcoral"),
+        ("#e0ffff", "lightcyan"),
+        ("#fafad2", "lightgoldenrodyellow"),
+        ("#d3d3d3", "lightgray"),
+        ("#90ee90", "lightgreen"),
+        ("#d3d3d3", "lightgrey"),
+        ("#ffb6c1", "lightpink"),
+        ("#ffa07a", "lightsalmon"),
+        ("#20b2aa", "lightseagreen"),
+        ("#87cefa", "lightskyblue"),
+        ("#778899", "lightslategray"),
+        ("#778899", "lightslategrey"),
+        ("#b0c4de", "lightsteelblue"),
+        ("#ffffe0", "lightyellow"),
+        ("#00ff00", "lime"),
+        ("#32cd32", "limegreen"),
+        ("#faf0e6", "linen"),
+        ("#ff00ff", "magenta"),
+        ("#800000", "maroon"),
+        ("#66cdaa", "mediumaquamarine"),
+        ("#0000cd", "mediumblue"),
+        ("#ba55d3", "mediumorchid"),
+        ("#9370db", "mediumpurple"),
+        ("#3cb371", "mediumseagreen"),
+        ("#7b68ee", "mediumslateblue"),
+        ("#00fa9a", "mediumspringgreen"),
+        ("#48d1cc", "mediumturquoise"),
+        ("#c71585", "mediumvioletred"),
+        ("#191970", "midnightblue"),
+        ("f5fffa", "mintcream"),
+        ("#ffe4e1", "mistyrose"),
+        ("#ffe4b5", "moccasin"),
+        ("#ffdead", "navajowhite"),
+        ("#000080", "navy"),
+        ("#fdf5e6", "oldlace"),
+        ("#808000", "olive"),
+        ("#6b8e23", "olivedrab"),
+        ("#ffa500", "orange"),
+        ("#ff4500", "orangered"),
+        ("#da70d6", "orchid"),
+        ("#eee8aa", "palegoldenrod"),
+        ("#98fb98", "palegreen"),
+        ("#afeeee", "paleturquoise"),
+        ("#db7093", "palevioletred"),
+        ("#ffefd5", "papayawhip"),
+        ("#ffdab9", "peachpuff"),
+        ("#cd853f", "peru"),
+        ("#ffc0cb", "pink"),
+        ("#dda0dd", "plum"),
+        ("#b0e0e6", "powderblue"),
+        ("#800080", "purple"),
+        ("#663399", "rebeccapurple"),
+        ("#ff0000", "red"),
+        ("#bc8f8f", "rosybrown"),
+        ("#4169e1", "royalblue"),
+        ("#8b4513", "saddlebrown"),
+        ("#fa8072", "salmon"),
+        ("#f4a460", "sandybrown"),
+        ("#2e8b57", "seagreen"),
+        ("#fff5ee", "seashell"),
+        ("#a0522d", "sienna"),
+        ("#c0c0c0", "silver"),
+        ("#87ceeb", "skyblue"),
+        ("#6a5acd", "slateblue"),
+        ("#708090", "slategray"),
+        ("#708090", "slategrey"),
+        ("#fffafa", "snow"),
+        ("#00ff7f", "springgreen"),
+        ("#4682b4", "steelblue"),
+        ("#d2b48c", "tan"),
+        ("#008080", "teal"),
+        ("#d8bfd8", "thistle"),
+        ("#ff6347", "tomato"),
+        ("#40e0d0", "turquoise"),
+        ("#ee82ee", "violet"),
+        ("#f5deb3", "wheat"),
+        ("#ffffff", "white"),
+        ("#f5f5f5", "whitesmoke"),
+        ("#ffff00", "yellow"),
+        ("#9acd32", "yellowgreen"),
+    ])
+});
+
+pub static COLORS_PROPS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "fill",
+        "fill-opacity",
+        "stroke",
+        "stroke-opacity",
+        "stop-color",
+        "stop-opacity",
+        "flood-color",
+        "flood-opacity",
+        "lighting-color",
+        "color",
+    ])
+});
+
+/// Animation elements in SVG
+pub static ANIMATION_ELEMS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "animate",
+        "animateColor",
+        "animateMotion",
+        "animateTransform",
+        "set",
+    ])
+});
+
+/// Inheritable attributes in SVG
+pub static INHERITABLE_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "clip-rule",
+        "color-interpolation-filters",
+        "color-interpolation",
+        "color-profile",
+        "color-rendering",
+        "color",
+        "cursor",
+        "direction",
+        "display",
+        "dominant-baseline",
+        "fill-opacity",
+        "fill-rule",
+        "fill",
+        "font-family",
+        "font-size-adjust",
+        "font-size",
+        "font-stretch",
+        "font-style",
+        "font-variant",
+        "font-weight",
+        "font",
+        "glyph-orientation-horizontal",
+        "glyph-orientation-vertical",
+        "image-rendering",
+        "letter-spacing",
+        "marker-end",
+        "marker-mid",
+        "marker-start",
+        "marker",
+        "paint-order",
+        "pointer-events",
+        "shape-rendering",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "stroke-opacity",
+        "stroke-width",
+        "stroke",
+        "text-anchor",
+        "text-rendering",
+        "transform",
+        "visibility",
+        "word-spacing",
+        "writing-mode",
+    ])
+});
+
+/// SVG presentation attributes that can be set as attributes
+pub static PRESENTATION_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "alignment-baseline",
+        "baseline-shift",
+        "clip-path",
+        "clip-rule",
+        "clip",
+        "color-interpolation-filters",
+        "color-interpolation",
+        "color-profile",
+        "color-rendering",
+        "color",
+        "cursor",
+        "direction",
+        "display",
+        "dominant-baseline",
+        "enable-background",
+        "fill-opacity",
+        "fill-rule",
+        "fill",
+        "filter",
+        "flood-color",
+        "flood-opacity",
+        "font-family",
+        "font-size-adjust",
+        "font-size",
+        "font-stretch",
+        "font-style",
+        "font-variant",
+        "font-weight",
+        "glyph-orientation-horizontal",
+        "glyph-orientation-vertical",
+        "image-rendering",
+        "letter-spacing",
+        "lighting-color",
+        "marker-end",
+        "marker-mid",
+        "marker-start",
+        "mask",
+        "opacity",
+        "overflow",
+        "paint-order",
+        "pointer-events",
+        "shape-rendering",
+        "stop-color",
+        "stop-opacity",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "stroke-opacity",
+        "stroke-width",
+        "stroke",
+        "text-anchor",
+        "text-decoration",
+        "text-overflow",
+        "text-rendering",
+        "transform-origin",
+        "transform",
+        "unicode-bidi",
+        "vector-effect",
+        "visibility",
+        "word-spacing",
+        "writing-mode",
+    ])
+});
+
+
+/// Properties that can contain URL references in SVG
+pub static REFERENCES_PROPS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "clip-path",
+        "color-profile", 
+        "fill",
+        "filter",
+        "marker-end",
+        "marker-mid",
+        "marker-start",
+        "mask",
+        "stroke",
+        "style",
+    ])
+});
+
+/// Editor-specific namespaces in SVG
+pub static EDITOR_NAMESPACES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "http://creativecommons.org/ns#",
+        "http://inkscape.sourceforge.net/DTD/sodipodi-0.dtd",
+        "http://krita.org/namespaces/svg/krita",
+        "http://ns.adobe.com/AdobeIllustrator/10.0/",
+        "http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/",
+        "http://ns.adobe.com/Extensibility/1.0/",
+        "http://ns.adobe.com/Flows/1.0/",
+        "http://ns.adobe.com/GenericCustomNamespace/1.0/",
+        "http://ns.adobe.com/Graphs/1.0/",
+        "http://ns.adobe.com/ImageReplacement/1.0/",
+        "http://ns.adobe.com/SaveForWeb/1.0/",
+        "http://ns.adobe.com/Variables/1.0/",
+        "http://ns.adobe.com/XPath/1.0/",
+        "http://purl.org/dc/elements/1.1/",
+        "http://schemas.microsoft.com/visio/2003/SVGExtensions/",
+        "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd",
+        "http://taptrix.com/vectorillustrator/svg_extensions",
+        "http://www.bohemiancoding.com/sketch/ns",
+        "http://www.figma.com/figma/ns",
+        "http://www.inkscape.org/namespaces/inkscape",
+        "http://www.serif.com/",
+        "http://www.vector.evaxdesign.sk",
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "https://boxy-svg.com",
+    ])
+});
+</file>
+
 <file path="CHANGELOG.md">
 # CHANGELOG
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0] - 2025-01-02
+## [0.1.15] - 2025-07-03
 
 ### Added
-- ✅ Initialized Rust library project with proper structure
-- ✅ Set up comprehensive Cargo.toml with all necessary dependencies
-- ✅ Implemented core AST structures (Document, Element, Node)
-- ✅ Created plugin system with Plugin trait and PluginRegistry
-- ✅ Built SVG parser using quick-xml with custom mutable AST
-- ✅ Implemented SVG stringifier with configurable output options
-- ✅ Added configuration system compatible with SVGO format
-- ✅ Created main optimization engine with multipass support
-- ✅ Built CLI binary with SVGO-compatible command-line options
-- ✅ Added comprehensive test suite for all core components
-- ✅ Set up benchmark infrastructure using criterion
-- ✅ Enhanced PLAN.md with detailed technical architecture decisions
-- ✅ Created TODO.md as flat task list representation
+- ✅ Rewrote and expanded documentation in the `docs/` folder to focus on `svgn` (Rust port) and compare it to `svgo` (JavaScript reference).
+  - Updated `docs/index.md` with an introduction to `svgn`.
+  - Created `docs/usage.md` detailing `svgn`'s CLI and library usage.
+  - Created `docs/plugins.md` explaining `svgn`'s plugin system and listing ported plugins.
+  - Created `docs/comparison.md` providing a detailed comparison between `svgn` and `svgo`.
+  - Created `docs/architecture.md` describing `svgn`'s architecture.
+- ✅ Updated `docs/_config.yml` to include new navigation and Jekyll collections.
+- ✅ Updated `docs/_layouts/default.html` to integrate the new navigation.
+- ✅ Updated `README.md` to reflect the new documentation structure and focus on `svgn`.
+
+## [0.1.14] - 2025-07-03
+
+### Added
+- ✅ Set up Jekyll+Markdown structure for GitHub Pages documentation in `docs/` folder.
+  - Created `_layouts`, `_includes`, `assets/css` directories.
+  - Configured `_config.yml` with `jekyll-theme-minimal`.
+  - Created `_layouts/default.html` and `assets/css/style.css`.
+  - Copied `SPEC.md` to `docs/index.md` and added Jekyll front matter.
+- ✅ Fixed Git submodule configuration for `ref/svgo`.
+  - Removed incorrect Git index entry.
+  - Re-added `ref/svgo` as a proper Git submodule.
+  - Initialized and updated the submodule.
+
+### Technical Notes
+- Ensures documentation is easily publishable on GitHub Pages.
+- Resolves previous issues with `ref/svgo` submodule.
+
+### Progress Summary
+- Documentation infrastructure is now in place.
+- Git repository is correctly configured with submodules.
+
+## [0.1.13] - 2025-01-03
+
+### Added
+- ✅ Implemented `collapseGroups` plugin:
+  - Collapses useless groups by removing empty groups and moving attributes to children
+  - Moves group attributes to single child element when safe
+  - Concatenates transform attributes when collapsing groups
+  - Handles nested groups and preserves groups with animation elements
+  - Checks for conflicting attributes and inheritable vs non-inheritable attributes
+  - Full test coverage with 6 comprehensive tests
 
 ### Technical Achievements
-- ✅ Fast streaming XML parsing with quick-xml
-- ✅ Custom mutable AST optimized for SVG transformations  
-- ✅ Plugin architecture using trait objects for extensibility
-- ✅ WASM-compatible design throughout the codebase
-- ✅ Comprehensive error handling with thiserror
-- ✅ Serde-based configuration with JSON/TOML support
-- ✅ Memory-efficient tree traversal and mutation
-- ✅ SVGO API compatibility for drop-in replacement
-
-### Core Foundation Complete
-The foundational architecture is now complete and ready for plugin implementation. The project successfully:
-- Parses SVG strings into mutable AST
-- Applies plugin transformations 
-- Outputs optimized SVG with configurable formatting
-- Provides both library and CLI interfaces
-- Maintains API compatibility with SVGO
-
-### Next Phase
-Ready to begin implementing actual optimization plugins starting with removeComments, removeMetadata, and removeTitle.
-
-## [0.1.1] - 2025-01-02
-
-### Added
-- ✅ Implemented three initial optimization plugins:
-  - `removeComments` - Removes comments from SVG documents with support for preserving legal comments
-  - `removeMetadata` - Removes all `<metadata>` elements from SVG documents
-  - `removeTitle` - Removes all `<title>` elements from SVG documents
-- ✅ Extended Document AST to support prologue and epilogue nodes (comments/PIs before/after root)
-- ✅ Added plugin infrastructure with a `plugins/` module structure
-- ✅ Registered initial plugins in the default plugin registry
-- ✅ Created comprehensive plugin test suite ported from SVGO tests
-
-### Fixed
-- ✅ Fixed failing tests in optimizer, config, and stringifier modules
-- ✅ Fixed config deserialization to support mixed string/object plugin arrays (SVGO compatibility)
-- ✅ Fixed floating-point comparison in optimization info tests
-- ✅ Fixed attribute escaping in stringifier to properly handle quotes
-- ✅ Fixed parser to preserve comments and processing instructions in document prologue/epilogue
-- ✅ Fixed stringifier to output prologue/epilogue nodes correctly
-- ✅ Fixed whitespace handling in pretty-printing mode
-
-### Technical Improvements
-- ✅ Enhanced parser to respect preserve_whitespace setting for text trimming
-- ✅ Improved stringifier to handle empty elements with whitespace-only content
-- ✅ Added whitespace cleanup logic to plugins when removing elements
-- ✅ Custom deserialization for plugin configurations to match SVGO's flexible format
-- ✅ All 38 tests now passing (33 unit tests + 5 plugin integration tests)
-
-### Next Steps
-The three initial plugins are complete and tested. Ready to continue with Phase 3 - Full Plugin Porting.
-
-## [0.1.2] - 2025-01-02
-
-### Added
-- ✅ Implemented two more optimization plugins:
-  - `cleanupAttrs` - Cleans up attributes from newlines, trailing and repeating spaces with configurable options
-  - `cleanupEnableBackground` - Removes or simplifies enable-background attribute when it matches SVG dimensions
-- ✅ Added regex dependency for pattern matching in plugins
-- ✅ Created comprehensive test suites for both new plugins
-
-### Technical Details
-- ✅ cleanupAttrs supports three configurable options: newlines, trim, and spaces (all default to true)
-- ✅ cleanupEnableBackground intelligently handles filter presence and simplifies values for mask/pattern elements
-- ✅ Used LazyLock for efficient regex compilation at startup
-- ✅ Maintained full compatibility with SVGO's plugin behavior
-
-### Progress
-- 5 plugins now implemented out of 50+ total plugins
-
-## [0.1.3] - 2025-01-02
-
-### Added
-- ✅ Implemented `cleanupIds` plugin with full functionality:
-  - Removes unused IDs from elements that are not referenced
-  - Minifies used IDs to save space (long-gradient-id → a, b, c, etc.)
-  - Preserves specific IDs and ID prefixes based on configuration
-  - Safely handles scripts and styles by skipping optimization when present
-  - Updates all references (url(), href, begin attributes) when IDs are changed
-- ✅ Added urlencoding dependency for proper ID encoding in references
-- ✅ Created comprehensive test suite covering all major use cases
-
-### Technical Details
-- ✅ Used separate regex patterns to handle quoted and unquoted URL references (regex crate doesn't support backreferences)
-- ✅ Implemented ID generation algorithm matching SVGO's approach (a-z, A-Z sequence)
-- ✅ Used raw pointers safely to track elements by ID while mutating the tree
-- ✅ Full compatibility with SVGO's cleanupIds behavior and options
-
-### Progress
-- 6 plugins now implemented out of 50+ total plugins
-- More complex plugins like cleanupIds demonstrate the robustness of the plugin system
-
-## [0.1.4] - 2025-01-02
-
-### Added
-- ✅ Created comprehensive integration test (`tests/integration_test.rs`) that:
-  - Tests multiple plugins working together in the optimization pipeline
-  - Verifies that all implemented plugins apply their optimizations correctly
-  - Validates optimization metrics (size reduction, compression ratio)
-- ✅ Enhanced test coverage to 45 total tests (44 unit tests + 1 integration test)
-
-### Technical Improvements
-- ✅ All plugins now work seamlessly together in a single optimization pass
-- ✅ Verified proper interaction between plugins (e.g., cleanupIds respects cleaned attributes)
-- ✅ Integration test demonstrates real-world SVG optimization scenario
-
-### Current Plugin Status
-Completed plugins (9 total):
-1. `removeComments` - Removes comments with legal comment preservation
-2. `removeMetadata` - Removes metadata elements
-3. `removeTitle` - Removes title elements
-4. `cleanupAttrs` - Cleans up attribute formatting
-5. `cleanupEnableBackground` - Optimizes enable-background attributes
-6. `cleanupIds` - Removes unused and minifies used IDs
-7. `removeDoctype` - Removes DOCTYPE declarations
-8. `removeXMLProcInst` - Removes XML processing instructions/declarations
-9. `removeDesc` - Removes description elements (empty/standard only by default)
-
-### Project Metrics
-- Total Lines of Code: ~4,500+
-- Test Coverage: 52 tests all passing
-- Dependencies: Minimal and all WASM-compatible
-- Performance: Native Rust performance advantages over JavaScript
-
-## [0.1.5] - 2025-01-02
-
-### Added
-- ✅ Implemented 3 more simple removal plugins (Simple Removers batch):
-  - `removeDoctype` - Removes DOCTYPE declarations from SVG documents
-  - `removeXMLProcInst` - Removes XML processing instructions including XML declarations
-  - `removeDesc` - Removes `<desc>` elements (empty or standard editor descriptions by default)
-- ✅ Extended AST to support DOCTYPE nodes for proper parsing and removal
-- ✅ Enhanced parser to handle DOCTYPE declarations using quick-xml
-- ✅ Enhanced stringifier to output XML declarations based on document metadata
-- ✅ Added comprehensive test suites for all new plugins
-
-### Technical Improvements
-- ✅ Fixed unreachable pattern warning in parser by explicitly handling all Event types
-- ✅ Added proper DOCTYPE support throughout the entire pipeline (parse → transform → stringify)
-- ✅ XML declarations are now properly handled through document metadata rather than as processing instructions
-- ✅ removeDesc plugin implements smart filtering (preserves accessibility descriptions, removes editor fluff)
+- ✅ Added `ANIMATION_ELEMS` and `INHERITABLE_ATTRS` collections to support group collapsing logic
+- ✅ Implemented recursive tree processing for nested group optimization
+- ✅ Smart attribute conflict resolution during group collapsing
+- ✅ Transform concatenation when moving transforms from parent to child
+- ✅ Proper handling of special cases (filters, masks, clip-paths, IDs)
 
 ### Progress Summary
-- 9 plugins now implemented out of 50+ total plugins (18% complete)
-- Simple removal plugins demonstrate consistent architecture patterns
-- Enhanced AST and parser capabilities for more complex future plugins
-- All tests passing with robust error handling
+- 27 plugins now implemented out of 54 total plugins (50% complete!)
+- Structural Optimizers batch started (1/4 plugins complete)
+- Milestone: Reached 50% plugin implementation progress
+- All tests passing with robust group optimization capabilities
 
-## [0.1.6] - 2025-01-02
-
-### Added
-- ✅ Completed Simple Removers batch with 3 additional plugins:
-  - `removeEmptyAttrs` - Removes attributes with empty values while preserving conditional processing attributes
-  - `removeEmptyContainers` - Removes empty container elements with smart handling for special cases
-  - `removeEmptyText` - Removes empty text elements (`<text>`, `<tspan>`, `<tref>`) with configurable options
-- ✅ Added comprehensive test suites for all new plugins (25 additional tests)
-- ✅ Enhanced plugin architecture to support configurable parameters via JSON
-
-### Technical Improvements
-- ✅ `removeEmptyAttrs` preserves conditional processing attributes (`requiredExtensions`, `requiredFeatures`, `systemLanguage`)
-- ✅ `removeEmptyContainers` implements sophisticated logic for SVG container elements with special cases:
-  - Preserves root SVG elements
-  - Preserves patterns with attributes (reusable configuration)
-  - Preserves masks with IDs (hide masked elements)
-  - Preserves groups with filters (may create rectangles)
-  - Preserves elements in switch contexts
-- ✅ `removeEmptyText` supports configurable removal of text/tspan/tref elements with parameter validation
-- ✅ All plugins use efficient tree traversal patterns for nested element processing
-
-### Testing & Quality
-- ✅ 83 total tests now passing (up from 52 tests)
-- ✅ Comprehensive edge case coverage for all removal scenarios
-- ✅ Parameter validation and configuration testing
-- ✅ Integration testing confirms all plugins work together seamlessly
-
-### Progress Update
-- 12 plugins now implemented out of 50+ total plugins (24% complete)
-- Simple Removers batch complete - ready for next phase (Numeric/Value Cleaners)
-- Solid foundation established for more complex plugin implementations
-
-## [0.1.7] - 2025-01-02
+## [0.1.12] - 2025-01-03
 
 ### Added
-- ✅ Completed Numeric/Value Cleaners batch with 2 powerful plugins:
-  - `cleanupNumericValues` - Rounds numeric values to fixed precision, converts units to pixels, removes default "px" units
-  - `cleanupListOfValues` - Rounds lists of values (viewBox, points, stroke-dasharray, etc.) with smart unit conversion
-- ✅ Added advanced numeric processing capabilities with configurable precision and unit handling
-- ✅ Added comprehensive test suites for numeric optimization (23 additional tests)
+- ✅ Implemented `removeDeprecatedAttrs` plugin:
+  - Removes deprecated SVG attributes from elements
+  - Supports safe mode (default) and unsafe mode for more aggressive removal
+  - Special handling for xml:lang when lang attribute exists
+  - Comprehensive element configuration for SVG 1.1 deprecated attributes
+  - Full test coverage with unit and integration tests
 
-### Technical Achievements
-- ✅ `cleanupNumericValues` features:
-  - Configurable float precision (default: 3 decimal places)
-  - Leading zero removal (0.5 → .5, -0.5 → -.5)
-  - Smart unit conversion (absolute units to pixels when beneficial)
-  - Default "px" unit removal for cleaner output
-  - Special handling for viewBox and version attributes
-- ✅ `cleanupListOfValues` features:
-  - Handles space/comma-separated value lists (points, viewBox, stroke-dasharray, dx, dy, x, y)
-  - Special "new" keyword preservation for enable-background
-  - Flexible separator handling (spaces, commas, mixed)
-  - Same numeric optimizations as cleanupNumericValues but for lists
-- ✅ Advanced regex-based value parsing with unit detection
-- ✅ Efficient LazyLock pattern for compiled regexes and lookup tables
+- ✅ Implemented `convertEllipseToCircle` plugin:
+  - Converts ellipse elements with equal rx and ry attributes to circle elements
+  - Handles SVG2 "auto" values for rx/ry attributes
+  - Preserves all other attributes during conversion
+  - Full test coverage with unit and integration tests
 
-### Numeric Optimization Examples
-- Precision rounding: `1.23456` → `1.235`
-- Leading zero removal: `0.5` → `.5`, `-0.25` → `-.25`
-- Unit conversion: `1in` → `96` (when beneficial)
-- List processing: `"208.250977 77.1308594"` → `"208.251 77.131"`
-- viewBox optimization: `"0.12345 1.6789 100.555 50.999"` → `".123 1.679 100.555 51"`
+- 🚧 Started implementation of `removeAttributesBySelector` plugin:
+  - Basic structure and CSS selector parsing setup
+  - Currently blocked on CSS selector library version compatibility issues
+  - Will remove attributes from elements matching CSS selectors when completed
 
-### Testing & Quality
-- ✅ 106 total tests now passing (up from 83 tests)
-- ✅ Comprehensive numeric precision and rounding test coverage
-- ✅ Unit conversion optimization validation
-- ✅ Edge case handling for all numeric formats
-- ✅ Parameter configuration testing for all options
+### Technical Notes
+- Added `selectors` crate dependency for CSS selector support
+- Updated plugin count to 25/54 completed (46%)
+- All new plugins follow the established plugin architecture pattern
+- Comprehensive test coverage maintained for all implementations (170+ tests passing)
+
+### Known Issues
+- `removeAttributesBySelector` plugin implementation is blocked due to cssparser version conflicts between the selectors crate (requires 0.31) and the project (uses 0.34)
+- This will require either downgrading cssparser or finding an alternative CSS selector implementation
 
 ### Progress Summary
-- 14 plugins now implemented out of 50+ total plugins (28% complete)
-- Numeric/Value Cleaners batch complete - substantial optimization capabilities added
-- Ready for next phase: Attribute Processors batch
-- Strong numeric processing foundation for advanced optimizations
-
-## [0.1.8] - 2025-07-03
-
-### Added
-- ✅ Completed Numeric/Value Cleaners batch with `cleanupNumericValues` and `cleanupListOfValues` plugins.
-- ✅ Enhanced numeric processing capabilities with configurable precision and unit handling.
-- ✅ Added comprehensive test suites for numeric optimization.
-
-### Progress Summary
-- 14 plugins now implemented out of 50+ total plugins (28% complete).
-- Numeric/Value Cleaners batch complete - substantial optimization capabilities added.
-- Ready for next phase: Attribute Processors batch.
-- Strong numeric processing foundation for advanced optimizations.
-
-## [0.1.9] - 2025-07-03
-
-### Added
-- ✅ Completed Attribute Processors batch with 3 powerful plugins:
-  - `sortAttrs` - Sorts attributes by name for better gzip compression.
-  - `removeAttrs` - Removes attributes by name or by regular expression.
-  - `removeUnknownsAndDefaults` - Removes unknown elements' content and attributes, and removes default attribute values.
-
-### Technical Achievements
-- ✅ `sortAttrs` ensures consistent attribute ordering, improving compression.
-- ✅ `removeAttrs` provides flexible attribute removal based on name or regex patterns.
-- ✅ `removeUnknownsAndDefaults` cleans up non-standard or default attributes, reducing file size.
-
-### Progress Summary
-- 17 plugins now implemented out of 50+ total plugins (31% complete).
-- Attribute Processors batch complete - significant progress in attribute optimization.
-- Ready for next phase: Style and Color Handlers.
-- Continued focus on matching SVGO's behavior and test suite.
-
-## [0.1.10] - 2025-07-03
-
-### Added
-- ✅ Implemented 3 style-related plugins:
-  - `removeStyleElement` - Removes all `<style>` elements from SVG documents
-  - `mergeStyles` - Merges multiple `<style>` elements into one, with media query support
-  - `convertStyleToAttrs` - Converts inline styles to SVG presentation attributes where possible
-- ✅ Added `PRESENTATION_ATTRS` collection to define valid SVG presentation attributes
-- ✅ Created CSS parsing regex for `convertStyleToAttrs` that handles comments, strings, and escape sequences
-
-### Technical Details
-- ✅ `removeStyleElement` provides simple removal of all style elements
-- ✅ `mergeStyles` intelligently combines style content, wrapping media-specific styles with @media
-- ✅ `convertStyleToAttrs` parses inline styles and converts presentation attributes while preserving non-presentation styles
-- ✅ All style plugins handle CDATA sections appropriately
-- ✅ Added comprehensive test coverage for all style handling edge cases
-
-### Progress Summary
-- 20 plugins now implemented out of 50+ total plugins (40% complete)
-- Style handling capabilities significantly enhanced
-- Foundation laid for more complex CSS-based optimizations (minifyStyles, inlineStyles)
-- Plugin system continues to prove robust for diverse optimization tasks
+- 25 plugins now implemented out of 54 total plugins (46% complete)
+- Additional Optimizers batch partially complete (2/3 plugins)
+- Continued focus on API compatibility with SVGO
+- Strong foundation for remaining plugin implementations
 
 ## [0.1.11] - 2025-07-03
 
@@ -45714,87 +47325,301 @@ Completed plugins (9 total):
 - Plugin architecture enhanced with PluginInfo support for advanced optimizations
 - Ready for next phase: Transform and Path Optimizers (convertTransform, convertPathData)
 
-## [0.1.12] - 2025-01-03
+## [0.1.10] - 2025-07-03
 
 ### Added
-- ✅ Implemented `removeDeprecatedAttrs` plugin:
-  - Removes deprecated SVG attributes from elements
-  - Supports safe mode (default) and unsafe mode for more aggressive removal
-  - Special handling for xml:lang when lang attribute exists
-  - Comprehensive element configuration for SVG 1.1 deprecated attributes
-  - Full test coverage with unit and integration tests
+- ✅ Implemented 3 style-related plugins:
+  - `removeStyleElement` - Removes all `<style>` elements from SVG documents
+  - `mergeStyles` - Merges multiple `<style>` elements into one, with media query support
+  - `convertStyleToAttrs` - Converts inline styles to SVG presentation attributes where possible
+- ✅ Added `PRESENTATION_ATTRS` collection to define valid SVG presentation attributes
+- ✅ Created CSS parsing regex for `convertStyleToAttrs` that handles comments, strings, and escape sequences
 
-- ✅ Implemented `convertEllipseToCircle` plugin:
-  - Converts ellipse elements with equal rx and ry attributes to circle elements
-  - Handles SVG2 "auto" values for rx/ry attributes
-  - Preserves all other attributes during conversion
-  - Full test coverage with unit and integration tests
-
-- 🚧 Started implementation of `removeAttributesBySelector` plugin:
-  - Basic structure and CSS selector parsing setup
-  - Currently blocked on CSS selector library version compatibility issues
-  - Will remove attributes from elements matching CSS selectors when completed
-
-### Technical Notes
-- Added `selectors` crate dependency for CSS selector support
-- Updated plugin count to 25/54 completed (46%)
-- All new plugins follow the established plugin architecture pattern
-- Comprehensive test coverage maintained for all implementations (170+ tests passing)
-
-### Known Issues
-- `removeAttributesBySelector` plugin implementation is blocked due to cssparser version conflicts between the selectors crate (requires 0.31) and the project (uses 0.34)
-- This will require either downgrading cssparser or finding an alternative CSS selector implementation
+### Technical Details
+- ✅ `removeStyleElement` provides simple removal of all style elements
+- ✅ `mergeStyles` intelligently combines style content, wrapping media-specific styles with @media
+- ✅ `convertStyleToAttrs` parses inline styles and converts presentation attributes while preserving non-presentation styles
+- ✅ All style plugins handle CDATA sections appropriately
+- ✅ Added comprehensive test coverage for all style handling edge cases
 
 ### Progress Summary
-- 25 plugins now implemented out of 54 total plugins (46% complete)
-- Additional Optimizers batch partially complete (2/3 plugins)
-- Continued focus on API compatibility with SVGO
-- Strong foundation for remaining plugin implementations
+- 20 plugins now implemented out of 50+ total plugins (40% complete)
+- Style handling capabilities significantly enhanced
+- Foundation laid for more complex CSS-based optimizations (minifyStyles, inlineStyles)
+- Plugin system continues to prove robust for diverse optimization tasks
 
-## [0.1.13] - 2025-01-03
+## [0.1.9] - 2025-07-03
 
 ### Added
-- ✅ Implemented `collapseGroups` plugin:
-  - Collapses useless groups by removing empty groups and moving attributes to children
-  - Moves group attributes to single child element when safe
-  - Concatenates transform attributes when collapsing groups
-  - Handles nested groups and preserves groups with animation elements
-  - Checks for conflicting attributes and inheritable vs non-inheritable attributes
-  - Full test coverage with 6 comprehensive tests
+- ✅ Completed Attribute Processors batch with 3 powerful plugins:
+  - `sortAttrs` - Sorts attributes by name for better gzip compression.
+  - `removeAttrs` - Removes attributes by name or by regular expression.
+  - `removeUnknownsAndDefaults` - Removes unknown elements' content and attributes, and removes default attribute values.
 
 ### Technical Achievements
-- ✅ Added `ANIMATION_ELEMS` and `INHERITABLE_ATTRS` collections to support group collapsing logic
-- ✅ Implemented recursive tree processing for nested group optimization
-- ✅ Smart attribute conflict resolution during group collapsing
-- ✅ Transform concatenation when moving transforms from parent to child
-- ✅ Proper handling of special cases (filters, masks, clip-paths, IDs)
+- ✅ `sortAttrs` ensures consistent attribute ordering, improving compression.
+- ✅ `removeAttrs` provides flexible attribute removal based on name or regex patterns.
+- ✅ `removeUnknownsAndDefaults` cleans up non-standard or default attributes, reducing file size.
 
 ### Progress Summary
-- 27 plugins now implemented out of 54 total plugins (50% complete!)
-- Structural Optimizers batch started (1/4 plugins complete)
-- Milestone: Reached 50% plugin implementation progress
-- All tests passing with robust group optimization capabilities
+- 17 plugins now implemented out of 50+ total plugins (31% complete).
+- Attribute Processors batch complete - significant progress in attribute optimization.
+- Ready for next phase: Style and Color Handlers.
+- Continued focus on matching SVGO's behavior and test suite.
 
-## [0.1.14] - 2025-07-03
+## [0.1.8] - 2025-07-03
 
 ### Added
-- ✅ Set up Jekyll+Markdown structure for GitHub Pages documentation in `docs/` folder.
-  - Created `_layouts`, `_includes`, `assets/css` directories.
-  - Configured `_config.yml` with `jekyll-theme-minimal`.
-  - Created `_layouts/default.html` and `assets/css/style.css`.
-  - Copied `SPEC.md` to `docs/index.md` and added Jekyll front matter.
-- ✅ Fixed Git submodule configuration for `ref/svgo`.
-  - Removed incorrect Git index entry.
-  - Re-added `ref/svgo` as a proper Git submodule.
-  - Initialized and updated the submodule.
-
-### Technical Notes
-- Ensures documentation is easily publishable on GitHub Pages.
-- Resolves previous issues with `ref/svgo` submodule.
+- ✅ Completed Numeric/Value Cleaners batch with `cleanupNumericValues` and `cleanupListOfValues` plugins.
+- ✅ Enhanced numeric processing capabilities with configurable precision and unit handling.
+- ✅ Added comprehensive test suites for numeric optimization.
 
 ### Progress Summary
-- Documentation infrastructure is now in place.
-- Git repository is correctly configured with submodules.
+- 14 plugins now implemented out of 50+ total plugins (28% complete).
+- Numeric/Value Cleaners batch complete - substantial optimization capabilities added.
+- Ready for next phase: Attribute Processors batch.
+- Strong numeric processing foundation for advanced optimizations.
+
+## [0.1.7] - 2025-01-02
+
+### Added
+- ✅ Completed Numeric/Value Cleaners batch with 2 powerful plugins:
+  - `cleanupNumericValues` - Rounds numeric values to fixed precision, converts units to pixels, removes default "px" units
+  - `cleanupListOfValues` - Rounds lists of values (viewBox, points, stroke-dasharray, etc.) with smart unit conversion
+- ✅ Added advanced numeric processing capabilities with configurable precision and unit handling
+- ✅ Added comprehensive test suites for numeric optimization (23 additional tests)
+
+### Technical Achievements
+- ✅ `cleanupNumericValues` features:
+  - Configurable float precision (default: 3 decimal places)
+  - Leading zero removal (0.5 → .5, -0.5 → -.5)
+  - Smart unit conversion (absolute units to pixels when beneficial)
+  - Default "px" unit removal for cleaner output
+  - Special handling for viewBox and version attributes
+- ✅ `cleanupListOfValues` features:
+  - Handles space/comma-separated value lists (points, viewBox, stroke-dasharray, dx, dy, x, y)
+  - Special "new" keyword preservation for enable-background
+  - Flexible separator handling (spaces, commas, mixed)
+  - Same numeric optimizations as cleanupNumericValues but for lists
+- ✅ Advanced regex-based value parsing with unit detection
+- ✅ Efficient LazyLock pattern for compiled regexes and lookup tables
+
+### Numeric Optimization Examples
+- Precision rounding: `1.23456` → `1.235`
+- Leading zero removal: `0.5` → `.5`, `-0.25` → `-.25`
+- Unit conversion: `1in` → `96` (when beneficial)
+- List processing: `"208.250977 77.1308594"` → `"208.251 77.131"`
+- viewBox optimization: `"0.12345 1.6789 100.555 50.999"` → `".123 1.679 100.555 51"`
+
+### Testing & Quality
+- ✅ 106 total tests now passing (up from 83 tests)
+- ✅ Comprehensive numeric precision and rounding test coverage
+- ✅ Unit conversion optimization validation
+- ✅ Edge case handling for all numeric formats
+- ✅ Parameter configuration testing for all options
+
+### Progress Summary
+- 14 plugins now implemented out of 50+ total plugins (28% complete)
+- Numeric/Value Cleaners batch complete - substantial optimization capabilities added
+- Ready for next phase: Attribute Processors batch
+- Strong numeric processing foundation for advanced optimizations
+
+## [0.1.6] - 2025-01-02
+
+### Added
+- ✅ Completed Simple Removers batch with 3 additional plugins:
+  - `removeEmptyAttrs` - Removes attributes with empty values while preserving conditional processing attributes
+  - `removeEmptyContainers` - Removes empty container elements with smart handling for special cases
+  - `removeEmptyText` - Removes empty text elements (`<text>`, `<tspan>`, `<tref>`) with configurable options
+- ✅ Added comprehensive test suites for all new plugins (25 additional tests)
+- ✅ Enhanced plugin architecture to support configurable parameters via JSON
+
+### Technical Improvements
+- ✅ `removeEmptyAttrs` preserves conditional processing attributes (`requiredExtensions`, `requiredFeatures`, `systemLanguage`)
+- ✅ `removeEmptyContainers` implements sophisticated logic for SVG container elements with special cases:
+  - Preserves root SVG elements
+  - Preserves patterns with attributes (reusable configuration)
+  - Preserves masks with IDs (hide masked elements)
+  - Preserves groups with filters (may create rectangles)
+  - Preserves elements in switch contexts
+- ✅ `removeEmptyText` supports configurable removal of text/tspan/tref elements with parameter validation
+- ✅ All plugins use efficient tree traversal patterns for nested element processing
+
+### Testing & Quality
+- ✅ 83 total tests now passing (up from 52 tests)
+- ✅ Comprehensive edge case coverage for all removal scenarios
+- ✅ Parameter validation and configuration testing
+- ✅ Integration testing confirms all plugins work together seamlessly
+
+### Progress Update
+- 12 plugins now implemented out of 50+ total plugins (24% complete)
+- Simple Removers batch complete - ready for next phase (Numeric/Value Cleaners)
+- Solid foundation established for more complex plugin implementations
+
+## [0.1.5] - 2025-01-02
+
+### Added
+- ✅ Implemented 3 more simple removal plugins (Simple Removers batch):
+  - `removeDoctype` - Removes DOCTYPE declarations from SVG documents
+  - `removeXMLProcInst` - Removes XML processing instructions including XML declarations
+  - `removeDesc` - Removes `<desc>` elements (empty or standard editor descriptions by default)
+- ✅ Extended AST to support DOCTYPE nodes for proper parsing and removal
+- ✅ Enhanced parser to handle DOCTYPE declarations using quick-xml
+- ✅ Enhanced stringifier to output XML declarations based on document metadata
+- ✅ Added comprehensive test suites for all new plugins
+
+### Technical Improvements
+- ✅ Fixed unreachable pattern warning in parser by explicitly handling all Event types
+- ✅ Added proper DOCTYPE support throughout the entire pipeline (parse → transform → stringify)
+- ✅ XML declarations are now properly handled through document metadata rather than as processing instructions
+- ✅ removeDesc plugin implements smart filtering (preserves accessibility descriptions, removes editor fluff)
+
+### Progress Summary
+- 9 plugins now implemented out of 50+ total plugins (18% complete)
+- Simple removal plugins demonstrate consistent architecture patterns
+- Enhanced AST and parser capabilities for more complex future plugins
+- All tests passing with robust error handling
+
+## [0.1.4] - 2025-01-02
+
+### Added
+- ✅ Created comprehensive integration test (`tests/integration_test.rs`) that:
+  - Tests multiple plugins working together in the optimization pipeline
+  - Verifies that all implemented plugins apply their optimizations correctly
+  - Validates optimization metrics (size reduction, compression ratio)
+- ✅ Enhanced test coverage to 45 total tests (44 unit tests + 1 integration test)
+
+### Technical Improvements
+- ✅ All plugins now work seamlessly together in a single optimization pass
+- ✅ Verified proper interaction between plugins (e.g., cleanupIds respects cleaned attributes)
+- ✅ Integration test demonstrates real-world SVG optimization scenario
+
+### Current Plugin Status
+Completed plugins (9 total):
+1. `removeComments` - Removes comments with legal comment preservation
+2. `removeMetadata` - Removes metadata elements
+3. `removeTitle` - Removes title elements
+4. `cleanupAttrs` - Cleans up attribute formatting
+5. `cleanupEnableBackground` - Optimizes enable-background attributes
+6. `cleanupIds` - Removes unused and minifies used IDs
+7. `removeDoctype` - Removes DOCTYPE declarations
+8. `removeXMLProcInst` - Removes XML processing instructions/declarations
+9. `removeDesc` - Removes description elements (empty/standard only by default)
+
+### Project Metrics
+- Total Lines of Code: ~4,500+
+- Test Coverage: 52 tests all passing
+- Dependencies: Minimal and all WASM-compatible
+- Performance: Native Rust performance advantages over JavaScript
+
+## [0.1.3] - 2025-01-02
+
+### Added
+- ✅ Implemented `cleanupIds` plugin with full functionality:
+  - Removes unused IDs from elements that are not referenced
+  - Minifies used IDs to save space (long-gradient-id → a, b, c, etc.)
+  - Preserves specific IDs and ID prefixes based on configuration
+  - Safely handles scripts and styles by skipping optimization when present
+  - Updates all references (url(), href, begin attributes) when IDs are changed
+- ✅ Added urlencoding dependency for proper ID encoding in references
+- ✅ Created comprehensive test suite covering all major use cases
+
+### Technical Details
+- ✅ Used separate regex patterns to handle quoted and unquoted URL references (regex crate doesn't support backreferences)
+- ✅ Implemented ID generation algorithm matching SVGO's approach (a-z, A-Z sequence)
+- ✅ Used raw pointers safely to track elements by ID while mutating the tree
+- ✅ Full compatibility with SVGO's cleanupIds behavior and options
+
+### Progress
+- 6 plugins now implemented out of 50+ total plugins
+- More complex plugins like cleanupIds demonstrate the robustness of the plugin system
+
+## [0.1.2] - 2025-01-02
+
+### Added
+- ✅ Implemented two more optimization plugins:
+  - `cleanupAttrs` - Cleans up attributes from newlines, trailing and repeating spaces with configurable options
+  - `cleanupEnableBackground` - Removes or simplifies enable-background attribute when it matches SVG dimensions
+- ✅ Added regex dependency for pattern matching in plugins
+- ✅ Created comprehensive test suites for both new plugins
+
+### Technical Details
+- ✅ cleanupAttrs supports three configurable options: newlines, trim, and spaces (all default to true)
+- ✅ cleanupEnableBackground intelligently handles filter presence and simplifies values for mask/pattern elements
+- ✅ Used LazyLock for efficient regex compilation at startup
+- ✅ Maintained full compatibility with SVGO's plugin behavior
+
+### Progress
+- 5 plugins now implemented out of 50+ total plugins
+
+## [0.1.1] - 2025-01-02
+
+### Added
+- ✅ Implemented three initial optimization plugins:
+  - `removeComments` - Removes comments from SVG documents with support for preserving legal comments
+  - `removeMetadata` - Removes all `<metadata>` elements from SVG documents
+  - `removeTitle` - Removes all `<title>` elements from SVG documents
+- ✅ Extended Document AST to support prologue and epilogue nodes (comments/PIs before/after root)
+- ✅ Added plugin infrastructure with a `plugins/` module structure
+- ✅ Registered initial plugins in the default plugin registry
+- ✅ Created comprehensive plugin test suite ported from SVGO tests
+
+### Fixed
+- ✅ Fixed failing tests in optimizer, config, and stringifier modules
+- ✅ Fixed config deserialization to support mixed string/object plugin arrays (SVGO compatibility)
+- ✅ Fixed floating-point comparison in optimization info tests
+- ✅ Fixed attribute escaping in stringifier to properly handle quotes
+- ✅ Fixed parser to preserve comments and processing instructions in document prologue/epilogue
+- ✅ Fixed stringifier to output prologue/epilogue nodes correctly
+- ✅ Fixed whitespace handling in pretty-printing mode
+- ✅ All 38 tests now passing (33 unit tests + 5 plugin integration tests)
+
+### Technical Improvements
+- ✅ Enhanced parser to respect preserve_whitespace setting for text trimming
+- ✅ Improved stringifier to handle empty elements with whitespace-only content
+- ✅ Added whitespace cleanup logic to plugins when removing elements
+- ✅ Custom deserialization for plugin configurations to match SVGO's flexible format
+
+### Next Steps
+The three initial plugins are complete and tested. Ready to continue with Phase 3 - Full Plugin Porting.
+
+## [0.1.0] - 2025-01-02
+
+### Added
+- ✅ Initialized Rust library project with proper structure
+- ✅ Set up comprehensive Cargo.toml with all necessary dependencies
+- ✅ Implemented core AST structures (Document, Element, Node)
+- ✅ Created plugin system with Plugin trait and PluginRegistry
+- ✅ Built SVG parser using quick-xml with custom mutable AST
+- ✅ Implemented SVG stringifier with configurable output options
+- ✅ Added configuration system compatible with SVGO format
+- ✅ Created main optimization engine with multipass support
+- ✅ Built CLI binary with SVGO-compatible command-line options
+- ✅ Added comprehensive test suite for all core components
+- ✅ Set up benchmark infrastructure using criterion
+- ✅ Enhanced PLAN.md with detailed technical architecture decisions
+- ✅ Created TODO.md as flat task list representation
+
+### Technical Achievements
+- ✅ Fast streaming XML parsing with quick-xml
+- ✅ Custom mutable AST optimized for SVG transformations  
+- ✅ Plugin architecture using trait objects for extensibility
+- ✅ WASM-compatible design throughout the codebase
+- ✅ Comprehensive error handling with thiserror
+- ✅ Serde-based configuration with JSON/TOML support
+- ✅ Memory-efficient tree traversal and mutation
+- ✅ SVGO API compatibility for drop-in replacement
+
+### Core Foundation Complete
+The foundational architecture is now complete and ready for plugin implementation. The project successfully:
+- Parses SVG strings into mutable AST
+- Applies plugin transformations 
+- Outputs optimized SVG with configurable formatting
+- Provides both library and CLI interfaces
+- Maintains API compatibility with SVGO
+
+### Next Phase
+Ready to begin implementing actual optimization plugins starting with removeComments, removeMetadata, and removeTitle.
 </file>
 
 <file path="PLAN.md">
@@ -46033,7 +47858,7 @@ This final phase focuses on preparing the project for public use.
 -   **[ ] 6.1. Code Documentation**
     -   [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions.
 
--   **[ ] 6.2. User Documentation**
+-   **[x] 6.2. User Documentation**
     -   [x] Create user-friendly documentation in the `docs/` directory.
     -   [x] This will include guides on how to use the CLI, the Rust library, and the WASM module.
     -   [x] Provide a detailed reference for all configuration options and plugins.
@@ -46107,6 +47932,10 @@ pub mod remove_deprecated_attrs;
 pub mod convert_ellipse_to_circle;
 pub mod collapse_groups;
 pub mod convert_one_stop_gradients;
+pub mod prefix_ids;
+pub mod remove_editors_ns_data;
+pub mod remove_elements_by_attr;
+pub mod remove_dimensions;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -46137,6 +47966,10 @@ pub use remove_deprecated_attrs::RemoveDeprecatedAttrsPlugin;
 pub use convert_ellipse_to_circle::ConvertEllipseToCirclePlugin;
 pub use collapse_groups::CollapseGroupsPlugin;
 pub use convert_one_stop_gradients::ConvertOneStopGradientsPlugin;
+pub use prefix_ids::PrefixIdsPlugin;
+pub use remove_editors_ns_data::RemoveEditorsNSDataPlugin;
+pub use remove_elements_by_attr::RemoveElementsByAttrPlugin;
+pub use remove_dimensions::RemoveDimensionsPlugin;
 </file>
 
 <file path="svgn/src/plugin.rs">
@@ -46377,6 +48210,10 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::ConvertEllipseToCirclePlugin);
     registry.register(crate::plugins::CollapseGroupsPlugin);
     registry.register(crate::plugins::ConvertOneStopGradientsPlugin);
+    registry.register(crate::plugins::PrefixIdsPlugin);
+    registry.register(crate::plugins::RemoveEditorsNSDataPlugin);
+    registry.register(crate::plugins::RemoveElementsByAttrPlugin);
+    registry.register(crate::plugins::RemoveDimensionsPlugin);
     
     registry
 }
@@ -46555,9 +48392,6 @@ This is a flat task list derived from PLAN.md. Tasks are organized by priority a
 - [ ] Prepare a Jekyll+Markdown structure that will serve as the documentation on Github Pages (via main branch, docs folder setup)
 
 - [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions
-- [x] Create user-friendly documentation in the `docs/` directory
-- [x] Include guides on how to use the CLI, the Rust library, and the WASM module
-- [x] Provide a detailed reference for all configuration options and plugins
 - [ ] Publish the `svgn` crate to `crates.io`
 - [ ] Publish the WASM package to `npm`
 - [ ] Create a GitHub release with release notes

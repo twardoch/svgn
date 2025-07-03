@@ -1,6 +1,9 @@
 ---
 layout: default
-title: SVGN: A Native Rust SVG Optimizer
+title: Home
+nav_order: 1
+description: "SVGN: A Native Rust SVG Optimizer"
+permalink: /
 ---
 
 # SVGN: A Native Rust SVG Optimizer

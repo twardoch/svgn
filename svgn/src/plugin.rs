@@ -238,6 +238,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::PrefixIdsPlugin);
     registry.register(crate::plugins::RemoveEditorsNSDataPlugin);
     registry.register(crate::plugins::RemoveElementsByAttrPlugin);
+    registry.register(crate::plugins::RemoveDimensionsPlugin);
     
     registry
 }

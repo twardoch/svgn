@@ -1,6 +1,8 @@
 ---
 layout: default
-title: SVGN vs. SVGO: A Comparison
+title: Comparison
+nav_order: 4
+description: "SVGN vs. SVGO: A detailed comparison"
 ---
 
 # SVGN vs. SVGO: A Comparison
