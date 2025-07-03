@@ -2,50 +2,36 @@
 
 This document outlines the detailed plan for building `svgn`, a high-performance, native Rust port of the `svgo` SVG optimizer. The goal is to achieve full functional and API compatibility with the original JavaScript version while leveraging Rust's performance and safety features.
 
-## Phase 1: Foundation & Core Infrastructure
+## Phase 1: Foundation & Core Infrastructure - COMPLETED ✅
 
-This phase focuses on setting up the project and building the fundamental components that all other parts will rely on.
+This phase focused on setting up the project and building the fundamental components that all other parts will rely on.
 
--   [x] 1.1. Project Setup
-    -   [x] Initialize a new Rust library project: `cargo new svgn`
-    -   [x] Set up the `Cargo.toml` file with project metadata (name, version, authors, license).
-    -   [x] Create the initial directory structure:
-        -   `src/`: Main library code.
-        -   `src/bin/`: For the CLI binary.
-        -   `tests/`: Integration tests.
-        -   `benches/`: Benchmarks.
-        -   `docs/`: User documentation.
-    -   [x] Add initial dependencies to `Cargo.toml`:
-        -   XML Parser: `quick-xml` (for fast streaming parsing, then build custom mutable AST).
-        -   CSS Parser: `cssparser` (Mozilla's battle-tested CSS parser).
-        -   CLI Argument Parser: `clap` v4 with derive features.
-        -   Configuration: `serde`, `serde_json`, and `toml` (for `svgo.config.js` compatibility and native config).
-        -   Path Processing: `lyon` (for advanced path data optimization).
-        -   Optional: `usvg` utilities for SVG-specific operations.
+-   **[x] 1.1. Basic Project Setup**
+    -   [x] Create Rust project structure with `Cargo.toml`
+    -   [x] Set up basic `src/lib.rs` with SVGO-compatible API structure
+    -   [x] Set up basic `src/main.rs` with CLI interface
+    -   [x] Add core dependencies: `clap`, `serde`, `anyhow`, `quick-xml`, `roxmltree`, `regex`, `indexmap`, `base64`, `urlencoding`
+    -   [x] Configure project for release optimization (LTO, single codegen unit)
 
--   **[x] 1.2. Abstract Syntax Tree (AST)**
-    -   [x] Define the core Rust structs and enums for the SVG AST (e.g., `Document`, `Element`, `Attribute`, `Text`, `Comment`).
-    -   [x] The AST should be designed for efficient traversal and mutation.
+-   **[x] 1.2. Core API Structure**
+    -   [x] Define `optimize` function with SVGO-compatible signature
+    -   [x] Implement `Config`, `PluginConfig`, `Js2SvgOptions` structs
+    -   [x] Create `OptimizeResult` and `OptimizeInfo` for result metadata
+    -   [x] Set up basic error handling with `anyhow`
 
--   **[x] 1.3. SVG Parser**
-    -   [x] Implement the parser using `quick-xml` for fast streaming XML parsing.
-    -   [x] Build custom mutable AST optimized for SVG transformations (not using XML library's tree directly).
-    -   [x] Ensure the parser correctly handles SVG-specific features, namespaces, and edge cases.
-    -   [x] Consider leveraging `usvg` utilities for SVG-specific parsing challenges.
-    -   [x] Port initial parser tests from `ref/svgo/test/svg2js/`.
+-   **[x] 1.3. CLI Interface**
+    -   [x] Implement command-line interface with `clap`
+    -   [x] Support for input/output files, pretty printing, multipass, data URI output
+    -   [x] Handle data URI formats (base64, encoded, unencoded)
+    -   [x] Basic optimization workflow (read → optimize → write)
 
--   **[x] 1.4. SVG Stringifier**
-    -   [x] Implement the logic to traverse the AST and convert it back into an optimized SVG string.
-    -   [x] Support both compact and pretty-printed output, controlled by configuration.
+-   **[x] 1.4. GitHub Actions CI**
+    -   [x] Enhanced CI workflow with Rust toolchain setup
+    -   [x] Added dependency caching for faster builds
+    -   [x] Integrated clippy and formatting checks
+    -   [x] Fixed build failures due to missing Cargo.toml
 
--   **[x] 1.5. Plugin Engine**
-    -   [x] Define a `Plugin` trait that all optimization plugins will implement.
-    -   [x] The trait will have a primary method, e.g., `apply(&self, ast: &mut Document, params: &Option<serde_json::Value>)`.
-    -   [x] Create the core optimization pipeline that takes a list of plugins, iterates through them, and applies them to the AST.
-
--   **[x] 1.6. Configuration Handling**
-    -   [x] Create a `Config` struct using `serde` to represent the `svgo` configuration.
-    -   [x] Implement logic to load configuration from a `svgo.config.js` (by shelling out to Node.js to get the JSON) or a future `svgn.toml`.
+**Next Phase**: Need to implement the actual AST, parser, stringifier, and plugin system before proceeding with plugin porting.
 
 ## Phase 2: CLI and Initial Optimization
 

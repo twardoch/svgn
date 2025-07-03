@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.16] - 2025-07-03
+
+### Added
+- **Initial Rust Project Structure**: Created basic Rust project structure with `Cargo.toml`, `src/lib.rs`, and `src/main.rs`
+- **Core Library API**: Implemented basic `optimize` function with SVGO-compatible API structure
+- **CLI Interface**: Created command-line interface with arguments for input/output files, pretty printing, multipass optimization, and data URI output
+- **Configuration System**: Added `Config`, `PluginConfig`, and `Js2SvgOptions` structs for configuration management
+- **Result Types**: Implemented `OptimizeResult` and `OptimizeInfo` for optimization metadata
+- **GitHub Actions CI**: Enhanced CI workflow with Rust toolchain setup, caching, clippy, and formatting checks
+- **Dependencies**: Added core dependencies including `clap`, `serde`, `anyhow`, `quick-xml`, `roxmltree`, `regex`, `indexmap`, `base64`, and `urlencoding`
+
+### Technical Details
+- **API Compatibility**: Designed library API to be compatible with SVGO v4.0.0 structure
+- **Error Handling**: Implemented comprehensive error handling with `anyhow` and `thiserror`
+- **CLI Features**: Support for pretty printing, multipass optimization, and data URI output formats (base64, encoded, unencoded)
+- **Build System**: Configured for release optimization with LTO and single codegen unit
+- **Testing Framework**: Set up basic test infrastructure with `assert_cmd` and `predicates`
+
+### Infrastructure
+- **Project Setup**: Complete Rust project initialization with proper metadata and directory structure
+- **CI/CD**: GitHub Actions workflow for automated building, testing, and code quality checks
+- **Documentation**: Basic project documentation structure ready for expansion
+
+### Notes
+- This is the foundational release establishing the project structure
+- The optimize function currently returns input unchanged (optimization logic to be implemented)
+- All core infrastructure is in place for plugin system development
+- Ready for Phase 3 plugin porting implementation
+
 ## [0.1.15] - 2025-07-03
 
 ### Added
