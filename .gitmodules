@@ -1,0 +1,3 @@
+[submodule "ref/svgo"]
+	path = ref/svgo
+	url = https://github.com/svg/svgo
