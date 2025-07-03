@@ -1,0 +1,15 @@
+**Issue:** Inconsistent Plugin Parameter Validation
+
+**Description:**
+The Rust `Plugin` trait includes a `validate_params` method, but its implementation and enforcement are inconsistent across plugins. The JavaScript SVGO often uses JSDoc types for plugin parameters, which provides a form of documentation and implicit validation.
+
+**Impact:**
+1.  **Runtime Errors:** Plugins might receive invalid or unexpected parameters, leading to runtime panics or incorrect behavior.
+2.  **Poor User Experience:** Users might struggle to understand the expected parameters for each plugin without clear validation or documentation.
+3.  **Maintainability:** Lack of consistent validation makes it harder to ensure the correctness and robustness of plugins.
+
+**Proposed Solution:**
+1.  **Enforce Validation:** Ensure that `validate_params` is called for every plugin before its `apply` method is invoked in the `PluginRegistry::apply_plugins` method.
+2.  **Implement Validation:** For each built-in plugin, thoroughly implement the `validate_params` method to check for expected parameter types, ranges, and values.
+3.  **Documentation:** Clearly document the expected parameters for each plugin in the Rust code (e.g., using doc comments) and in user-facing documentation.
+4.  **Schema-based Validation (Advanced):** Consider using a schema validation library (e.g., `jsonschema` or `serde_json::Value::validate`) to define and validate plugin parameters, similar to how SVGO's configuration is often validated.

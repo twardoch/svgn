@@ -1,0 +1,12 @@
+**Issue:** DOCTYPE Stringification
+
+**Description:**
+The Rust stringifier (`svgn/src/stringifier.rs`) does not explicitly handle the DOCTYPE declaration. The JavaScript SVGO stringifier has `doctypeStart` and `doctypeEnd` options and processes `XastDoctype` nodes. The Rust `Document` struct stores `DocType` nodes in its `prologue` vector.
+
+**Impact:**
+If an input SVG contains a DOCTYPE declaration, it will be lost during stringification in the current Rust implementation. This can affect document validation and compatibility with certain SVG consumers.
+
+**Proposed Solution:**
+1.  Modify the `stringify` method in `svgn/src/stringifier.rs` to iterate through `document.prologue`.
+2.  When a `Node::DocType` is encountered, stringify it using the appropriate syntax (e.g., `<!DOCTYPE svg PUBLIC ...>`).
+3.  Consider adding options to `Js2SvgOptions` (in `svgn/src/config.rs`) to control DOCTYPE output (e.g., `removeDoctype`).

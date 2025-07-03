@@ -1,0 +1,12 @@
+**Issue:** XML Declaration Stringification
+
+**Description:**
+The Rust stringifier (`svgn/src/stringifier.rs`) does not explicitly handle the XML declaration (`<?xml ...?>`) based on the `DocumentMetadata` from the AST. The JavaScript SVGO stringifier implicitly handles it if present in the input and allows control over its output.
+
+**Impact:**
+Without explicit handling, the XML declaration might be lost or incorrectly generated in the output SVG, leading to non-conformant or less optimized files. The `DocumentMetadata` in the Rust AST already stores `version` and `encoding`, which should be utilized.
+
+**Proposed Solution:**
+1.  Modify the `stringify` method in `svgn/src/stringifier.rs` to check `document.metadata.version` and `document.metadata.encoding`.
+2.  If these fields are present, generate an XML declaration at the beginning of the output string.
+3.  Consider adding options to `Js2SvgOptions` (in `svgn/src/config.rs`) to control the output of the XML declaration (e.g., `addXmlDecl`, `xmlVersion`, `xmlEncoding`), similar to SVGO's behavior.

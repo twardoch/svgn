@@ -1,0 +1,15 @@
+**Issue:** Inconsistent Namespace Handling in AST
+
+**Description:**
+The Rust AST's `Element` struct (`svgn/src/ast.rs`) explicitly stores `namespaces` as a `HashMap<String, String>`. While the parser extracts `xmlns` attributes into this map, it also keeps them in the `attributes` `HashMap`. In contrast, the JavaScript `xast` representation typically flattens namespace prefixes into attribute names (e.g., `xmlns:xlink` is just an attribute key), and the `xmlns` attributes themselves are often removed after parsing in SVGO's pipeline.
+
+**Impact:**
+1.  **Redundancy:** Storing `xmlns` attributes in both `namespaces` and `attributes` is redundant and can lead to inconsistencies or increased memory usage.
+2.  **Processing Logic:** Plugins might expect a flattened structure or a specific handling of `xmlns` attributes that is not currently aligned between the Rust AST and SVGO's typical processing. For example, SVGO often removes `xmlns` attributes from the root `<svg>` element when inlining.
+3.  **API Compatibility:** Differences in namespace representation can complicate porting plugins that rely on SVGO's `xast` structure for namespace resolution or manipulation.
+
+**Proposed Solution:**
+Align the Rust AST and parser's namespace handling with SVGO's typical behavior:
+1.  **Parser:** After parsing `xmlns` attributes and populating the `namespaces` map, consider removing them from the `attributes` `HashMap` of the `Element`.
+2.  **AST:** Ensure that the `Element.name` and attribute keys correctly reflect namespaced elements and attributes (e.g., `xlink:href` remains `xlink:href` as an attribute key, not just `href` with a separate namespace lookup).
+3.  **Stringifier:** The stringifier should correctly re-add `xmlns` declarations based on the `namespaces` map and any namespaced elements/attributes present in the tree.

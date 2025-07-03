@@ -1,0 +1,23 @@
+**Issue:** Whitespace Preservation in Textual Tags
+
+**Description:**
+The Rust parser (`svgn/src/parser.rs`) uses `reader.trim_text(!self.preserve_whitespace)` which applies whitespace trimming globally. The JavaScript SVGO parser (`ref/svgo/lib/parser.js`) uses a `textElems` set (from `_collections.js`) to specifically prevent trimming of meaningful whitespace within certain textual SVG elements (e.g., `<text>`, `<tspan>`, `<pre>`, `<title>`).
+
+**Impact:**
+Global trimming of whitespace can lead to loss of significant whitespace in elements where it is semantically important (e.g., preserving layout in `<pre>` tags or spacing in `<text>` elements). This can alter the visual appearance or meaning of the optimized SVG.
+
+**Example (from ref/svgo/test/svgo/whitespaces.svg.txt):**
+```xml
+<svg width="480" height="360" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="20">
+    <tspan>Another tspan</tspan>
+    <tspan>Inside tspan</tspan> - outside tspan
+  </text>
+</svg>
+```
+The whitespace between `<tspan>` tags and around " - outside tspan" is important for rendering.
+
+**Proposed Solution:**
+Implement a mechanism in the Rust parser to selectively preserve whitespace based on the element's tag name. This could involve:
+1.  Creating a `HashSet` of tag names (similar to JS `textElems`) where whitespace should be preserved.
+2.  Modifying the `Event::Text` handling in the parser to check if the current element's name is in this set before applying trimming.
