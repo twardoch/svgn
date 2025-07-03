@@ -230,6 +230,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::ConvertColorsPlugin);
     registry.register(crate::plugins::AddAttributesToSVGElementPlugin);
     registry.register(crate::plugins::AddClassesToSVGElementPlugin);
+    registry.register(crate::plugins::RemoveAttributesBySelectorPlugin);
     
     registry
 }
