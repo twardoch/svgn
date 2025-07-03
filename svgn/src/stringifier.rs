@@ -154,8 +154,9 @@ impl Stringifier {
         // Handle mixed content vs element-only content
         let has_element_children = element.children.iter().any(|child| child.is_element());
         let has_text_content = element.children.iter().any(|child| child.is_text());
+        let has_only_text = has_text_content && !has_element_children;
 
-        if self.pretty && has_element_children && !has_text_content {
+        if self.pretty && (has_element_children || has_only_text) {
             writeln!(output)?;
         }
 
@@ -167,14 +168,14 @@ impl Stringifier {
                 }
                 Node::Text(text) => {
                     let escaped_text = self.escape_text(text);
-                    if self.pretty && has_element_children {
+                    if self.pretty && (has_element_children || has_only_text) {
                         let trimmed = escaped_text.trim();
                         if !trimmed.is_empty() {
                             self.write_indent(output, depth + 1);
                             write!(output, "{}", trimmed)?;
                             writeln!(output)?;
                         }
-                        // Skip whitespace-only text nodes when pretty-printing with element children
+                        // Skip whitespace-only text nodes when pretty-printing
                     } else if !self.pretty || !text.trim().is_empty() {
                         // Only write non-whitespace text or all text when not pretty-printing
                         write!(output, "{}", escaped_text)?;
@@ -256,9 +257,16 @@ impl Stringifier {
 
     /// Write element attributes
     fn write_attributes(&self, element: &Element, output: &mut String) -> StringifyResult<()> {
-        // Collect and optionally sort attributes
+        // Collect attributes and sort to match SVGO order (xmlns first, then alphabetical)
         let mut attrs: Vec<_> = element.attributes.iter().collect();
-        attrs.sort_by_key(|(name, _)| *name); // Sort for consistent output
+        attrs.sort_by(|(a_name, _), (b_name, _)| {
+            // Put xmlns first, then sort alphabetically
+            match (a_name.starts_with("xmlns"), b_name.starts_with("xmlns")) {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => a_name.cmp(b_name),
+            }
+        });
 
         for (name, value) in attrs {
             write!(output, " {}", name)?;
