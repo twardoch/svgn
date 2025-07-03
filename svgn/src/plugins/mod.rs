@@ -35,6 +35,7 @@ pub mod collapse_groups;
 pub mod convert_one_stop_gradients;
 pub mod prefix_ids;
 pub mod remove_editors_ns_data;
+pub mod remove_elements_by_attr;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -67,3 +68,4 @@ pub use collapse_groups::CollapseGroupsPlugin;
 pub use convert_one_stop_gradients::ConvertOneStopGradientsPlugin;
 pub use prefix_ids::PrefixIdsPlugin;
 pub use remove_editors_ns_data::RemoveEditorsNSDataPlugin;
+pub use remove_elements_by_attr::RemoveElementsByAttrPlugin;
