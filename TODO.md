@@ -8,6 +8,7 @@ This is a flat task list derived from PLAN.md. Tasks are organized by priority a
 - [x] `removeDeprecatedAttrs` - Removes deprecated SVG attributes with safe/unsafe modes
 - [x] `convertEllipseToCircle` - Converts non-eccentric ellipses to circles
 - [x] `removeAttributesBySelector` - Removes attributes of elements that match a CSS selector
+- [x] `collapseGroups` - Collapses useless groups by removing empty groups and moving attributes to children
 
 
 
