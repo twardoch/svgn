@@ -112,6 +112,7 @@ fn test_default_preset_pipeline() {
             PluginConfig::new("removeTitle".to_string()),
             PluginConfig::new("removeEmptyAttrs".to_string()),
             PluginConfig::new("removeDimensions".to_string()),
+            PluginConfig::new("removeUselessTransforms".to_string()),
             // Conversion plugins
             PluginConfig::new("convertColors".to_string()),
             PluginConfig::new("convertEllipseToCircle".to_string()),
@@ -131,6 +132,9 @@ fn test_default_preset_pipeline() {
     let options = OptimizeOptions::new(config);
     let result = optimize(svg, options).unwrap();
 
+    // Debug print
+    println!("Optimized SVG:\n{}", result.data);
+
     // Verify comprehensive optimizations
     assert!(!result.data.contains("<!-- SVG comment -->"));
     assert!(!result.data.contains("<metadata>"));
@@ -146,7 +150,7 @@ fn test_default_preset_pipeline() {
     let re = Regex::new(r#"transform\s*=\s*['\"]translate\(0,0\)['\"]"#).unwrap();
     assert!(!re.is_match(&result.data), "Output should not contain identity transform: {:?}", result.data);
     assert!(!result.data.contains("my-class  other-class")); // Classes should be cleaned
-    assert!(result.data.contains("fill=\"red\"")); // Valid attributes preserved
+    assert!(result.data.contains("fill=\"#f00\"")); // Color converted to hex
     assert!(result.data.contains("viewBox=\"0 0 200 100\"")); // ViewBox preserved
     assert!(result.data.contains("<circle")); // Ellipse should be converted to circle
     assert!(!result.data.contains("<ellipse")); // No ellipse should remain

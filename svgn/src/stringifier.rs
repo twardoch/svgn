@@ -257,15 +257,15 @@ impl Stringifier {
 
     /// Write element attributes
     fn write_attributes(&self, element: &Element, output: &mut String) -> StringifyResult<()> {
-        // Collect attributes and sort to match SVGO order
-        let mut attrs: Vec<_> = element.attributes.iter().collect();
-        attrs.sort_by(|(a_name, _), (b_name, _)| {
+        // Collect attributes with their original index to preserve order when priorities are equal
+        let mut attrs: Vec<_> = element.attributes.iter().enumerate().collect();
+        attrs.sort_by(|(a_idx, (a_name, _)), (b_idx, (b_name, _))| {
             let a_priority = get_attribute_priority(a_name);
             let b_priority = get_attribute_priority(b_name);
             
-            // First sort by priority, then alphabetically within the same priority
+            // First sort by priority, then by original index to preserve insertion order
             match a_priority.cmp(&b_priority) {
-                std::cmp::Ordering::Equal => a_name.cmp(b_name),
+                std::cmp::Ordering::Equal => a_idx.cmp(b_idx),
                 other => other,
             }
         });

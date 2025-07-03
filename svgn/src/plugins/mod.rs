@@ -1,9 +1,10 @@
+pub mod remove_useless_transforms;
 // this_file: svgn/src/plugins/mod.rs
 
-//! Built-in SVG optimization plugins
-//!
-//! This module contains all the built-in plugins that can be used to optimize
-//! SVG documents. Each plugin implements the `Plugin` trait.
+// Built-in SVG optimization plugins
+//
+// This module contains all the built-in plugins that can be used to optimize
+// SVG documents. Each plugin implements the `Plugin` trait.
 
 pub mod cleanup_attrs;
 pub mod cleanup_enable_background;
@@ -37,6 +38,7 @@ pub mod prefix_ids;
 pub mod remove_editors_ns_data;
 pub mod remove_elements_by_attr;
 pub mod remove_dimensions;
+pub mod convert_path_data;
 pub mod remove_scripts;
 pub mod remove_useless_defs;
 pub mod remove_unused_ns;
@@ -77,6 +79,7 @@ pub use add_attributes_to_svg_element::AddAttributesToSVGElementPlugin;
 pub use add_classes_to_svg_element::AddClassesToSVGElementPlugin;
 // pub use remove_attributes_by_selector::RemoveAttributesBySelectorPlugin; // TODO: Fix CSS selector parsing
 pub use remove_deprecated_attrs::RemoveDeprecatedAttrsPlugin;
+pub use convert_path_data::ConvertPathDataPlugin;
 pub use convert_ellipse_to_circle::ConvertEllipseToCirclePlugin;
 pub use collapse_groups::CollapseGroupsPlugin;
 pub use convert_one_stop_gradients::ConvertOneStopGradientsPlugin;
@@ -97,3 +100,4 @@ pub use remove_non_inheritable_group_attrs::RemoveNonInheritableGroupAttrsPlugin
 pub use remove_off_canvas_paths::RemoveOffCanvasPathsPlugin;
 pub use convert_shape_to_path::ConvertShapeToPathPlugin;
 pub use minify_styles::MinifyStylesPlugin;
+pub use remove_useless_transforms::RemoveUselessTransformsPlugin;

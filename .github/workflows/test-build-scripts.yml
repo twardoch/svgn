@@ -1,0 +1,63 @@
+name: Test Build Scripts
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test-build-scripts.yml'
+  workflow_dispatch:
+
+jobs:
+  test-scripts:
+    name: Test ${{ matrix.name }} Build Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            script: scripts/build_linux.sh
+          - os: macos-latest
+            name: macOS
+            script: scripts/build_macos.sh
+          - os: windows-latest
+            name: Windows
+            script: scripts/build_windows.cmd
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: |
+            ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
+      
+      - name: Make script executable
+        if: matrix.os != 'windows-latest'
+        run: chmod +x ${{ matrix.script }}
+      
+      - name: Run build script
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cmd.exe //c "${{ matrix.script }}"
+          else
+            ./${{ matrix.script }}
+          fi
+      
+      - name: Verify artifacts
+        shell: bash
+        run: |
+          echo "=== Checking build artifacts ==="
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            ls -la dist/macos/
+            # Verify universal binary
+            file dist/macos/svgn
+            lipo -info dist/macos/svgn
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            ls -la dist/linux/
+            file dist/linux/svgn
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            ls -la dist/windows/
+          fi

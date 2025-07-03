@@ -257,7 +257,6 @@ impl Config {
             "removeEmptyText",
             "removeEmptyContainers",
             "collapseGroups",
-            "removeUselessTransforms",
             "sortAttrs",
         ];
 

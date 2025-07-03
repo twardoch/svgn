@@ -1,15 +1,3 @@
-# (2025-07-03) Unblock: Stub plugin for `convertPathData` (default preset no longer errors)
-
-### Added
-- Stub `convertPathData` plugin now implemented and registered. Returns clear error if used, but pipeline and CLI no longer fail with "Unknown plugin" when configured or in default.
-- Default plugin preset re-enabled for `convertPathData` (in registry, config, and documentation).
-- Minimal test file checks the stub returns the correct not-implemented error and is properly invoked.
-
-### Fixed
-- Re-enabled default preset for `convertPathData`: CLI and core flows/tools/tests no longer error with unknown plugin.
-
-### Next
-- Actual path optimization logic (with lyon, geometry, etc.) should be incrementally implemented in this plugin skeleton going forward.
 # svgn Changelog
 
 ## Initial Testing and Setup (2025-07-03)

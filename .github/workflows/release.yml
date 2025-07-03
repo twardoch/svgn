@@ -4,84 +4,215 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
+  # Create release
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          draft: true
+          prerelease: false
+
+  # Build releases for each platform
   build:
+    name: Build ${{ matrix.name }}
+    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            script: scripts/build_linux.sh
+            artifacts_path: dist/linux
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            name: macOS
+            script: scripts/build_macos.sh
+            artifacts_path: dist/macos
+            # macOS will build universal binary
+          - os: windows-latest
+            name: Windows
+            script: scripts/build_windows.cmd
+            artifacts_path: dist/windows
+            target: x86_64-pc-windows-msvc
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set release version from tag
+      
+      - name: Setup version
+        shell: bash
         run: |
-          echo "GITHUB_REF=$GITHUB_REF"
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          echo "Using TAG_NAME=$TAG_NAME"
-          ./tools/set-cargo-version.sh "$TAG_NAME"
+          VERSION="${{ needs.create-release.outputs.version }}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          # Update Cargo.toml version if needed
+          if [[ -f "./tools/set-cargo-version.sh" ]]; then
+            chmod +x ./tools/set-cargo-version.sh
+            ./tools/set-cargo-version.sh "$VERSION"
+          else
+            echo "Warning: set-cargo-version.sh not found"
+          fi
+      
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target || '' }}
+      
+      - name: Add macOS targets
+        if: matrix.os == 'macos-latest'
+        run: |
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
+      
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      # Build for all platforms
+            svgn/target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+            ${{ runner.os }}-cargo-
+      
+      # Install platform-specific build dependencies
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev rpm
+      
+      - name: Install Windows dependencies
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          # Uncomment to install optional dependencies
+          # choco install wixtoolset -y
+          # choco install innosetup -y
+          Write-Host "Windows build environment ready"
+      
+      - name: Make build script executable
+        if: matrix.os != 'windows-latest'
+        run: chmod +x ${{ matrix.script }}
+      
+      # Run platform-specific build script
       - name: Build Release
-        run: cargo build --release --locked
-      - name: Prepare artifact
         shell: bash
         run: |
-          set -e
-          tag=${GITHUB_REF#refs/tags/}
-          version=${tag#v}
-
-          case "${{ matrix.os }}" in
-            macos-latest)
-              # Build universal binary, package as .pkg
-              RUSTFLAGS="-C target-cpu=apple-m1" cargo build --release --target aarch64-apple-darwin
-              cargo build --release --target x86_64-apple-darwin
-              mkdir -p dist/pkg-root/usr/local/bin
-              # Make universal binary
-              lipo -create \
-                target/aarch64-apple-darwin/release/svgn \
-                target/x86_64-apple-darwin/release/svgn \
-                -output dist/pkg-root/usr/local/bin/svgn
-              chmod +x dist/pkg-root/usr/local/bin/svgn
-              pkgbuild --identifier com.twardoch.svgn \
-                --version "$version" \
-                --root dist/pkg-root \
-                dist/svgn-${version}-macos.pkg
-              echo "Package built: dist/svgn-${version}-macos.pkg"
-              ;;
-            ubuntu-latest)
-              mkdir -p dist/bin dist
-              cp target/release/svgn dist/bin/svgn
-              chmod +x dist/bin/svgn
-              cp README.md LICENSE dist/bin/
-              cd dist/bin
-              zip ../svgn-${version}-linux.zip svgn README.md LICENSE
-              cd ../..
-              ;;
-            windows-latest)
-              mkdir -p dist\bin
-              cp target\release\svgn.exe dist\bin\svgn.exe
-              cp README.md LICENSE dist\bin\
-              cd dist\bin
-              powershell Compress-Archive -Path svgn.exe,README.md,LICENSE -DestinationPath ../svgn-${version}-windows.zip
-              cd ..\..
-              ;;
-          esac
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v1
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cmd.exe //c "${{ matrix.script }}"
+          else
+            ./${{ matrix.script }}
+          fi
+      
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Build artifacts in ${{ matrix.artifacts_path }} ==="
+          ls -la "${{ matrix.artifacts_path }}/" || echo "No artifacts found"
+          echo "=== Finding all distribution files ==="
+          find "${{ matrix.artifacts_path }}" -type f -name "svgn-*" | head -20
+      
+      # Upload artifacts to GitHub Actions (for debugging)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          files: |
-            dist/svgn-*-macos.pkg
-            dist/svgn-*-linux.zip
-            dist/svgn-*-windows.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: svgn-${{ matrix.name }}-${{ needs.create-release.outputs.version }}
+          path: ${{ matrix.artifacts_path }}/*
+          if-no-files-found: error
+      
+      # Upload release assets
+      - name: Upload Release Assets
+        shell: bash
+        run: |
+          # Function to upload a file
+          upload_file() {
+            local file="$1"
+            local name=$(basename "$file")
+            echo "Uploading $name..."
+            curl -sS \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$file" \
+              "${{ needs.create-release.outputs.upload_url }}?name=$name" \
+              > /dev/null
+          }
+          
+          # Find and upload all release files
+          cd "${{ matrix.artifacts_path }}"
+          for file in svgn-*; do
+            if [[ -f "$file" ]]; then
+              upload_file "$file"
+            fi
+          done
+
+  # Publish release
+  publish:
+    name: Publish Release
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = '${{ needs.create-release.outputs.version }}';
+            
+            // Find the release by tag
+            const releases = await github.rest.repos.listReleases({
+              owner,
+              repo
+            });
+            
+            const release = releases.data.find(r => r.tag_name === tag);
+            if (!release) {
+              throw new Error(`Release with tag ${tag} not found`);
+            }
+            
+            // Update release to published
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.id,
+              draft: false
+            });
+            
+            console.log(`Published release ${tag}`);

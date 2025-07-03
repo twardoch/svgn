@@ -1,0 +1,58 @@
+The failing job is caused by the test `test_default_preset_pipeline` in `svgn/tests/integration_test.rs`, specifically this assertion:
+
+```rust
+let re = Regex::new(r#"transform\s*=\s*['\"]translate\(0,0\)['\"]"#).unwrap();
+assert!(
+    !re.is_match(&result.data),
+    "Output should not contain identity transform: {:?}",
+    result.data
+);
+```
+
+**Solution:**
+Add or fix a plugin that removes identity transform attributes from SVG elements. This logic belongs in a plugin similar to SVGO's `removeUselessTransforms`.
+
+### Code Suggestion
+
+```rust
+if let Some(transform) = element.attributes.get("transform") {
+    if transform.trim() == "translate(0,0)"
+        || transform.trim() == "rotate(0)"
+        || transform.trim() == "scale(1)"
+    {
+        element.attributes.remove("transform");
+    }
+}
+```
+
+### Steps to Fix
+
+1. Ensure your default preset includes a plugin for removing no-op transforms.
+2. Implement or fix the logic in that plugin to recognize identity transforms and remove the attribute.
+3. Add a test case in your plugin’s unit tests to prevent regression.
+
+**Reference:**
+- See the failing test here: [`svgn/tests/integration_test.rs#L76-L158`](https://github.com/twardoch/svgn/blob/7b786807390e07ef4bbc237587564ad916505cbb/svgn/tests/integration_test.rs#L76-L158)
+
+---
+
+The job also failed because the command `cargo build --release --locked` cannot update the `Cargo.lock` file when it is out of date. The `--locked` flag causes cargo to fail if the lock file needs updating.
+
+**Solution:**
+1. Update the `Cargo.lock` file locally:
+   - Run `cargo generate-lockfile` or `cargo build` to regenerate `Cargo.lock`.
+   - Commit and push the updated `Cargo.lock` to your repository.
+2. Alternatively, if you allow the workflow to update `Cargo.lock` automatically (not recommended for release jobs), remove the `--locked` flag:
+   ```yaml
+   - name: Build Release
+     run: cargo build --release  # Remove --locked
+   ```
+   See: `.github/workflows/release.yml#L35`
+
+Keeping `--locked` ensures reproducible builds. After updating, push the lock file:
+```sh
+cargo generate-lockfile
+git add Cargo.lock
+git commit -m "Update Cargo.lock"
+git push
+```

@@ -95,7 +95,7 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
     -   [D] `convertColors`
     -   [D] `convertEllipseToCircle`
     -   [D] `convertOneStopGradients`
-    -   [I] `convertPathData` (Stub implemented and preset active, full logic pending)
+    -   [P] `convertPathData`
     -   [D] `convertShapeToPath`
     -   [D] `convertStyleToAttrs`
     -   [P] `convertTransform`
@@ -176,7 +176,7 @@ The final 17% of plugins represent the most advanced optimizations requiring com
 ### Remaining Complex Plugins (9 plugins)
 
 **Path and Shape Transformers** (Highest Priority):
-- `convertPathData` (stub present & active; actual lyon/geometry logic still to go)
+- `convertPathData` (most complex, uses lyon crate for path optimization)
 - `mergePaths` (combine compatible paths for reduced file size) 
 - `reusePaths` (path deduplication with content hashing)
 
