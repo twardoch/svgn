@@ -717,11 +717,14 @@ svgn/
     bin/
       svgn.rs
     plugins/
+      add_attributes_to_svg_element.rs
+      add_classes_to_svg_element.rs
       cleanup_attrs.rs
       cleanup_enable_background.rs
       cleanup_ids.rs
       cleanup_list_of_values.rs
       cleanup_numeric_values.rs
+      convert_colors.rs
       convert_style_to_attrs.rs
       merge_styles.rs
       mod.rs
@@ -767,306 +770,6 @@ TODO.md
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="issues/201.txt">
-**Issue:** XML Entity Expansion in Parser
-
-**Description:**
-The current Rust parser (`svgn/src/parser.rs`) does not handle XML entity declarations within the DOCTYPE for expansion. The JavaScript SVGO parser (`ref/svgo/lib/parser.js`) uses `sax.ENTITIES` to expand these entities during parsing.
-
-**Impact:**
-If an SVG document uses custom entities defined in its DOCTYPE, the Rust parser will not resolve them, leading to different parsed content compared to the original SVGO. This can result in incorrect optimization or rendering.
-
-**Example (from ref/svgo/test/svgo/entities.svg.txt):**
-```xml
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
-<!ENTITY Viewport "<rect x='.5' y='.5' width='49' height='29'/>">
-]>
-<svg>
-  <g>
-    &Viewport;
-  </g>
-</svg>
-```
-In this example, `&Viewport;` should be replaced by the `<rect>` element. The current Rust parser will likely treat `&Viewport;` as unparsed text or an error.
-
-**Proposed Solution:**
-Modify the Rust parser to identify and expand XML entities declared in the DOCTYPE. This might involve:
-1.  Extracting entity declarations from the `DocType` event.
-2.  Storing these entities in a map.
-3.  Replacing entity references in text or attribute values with their corresponding expanded content during parsing.
-</file>
-
-<file path="issues/202.txt">
-**Issue:** Whitespace Preservation in Textual Tags
-
-**Description:**
-The Rust parser (`svgn/src/parser.rs`) uses `reader.trim_text(!self.preserve_whitespace)` which applies whitespace trimming globally. The JavaScript SVGO parser (`ref/svgo/lib/parser.js`) uses a `textElems` set (from `_collections.js`) to specifically prevent trimming of meaningful whitespace within certain textual SVG elements (e.g., `<text>`, `<tspan>`, `<pre>`, `<title>`).
-
-**Impact:**
-Global trimming of whitespace can lead to loss of significant whitespace in elements where it is semantically important (e.g., preserving layout in `<pre>` tags or spacing in `<text>` elements). This can alter the visual appearance or meaning of the optimized SVG.
-
-**Example (from ref/svgo/test/svgo/whitespaces.svg.txt):**
-```xml
-<svg width="480" height="360" xmlns="http://www.w3.org/2000/svg">
-  <text x="20" y="20">
-    <tspan>Another tspan</tspan>
-    <tspan>Inside tspan</tspan> - outside tspan
-  </text>
-</svg>
-```
-The whitespace between `<tspan>` tags and around " - outside tspan" is important for rendering.
-
-**Proposed Solution:**
-Implement a mechanism in the Rust parser to selectively preserve whitespace based on the element's tag name. This could involve:
-1.  Creating a `HashSet` of tag names (similar to JS `textElems`) where whitespace should be preserved.
-2.  Modifying the `Event::Text` handling in the parser to check if the current element's name is in this set before applying trimming.
-</file>
-
-<file path="issues/203.txt">
-**Issue:** Detailed Error Reporting in Parser
-
-**Description:**
-The Rust parser (`svgn/src/parser.rs`) provides basic error reporting via `ParseError`. However, it lacks the detailed context and code snippet highlighting offered by `SvgoParserError` in the JavaScript version (`ref/svgo/lib/parser.js`). The JS error includes the file path, line number, column number, and a visual representation of the problematic line with a pointer.
-
-**Impact:**
-Less detailed error messages make debugging and identifying the exact location of parsing issues more challenging for users. This reduces the usability and helpfulness of the CLI tool.
-
-**Example (from ref/svgo/test/svgo.test.js):**
-```
-SvgoParserError: test.svg:2:33: Unquoted attribute value
-
-  1 | <svg viewBox="0 0 120 120">
-> 2 |   <circle fill="#ff0000" cx=60.444444" cy="60" r="50"/>
-    |                           ^
-  3 | </svg>
-  4 |
-```
-
-**Proposed Solution:**
-Enhance the `ParseError` enum and its `Display` implementation in Rust to:
-1.  Store additional context: file path (if available), line number, column number, and the relevant source code snippet.
-2.  Format the error message to include this information, potentially with a visual indicator (like `^`) pointing to the exact error location.
-3.  This might require passing the original input string and file path (if available) down to the parser's error handling logic.
-</file>
-
-<file path="issues/204.txt">
-**Issue:** Inconsistent Namespace Handling in AST
-
-**Description:**
-The Rust AST's `Element` struct (`svgn/src/ast.rs`) explicitly stores `namespaces` as a `HashMap<String, String>`. While the parser extracts `xmlns` attributes into this map, it also keeps them in the `attributes` `HashMap`. In contrast, the JavaScript `xast` representation typically flattens namespace prefixes into attribute names (e.g., `xmlns:xlink` is just an attribute key), and the `xmlns` attributes themselves are often removed after parsing in SVGO's pipeline.
-
-**Impact:**
-1.  **Redundancy:** Storing `xmlns` attributes in both `namespaces` and `attributes` is redundant and can lead to inconsistencies or increased memory usage.
-2.  **Processing Logic:** Plugins might expect a flattened structure or a specific handling of `xmlns` attributes that is not currently aligned between the Rust AST and SVGO's typical processing. For example, SVGO often removes `xmlns` attributes from the root `<svg>` element when inlining.
-3.  **API Compatibility:** Differences in namespace representation can complicate porting plugins that rely on SVGO's `xast` structure for namespace resolution or manipulation.
-
-**Proposed Solution:**
-Align the Rust AST and parser's namespace handling with SVGO's typical behavior:
-1.  **Parser:** After parsing `xmlns` attributes and populating the `namespaces` map, consider removing them from the `attributes` `HashMap` of the `Element`.
-2.  **AST:** Ensure that the `Element.name` and attribute keys correctly reflect namespaced elements and attributes (e.g., `xlink:href` remains `xlink:href` as an attribute key, not just `href` with a separate namespace lookup).
-3.  **Stringifier:** The stringifier should correctly re-add `xmlns` declarations based on the `namespaces` map and any namespaced elements/attributes present in the tree.
-</file>
-
-<file path="issues/205.txt">
-**Issue:** Document Metadata Handling and Usage
-
-**Description:**
-The Rust `Document` struct (`svgn/src/ast.rs`) includes `metadata` fields for `path`, `encoding`, and `version`. The Rust parser populates `encoding` and `version` from the XML declaration. The JavaScript `optimize` function passes `path` in its `info` object, and the XML declaration details are handled during stringification.
-
-**Impact:**
-While having `metadata` in the Rust AST is a good structural addition, its consistent population and utilization throughout the optimization pipeline needs verification.
-1.  **`path` field:** The `path` field in `DocumentMetadata` is currently populated by the CLI, but its usage by plugins (e.g., `prefixIds` in JS uses `info.path`) needs to be ensured.
-2.  **`encoding` and `version` fields:** These are parsed but their impact on optimization or stringification (e.g., preserving the original XML declaration or modifying it) needs to be defined and implemented. The JS stringifier has options for XML declaration.
-
-**Proposed Solution:**
-1.  **`path` field:** Ensure that the `path` from `DocumentMetadata` is accessible to and used by plugins that require file path context (e.g., for generating unique IDs). This might involve passing `&document.metadata` to plugin `apply` methods.
-2.  **`encoding` and `version` fields:**
-    *   Define how these fields should influence the stringification process. For example, should the original XML declaration be preserved, or should it be regenerated based on the `metadata`?
-    *   Implement logic in the Rust stringifier (`svgn/src/stringifier.rs`) to correctly output the XML declaration based on these `metadata` fields and `js2svg` options.
-</file>
-
-<file path="issues/206.txt">
-**Issue:** XML Declaration Stringification
-
-**Description:**
-The Rust stringifier (`svgn/src/stringifier.rs`) does not explicitly handle the XML declaration (`<?xml ...?>`) based on the `DocumentMetadata` from the AST. The JavaScript SVGO stringifier implicitly handles it if present in the input and allows control over its output.
-
-**Impact:**
-Without explicit handling, the XML declaration might be lost or incorrectly generated in the output SVG, leading to non-conformant or less optimized files. The `DocumentMetadata` in the Rust AST already stores `version` and `encoding`, which should be utilized.
-
-**Proposed Solution:**
-1.  Modify the `stringify` method in `svgn/src/stringifier.rs` to check `document.metadata.version` and `document.metadata.encoding`.
-2.  If these fields are present, generate an XML declaration at the beginning of the output string.
-3.  Consider adding options to `Js2SvgOptions` (in `svgn/src/config.rs`) to control the output of the XML declaration (e.g., `addXmlDecl`, `xmlVersion`, `xmlEncoding`), similar to SVGO's behavior.
-</file>
-
-<file path="issues/207.txt">
-**Issue:** DOCTYPE Stringification
-
-**Description:**
-The Rust stringifier (`svgn/src/stringifier.rs`) does not explicitly handle the DOCTYPE declaration. The JavaScript SVGO stringifier has `doctypeStart` and `doctypeEnd` options and processes `XastDoctype` nodes. The Rust `Document` struct stores `DocType` nodes in its `prologue` vector.
-
-**Impact:**
-If an input SVG contains a DOCTYPE declaration, it will be lost during stringification in the current Rust implementation. This can affect document validation and compatibility with certain SVG consumers.
-
-**Proposed Solution:**
-1.  Modify the `stringify` method in `svgn/src/stringifier.rs` to iterate through `document.prologue`.
-2.  When a `Node::DocType` is encountered, stringify it using the appropriate syntax (e.g., `<!DOCTYPE svg PUBLIC ...>`).
-3.  Consider adding options to `Js2SvgOptions` (in `svgn/src/config.rs`) to control DOCTYPE output (e.g., `removeDoctype`).
-</file>
-
-<file path="issues/213.txt">
-**Issue:** Visitor Pattern Implementation
-
-**Description:**
-The Rust plugin system (`svgn/src/plugin.rs`) currently uses a single `apply` method per plugin, which takes the entire `Document` and applies transformations. In contrast, the JavaScript SVGO uses a more granular "visitor pattern". This pattern involves `enter` and `exit` methods for different node types (e.g., `element`, `text`, `comment`, `doctype`, `instruction`, `cdata`, `root`).
-
-**Impact:**
-1.  **Efficiency:** Processing the entire document in a single `apply` method can be less efficient for plugins that only need to operate on specific node types or at specific points in the traversal.
-2.  **Modularity:** The current approach makes it harder to write modular plugins that focus on specific AST nodes without needing to traverse the entire tree themselves.
-3.  **Compatibility:** Porting complex SVGO plugins that heavily rely on the visitor pattern (e.g., `convertPathData`, `inlineStyles`) becomes more challenging and less idiomatic in the current Rust structure.
-
-**Proposed Solution:**
-Refactor the Rust plugin system to implement a visitor pattern:
-1.  Define a `Visitor` trait with methods like `visit_element_enter`, `visit_element_exit`, `visit_text`, `visit_comment`, etc.
-2.  Modify the `Plugin` trait's `apply` method to return an implementation of this `Visitor` trait.
-3.  Implement a generic AST traversal function that walks the `Document` and calls the appropriate `Visitor` methods for each node.
-4.  Update existing plugins to utilize this new visitor pattern.
-</file>
-
-<file path="issues/214.txt">
-**Issue:** Missing PluginInfo Object
-
-**Description:**
-The Rust plugin system (`svgn/src/plugin.rs`) currently passes only the `Document` and optional `params` to the `apply` method of plugins. The JavaScript SVGO passes an additional `PluginInfo` object (containing `path`, `multipassCount`, etc.) to its plugin functions.
-
-**Impact:**
-Many SVGO plugins rely on the `PluginInfo` object for their functionality:
-1.  **`path`:** Used by `prefixIds` to generate unique IDs based on the input file name.
-2.  **`multipassCount`:** Used by plugins like `cleanupIds` to track optimization passes and ensure deterministic behavior across multiple passes.
-3.  **General Context:** Provides valuable context about the current optimization run that plugins might need.
-
-Without this information, porting these plugins to Rust will either require reimplementing the logic to obtain this context (if possible) or result in functional differences.
-
-**Proposed Solution:**
-1.  Define a `PluginInfo` struct in Rust (e.g., in `svgn/src/plugin.rs` or `svgn/src/optimizer.rs`) with fields like `path: Option<String>`, `multipass_count: usize`.
-2.  Modify the `Plugin` trait's `apply` method signature to include a `&PluginInfo` parameter.
-3.  Ensure that the `PluginInfo` object is correctly populated and passed down through the optimization pipeline (from `optimizer.rs` to `plugin.rs`).
-4.  Update existing plugins that might benefit from this information.
-</file>
-
-<file path="issues/215.txt">
-**Issue:** Missing Preset Implementation
-
-**Description:**
-The Rust plugin system (`svgn/src/plugin.rs`) does not yet have a concept of "presets" similar to SVGO's `preset-default`. In SVGO, a preset is a special plugin that groups multiple other plugins and allows for easy configuration and overriding of their parameters.
-
-**Impact:**
-1.  **Configuration Complexity:** Without presets, users have to manually list and configure every single plugin, even for common optimization scenarios, leading to verbose and complex configurations.
-2.  **Maintainability:** It's harder to manage and update default sets of optimizations.
-3.  **Compatibility:** `preset-default` is a core part of SVGO's API and behavior. Its absence makes the Rust port less compatible and user-friendly.
-
-**Proposed Solution:**
-1.  Define a `Preset` struct or enum that can encapsulate a list of `PluginConfig`s.
-2.  Modify the `Config` struct (`svgn/src/config.rs`) to allow `plugins` to include presets.
-3.  Implement logic in the `PluginRegistry` or `optimizer` to expand presets into their individual plugins and apply any overrides specified in the preset's configuration.
-4.  Create a `preset-default` implementation in Rust that mirrors the behavior and included plugins of SVGO's `preset-default`.
-</file>
-
-<file path="issues/216.txt">
-**Issue:** Limited Dynamic Plugin Loading
-
-**Description:**
-The JavaScript SVGO allows for dynamic loading of custom plugins by providing a `fn` property in the plugin configuration. The Rust version currently requires plugins to be statically registered in the `PluginRegistry` (`svgn/src/plugin.rs`) at compile time.
-
-**Impact:**
-This limitation restricts the extensibility of the Rust port. Users cannot define and load their own custom optimization logic at runtime without modifying and recompiling the `svgn` library itself. This is a significant departure from SVGO's flexible plugin architecture.
-
-**Proposed Solution:**
-Explore and implement mechanisms for dynamic plugin loading in Rust. This is a complex task in Rust due to its compiled nature and strong type system, but potential approaches could include:
-1.  **FFI (Foreign Function Interface):** Allow plugins to be compiled as shared libraries (DLLs/SOs) and loaded at runtime. This would require defining a stable C-compatible API for plugins.
-2.  **WASM (WebAssembly):** If `svgn` is intended to be used in environments that support WASM, plugins could potentially be compiled to WASM and loaded dynamically.
-3.  **Plugin DSL (Domain Specific Language):** Develop a simple DSL for defining plugins that can be interpreted or compiled at runtime.
-
-This issue might be considered a long-term goal due to its complexity.
-</file>
-
-<file path="issues/217.txt">
-**Issue:** Inconsistent Plugin Parameter Validation
-
-**Description:**
-The Rust `Plugin` trait includes a `validate_params` method, but its implementation and enforcement are inconsistent across plugins. The JavaScript SVGO often uses JSDoc types for plugin parameters, which provides a form of documentation and implicit validation.
-
-**Impact:**
-1.  **Runtime Errors:** Plugins might receive invalid or unexpected parameters, leading to runtime panics or incorrect behavior.
-2.  **Poor User Experience:** Users might struggle to understand the expected parameters for each plugin without clear validation or documentation.
-3.  **Maintainability:** Lack of consistent validation makes it harder to ensure the correctness and robustness of plugins.
-
-**Proposed Solution:**
-1.  **Enforce Validation:** Ensure that `validate_params` is called for every plugin before its `apply` method is invoked in the `PluginRegistry::apply_plugins` method.
-2.  **Implement Validation:** For each built-in plugin, thoroughly implement the `validate_params` method to check for expected parameter types, ranges, and values.
-3.  **Documentation:** Clearly document the expected parameters for each plugin in the Rust code (e.g., using doc comments) and in user-facing documentation.
-4.  **Schema-based Validation (Advanced):** Consider using a schema validation library (e.g., `jsonschema` or `serde_json::Value::validate`) to define and validate plugin parameters, similar to how SVGO's configuration is often validated.
-</file>
-
-<file path="issues/225.txt">
-**Issue:** `cleanupEnableBackground` Plugin: Handling `enable-background` in `style` Attributes
-
-**Description:**
-The JavaScript `cleanupEnableBackground` plugin (`ref/svgo/plugins/cleanupEnableBackground.js`) is capable of processing and cleaning up `enable-background` declarations that appear within an element's `style` attribute. It uses the `csstree` library to parse and manipulate the CSS within these attributes.
-
-In contrast, the Rust `CleanupEnableBackgroundPlugin` (`svgn/src/plugins/cleanup_enable_background.rs`) explicitly has a `TODO` comment indicating that this functionality is not yet implemented. It only processes `enable-background` when it's a direct attribute.
-
-**Impact:**
-SVGs that use inline styles for `enable-background` will not be optimized by the Rust plugin, leading to larger file sizes and incomplete optimization compared to the JS version. This reduces the functional compatibility of the Rust port.
-
-**Proposed Solution:**
-1.  Integrate a CSS parsing and manipulation library into the Rust project (e.g., `cssparser` and potentially `lightningcss` or a custom solution).
-2.  Modify the `CleanupEnableBackgroundPlugin` to:
-    *   Check for the `style` attribute on elements.
-    *   Parse the CSS content of the `style` attribute.
-    *   Identify and apply the `enable-background` cleanup logic to declarations within the parsed CSS.
-    *   Re-serialize the modified CSS back into the `style` attribute.
-</file>
-
-<file path="issues/227.txt">
-**Issue:** `cleanupIds` Plugin: URL Encoding/Decoding for ID References
-
-**Description:**
-The JavaScript `cleanupIds` plugin (`ref/svgo/plugins/cleanupIds.js`) uses `encodeURI` and `decodeURI` for handling IDs within `url()` references (e.g., `url(#myId)`). The Rust implementation (`svgn/src/plugins/cleanup_ids.rs`) uses the `urlencoding` crate for encoding/decoding these references.
-
-**Impact:**
-While the `urlencoding` crate is generally suitable for URL components, `encodeURI` in JavaScript has specific behaviors regarding which characters it encodes (e.g., it does not encode `;`, `/`, `?`, `:`, `@`, `&`, `=`, `+`, `$`, `,`, `#` if they are part of the URI component). A generic URL encoder might encode these characters, leading to different output or broken references in the SVG.
-
-This discrepancy can result in:
-1.  **Non-byte-for-byte compatibility:** The output SVG might differ from SVGO's, even if functionally equivalent.
-2.  **Broken References:** If the encoding/decoding is not perfectly aligned, references to IDs within `url()` attributes might break, causing rendering issues.
-
-**Proposed Solution:**
-1.  **Detailed Comparison:** Perform a detailed comparison of `encodeURI`/`decodeURI` behavior with `urlencoding` crate functions for all characters that can appear in SVG IDs.
-2.  **Adjust Encoding:** If discrepancies are found, adjust the Rust implementation to precisely match the JS behavior. This might involve:
-    *   Using a different encoding function from `urlencoding` or another crate.
-    *   Implementing a custom encoding/decoding function that replicates `encodeURI`/`decodeURI`'s specific logic for SVG ID characters.
-3.  **Test Cases:** Ensure comprehensive test cases (like `cleanupIds.25.svg.txt` and `cleanupIds.26.svg.txt` from SVGO's test suite) are used to validate the encoding/decoding behavior.
-</file>
-
-<file path="issues/228.txt">
-**Issue:** `cleanupIds` Plugin: Optimization Skip for `svg` with only `defs`
-
-**Description:**
-The JavaScript `cleanupIds` plugin (`ref/svgo/plugins/cleanupIds.js`) includes a specific optimization: if the root `<svg>` element contains only `<defs>` children (i.e., no visible content outside of definitions), the plugin skips further processing by returning `visitSkip`. This is a performance optimization to avoid unnecessary work when there's nothing to minify or remove in the main document body.
-
-In contrast, the Rust `CleanupIdsPlugin` (`svgn/src/plugins/cleanup_ids.rs`) does not currently implement this specific check.
-
-**Impact:**
-While not a functional correctness issue that breaks the SVG, the absence of this optimization means the Rust plugin might perform unnecessary work (collecting IDs, processing references, attempting minification) on certain SVG structures that offer no visible content. This can lead to minor performance inefficiencies for such specific input files.
-
-**Proposed Solution:**
-1.  **Implement Check:** Add a check at the beginning of the `CleanupIdsPlugin::apply` method (or within the `element: { enter: ... }` visitor for the root `<svg>` element if the visitor pattern is adopted).
-2.  **Detect `defs`-only SVG:** Determine if the `<svg>` element's children consist solely of `<defs>` elements.
-3.  **Skip Processing:** If this condition is met, the plugin should return early, indicating that no further ID cleanup is necessary for this SVG.
-</file>
 
 <file path="ref/svgo/.git/hooks/applypatch-msg.sample">
 #!/bin/sh
@@ -32296,6 +31999,1495 @@ export default [
 }
 </file>
 
+<file path="svgn/src/plugins/add_attributes_to_svg_element.rs">
+// this_file: svgn/src/plugins/add_attributes_to_svg_element.rs
+
+//! Add attributes to SVG element plugin
+//!
+//! This plugin adds attributes to the outer <svg> element.
+
+use crate::ast::{Document, Element};
+use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
+use serde_json::Value;
+
+/// Plugin that adds attributes to the outer <svg> element
+pub struct AddAttributesToSVGElementPlugin;
+
+impl Plugin for AddAttributesToSVGElementPlugin {
+    fn name(&self) -> &'static str {
+        "addAttributesToSVGElement"
+    }
+    
+    fn description(&self) -> &'static str {
+        "adds attributes to an outer <svg> element"
+    }
+    
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let params = params.ok_or_else(|| {
+            PluginError::InvalidConfig(
+                "addAttributesToSVGElement plugin requires parameters".to_string()
+            )
+        })?;
+        
+        let config = AddAttributesConfig::from_params(params)?;
+        
+        // Only modify if the root element is an SVG
+        if document.root.name == "svg" {
+            add_attributes_to_element(&mut document.root, &config);
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_params(&self, params: Option<&Value>) -> PluginResult<()> {
+        if let Some(params) = params {
+            AddAttributesConfig::from_params(params)?;
+        } else {
+            return Err(PluginError::InvalidConfig(
+                "addAttributesToSVGElement plugin requires parameters".to_string()
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct AddAttributesConfig {
+    attributes: Vec<AttributeSpec>,
+}
+
+#[derive(Debug)]
+enum AttributeSpec {
+    /// Simple attribute name (value will be empty string)
+    Name(String),
+    /// Attribute with name and value
+    NameValue(String, String),
+}
+
+impl AddAttributesConfig {
+    fn from_params(params: &Value) -> PluginResult<Self> {
+        let mut attributes = Vec::new();
+        
+        // Handle single attribute
+        if let Some(attribute) = params.get("attribute") {
+            attributes.push(Self::parse_attribute_spec(attribute)?);
+        }
+        
+        // Handle multiple attributes
+        if let Some(attrs) = params.get("attributes") {
+            if let Some(array) = attrs.as_array() {
+                for attr in array {
+                    attributes.push(Self::parse_attribute_spec(attr)?);
+                }
+            } else {
+                return Err(PluginError::InvalidConfig(
+                    "attributes parameter must be an array".to_string()
+                ));
+            }
+        }
+        
+        if attributes.is_empty() {
+            return Err(PluginError::InvalidConfig(
+                "addAttributesToSVGElement plugin requires either 'attribute' or 'attributes' parameter".to_string()
+            ));
+        }
+        
+        Ok(Self { attributes })
+    }
+    
+    fn parse_attribute_spec(spec: &Value) -> PluginResult<AttributeSpec> {
+        match spec {
+            Value::String(name) => Ok(AttributeSpec::Name(name.clone())),
+            Value::Object(obj) => {
+                if obj.len() != 1 {
+                    return Err(PluginError::InvalidConfig(
+                        "Attribute object must have exactly one key-value pair".to_string()
+                    ));
+                }
+                
+                let (key, value) = obj.iter().next().unwrap();
+                let value_str = match value {
+                    Value::String(s) => s.clone(),
+                    Value::Bool(b) => b.to_string(),
+                    Value::Number(n) => n.to_string(),
+                    Value::Null => "".to_string(),
+                    _ => return Err(PluginError::InvalidConfig(
+                        "Attribute value must be string, number, boolean, or null".to_string()
+                    )),
+                };
+                
+                Ok(AttributeSpec::NameValue(key.clone(), value_str))
+            }
+            _ => Err(PluginError::InvalidConfig(
+                "Attribute specification must be string or object".to_string()
+            ))
+        }
+    }
+}
+
+fn add_attributes_to_element(element: &mut Element, config: &AddAttributesConfig) {
+    for attr_spec in &config.attributes {
+        match attr_spec {
+            AttributeSpec::Name(name) => {
+                // Only add if it doesn't already exist
+                if !element.attributes.contains_key(name) {
+                    element.attributes.insert(name.clone(), "".to_string());
+                }
+            }
+            AttributeSpec::NameValue(name, value) => {
+                // Only add if it doesn't already exist
+                if !element.attributes.contains_key(name) {
+                    element.attributes.insert(name.clone(), value.clone());
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element};
+    use serde_json::json;
+    use indexmap::IndexMap;
+
+    fn create_test_svg_document() -> Document {
+        let mut doc = Document::new();
+        let mut element = Element::new("svg");
+        
+        let mut attrs = IndexMap::new();
+        attrs.insert("width".to_string(), "100".to_string());
+        attrs.insert("height".to_string(), "100".to_string());
+        element.attributes = attrs;
+        
+        doc.root = element;
+        doc
+    }
+
+    #[test]
+    fn test_add_single_attribute() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "attribute": "focusable"
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        assert_eq!(document.root.attributes.get("focusable"), Some(&"".to_string()));
+        // Existing attributes should remain
+        assert_eq!(document.root.attributes.get("width"), Some(&"100".to_string()));
+    }
+
+    #[test]
+    fn test_add_multiple_attributes() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "attributes": ["focusable", "role"]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        assert_eq!(document.root.attributes.get("focusable"), Some(&"".to_string()));
+        assert_eq!(document.root.attributes.get("role"), Some(&"".to_string()));
+    }
+
+    #[test]
+    fn test_add_attributes_with_values() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "attributes": [
+                {"focusable": false},
+                {"data-image": "icon"},
+                {"role": "img"}
+            ]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        assert_eq!(document.root.attributes.get("focusable"), Some(&"false".to_string()));
+        assert_eq!(document.root.attributes.get("data-image"), Some(&"icon".to_string()));
+        assert_eq!(document.root.attributes.get("role"), Some(&"img".to_string()));
+    }
+
+    #[test]
+    fn test_dont_overwrite_existing_attributes() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        // Add an attribute that already exists
+        document.root.attributes.insert("width".to_string(), "200".to_string());
+        
+        let params = json!({
+            "attributes": [{"width": "300"}]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        // Should not overwrite existing attribute
+        assert_eq!(document.root.attributes.get("width"), Some(&"200".to_string()));
+    }
+
+    #[test]
+    fn test_non_svg_element() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = Document::new();
+        document.root = Element::new("rect"); // Not an SVG element
+        
+        let params = json!({
+            "attribute": "focusable"
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        // Should not add attributes to non-svg elements
+        assert_eq!(document.root.attributes.get("focusable"), None);
+    }
+
+    #[test]
+    fn test_missing_params() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let result = plugin.apply(&mut document, &plugin_info, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_invalid_params() {
+        let mut plugin = AddAttributesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "invalid": "param"
+        });
+        
+        let result = plugin.apply(&mut document, &plugin_info, Some(&params));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_params() {
+        let plugin = AddAttributesToSVGElementPlugin;
+        
+        // Valid params
+        let valid_params = json!({
+            "attribute": "focusable"
+        });
+        assert!(plugin.validate_params(Some(&valid_params)).is_ok());
+        
+        // Invalid params - missing required fields
+        let invalid_params = json!({
+            "invalid": "param"
+        });
+        assert!(plugin.validate_params(Some(&invalid_params)).is_err());
+        
+        // No params
+        assert!(plugin.validate_params(None).is_err());
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/add_classes_to_svg_element.rs">
+// this_file: svgn/src/plugins/add_classes_to_svg_element.rs
+
+//! Add class names to SVG element plugin
+//!
+//! This plugin adds class names to the outer <svg> element.
+
+use crate::ast::{Document, Element};
+use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
+use serde_json::Value;
+use std::collections::HashSet;
+
+/// Plugin that adds class names to the outer <svg> element
+pub struct AddClassesToSVGElementPlugin;
+
+impl Plugin for AddClassesToSVGElementPlugin {
+    fn name(&self) -> &'static str {
+        "addClassesToSVGElement"
+    }
+    
+    fn description(&self) -> &'static str {
+        "adds classnames to an outer <svg> element"
+    }
+    
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let params = params.ok_or_else(|| {
+            PluginError::InvalidConfig(
+                "addClassesToSVGElement plugin requires parameters".to_string()
+            )
+        })?;
+        
+        let config = AddClassesConfig::from_params(params)?;
+        
+        // Only modify if the root element is an SVG
+        if document.root.name == "svg" {
+            add_classes_to_element(&mut document.root, &config);
+        }
+        
+        Ok(())
+    }
+    
+    fn validate_params(&self, params: Option<&Value>) -> PluginResult<()> {
+        if let Some(params) = params {
+            AddClassesConfig::from_params(params)?;
+        } else {
+            return Err(PluginError::InvalidConfig(
+                "addClassesToSVGElement plugin requires parameters".to_string()
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct AddClassesConfig {
+    class_names: Vec<String>,
+}
+
+impl AddClassesConfig {
+    fn from_params(params: &Value) -> PluginResult<Self> {
+        let mut class_names = Vec::new();
+        
+        // Handle single className
+        if let Some(class_name) = params.get("className") {
+            if let Some(name) = class_name.as_str() {
+                class_names.push(name.to_string());
+            } else {
+                return Err(PluginError::InvalidConfig(
+                    "className parameter must be a string".to_string()
+                ));
+            }
+        }
+        
+        // Handle multiple classNames
+        if let Some(classes) = params.get("classNames") {
+            if let Some(array) = classes.as_array() {
+                for class in array {
+                    if let Some(name) = class.as_str() {
+                        class_names.push(name.to_string());
+                    } else {
+                        return Err(PluginError::InvalidConfig(
+                            "All classNames must be strings".to_string()
+                        ));
+                    }
+                }
+            } else {
+                return Err(PluginError::InvalidConfig(
+                    "classNames parameter must be an array".to_string()
+                ));
+            }
+        }
+        
+        if class_names.is_empty() {
+            return Err(PluginError::InvalidConfig(
+                "addClassesToSVGElement plugin requires either 'className' or 'classNames' parameter".to_string()
+            ));
+        }
+        
+        Ok(Self { class_names })
+    }
+}
+
+fn add_classes_to_element(element: &mut Element, config: &AddClassesConfig) {
+    // Get existing classes or create new set
+    let mut class_set = HashSet::new();
+    
+    // Parse existing class attribute if it exists
+    if let Some(existing_class) = element.attributes.get("class") {
+        for class in existing_class.split_whitespace() {
+            if !class.is_empty() {
+                class_set.insert(class.to_string());
+            }
+        }
+    }
+    
+    // Add new classes
+    for class_name in &config.class_names {
+        if !class_name.is_empty() {
+            class_set.insert(class_name.clone());
+        }
+    }
+    
+    // Convert back to space-separated string
+    let mut classes: Vec<_> = class_set.into_iter().collect();
+    classes.sort(); // Sort for consistent output
+    let class_string = classes.join(" ");
+    
+    // Update the class attribute
+    element.attributes.insert("class".to_string(), class_string);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element};
+    use serde_json::json;
+    use indexmap::IndexMap;
+
+    fn create_test_svg_document() -> Document {
+        let mut doc = Document::new();
+        let mut element = Element::new("svg");
+        
+        let mut attrs = IndexMap::new();
+        attrs.insert("width".to_string(), "100".to_string());
+        attrs.insert("height".to_string(), "100".to_string());
+        element.attributes = attrs;
+        
+        doc.root = element;
+        doc
+    }
+
+    fn create_test_svg_document_with_classes() -> Document {
+        let mut doc = Document::new();
+        let mut element = Element::new("svg");
+        
+        let mut attrs = IndexMap::new();
+        attrs.insert("width".to_string(), "100".to_string());
+        attrs.insert("class".to_string(), "existing-class".to_string());
+        element.attributes = attrs;
+        
+        doc.root = element;
+        doc
+    }
+
+    #[test]
+    fn test_add_single_class() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "className": "my-svg"
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        assert_eq!(document.root.attributes.get("class"), Some(&"my-svg".to_string()));
+        // Existing attributes should remain
+        assert_eq!(document.root.attributes.get("width"), Some(&"100".to_string()));
+    }
+
+    #[test]
+    fn test_add_multiple_classes() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "classNames": ["my-svg", "size-large", "theme-dark"]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        let class_attr = document.root.attributes.get("class").unwrap();
+        let classes: HashSet<&str> = class_attr.split_whitespace().collect();
+        
+        assert!(classes.contains("my-svg"));
+        assert!(classes.contains("size-large"));
+        assert!(classes.contains("theme-dark"));
+        assert_eq!(classes.len(), 3);
+    }
+
+    #[test]
+    fn test_add_classes_to_existing() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document_with_classes();
+        
+        let params = json!({
+            "classNames": ["new-class", "another-class"]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        let class_attr = document.root.attributes.get("class").unwrap();
+        let classes: HashSet<&str> = class_attr.split_whitespace().collect();
+        
+        assert!(classes.contains("existing-class"));
+        assert!(classes.contains("new-class"));
+        assert!(classes.contains("another-class"));
+        assert_eq!(classes.len(), 3);
+    }
+
+    #[test]
+    fn test_duplicate_classes() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document_with_classes();
+        
+        let params = json!({
+            "classNames": ["existing-class", "new-class"]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        let class_attr = document.root.attributes.get("class").unwrap();
+        let classes: HashSet<&str> = class_attr.split_whitespace().collect();
+        
+        // Should not duplicate existing class
+        assert!(classes.contains("existing-class"));
+        assert!(classes.contains("new-class"));
+        assert_eq!(classes.len(), 2);
+    }
+
+    #[test]
+    fn test_empty_class_names() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "classNames": ["valid-class", "", "  ", "another-valid"]
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        let class_attr = document.root.attributes.get("class").unwrap();
+        let classes: HashSet<&str> = class_attr.split_whitespace().collect();
+        
+        assert!(classes.contains("valid-class"));
+        assert!(classes.contains("another-valid"));
+        assert_eq!(classes.len(), 2); // Empty strings should be filtered out
+    }
+
+    #[test]
+    fn test_non_svg_element() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = Document::new();
+        document.root = Element::new("rect"); // Not an SVG element
+        
+        let params = json!({
+            "className": "my-class"
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        // Should not add classes to non-svg elements
+        assert_eq!(document.root.attributes.get("class"), None);
+    }
+
+    #[test]
+    fn test_missing_params() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let result = plugin.apply(&mut document, &plugin_info, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_invalid_params() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "invalid": "param"
+        });
+        
+        let result = plugin.apply(&mut document, &plugin_info, Some(&params));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_invalid_class_name_type() {
+        let mut plugin = AddClassesToSVGElementPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_svg_document();
+        
+        let params = json!({
+            "className": 123
+        });
+        
+        let result = plugin.apply(&mut document, &plugin_info, Some(&params));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_params() {
+        let plugin = AddClassesToSVGElementPlugin;
+        
+        // Valid params
+        let valid_params = json!({
+            "className": "my-class"
+        });
+        assert!(plugin.validate_params(Some(&valid_params)).is_ok());
+        
+        let valid_params2 = json!({
+            "classNames": ["class1", "class2"]
+        });
+        assert!(plugin.validate_params(Some(&valid_params2)).is_ok());
+        
+        // Invalid params - missing required fields
+        let invalid_params = json!({
+            "invalid": "param"
+        });
+        assert!(plugin.validate_params(Some(&invalid_params)).is_err());
+        
+        // No params
+        assert!(plugin.validate_params(None).is_err());
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/convert_colors.rs">
+// this_file: svgn/src/plugins/convert_colors.rs
+
+//! Convert colors plugin
+//!
+//! This plugin converts colors between different formats:
+//! - Color names to hex (fuchsia → #ff00ff)
+//! - RGB to hex (rgb(255, 0, 255) → #ff00ff)
+//! - Long hex to short hex (#aabbcc → #abc)
+//! - Hex to short names (#000080 → navy)
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use regex::Regex;
+use serde_json::Value;
+use std::collections::{HashMap, HashSet};
+
+/// Plugin that converts colors between different formats
+pub struct ConvertColorsPlugin;
+
+impl Plugin for ConvertColorsPlugin {
+    fn name(&self) -> &'static str {
+        "convertColors"
+    }
+    
+    fn description(&self) -> &'static str {
+        "converts colors: rgb() to #rrggbb and #rrggbb to #rgb"
+    }
+    
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        let config = ConvertColorsConfig::from_params(params);
+        let mut mask_counter = 0;
+        
+        convert_colors_in_element(&mut document.root, &config, &mut mask_counter);
+        
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct ConvertColorsConfig {
+    current_color: Option<String>, // false, string, or regex - simplified to string for now
+    names2hex: bool,
+    rgb2hex: bool,
+    convert_case: Option<String>, // "lower", "upper", or None
+    shorthex: bool,
+    shortname: bool,
+}
+
+impl ConvertColorsConfig {
+    fn from_params(params: Option<&Value>) -> Self {
+        let params = params.unwrap_or(&Value::Null);
+        
+        Self {
+            current_color: params.get("currentColor")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            names2hex: params.get("names2hex")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true),
+            rgb2hex: params.get("rgb2hex")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true),
+            convert_case: params.get("convertCase")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            shorthex: params.get("shorthex")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true),
+            shortname: params.get("shortname")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true),
+        }
+    }
+}
+
+fn convert_colors_in_element(element: &mut Element, config: &ConvertColorsConfig, mask_counter: &mut usize) {
+    // Track mask elements
+    if element.name == "mask" {
+        *mask_counter += 1;
+    }
+    
+    convert_colors_in_element_attrs(element, config, *mask_counter);
+    
+    // Process children
+    for child in &mut element.children {
+        if let Node::Element(child_element) = child {
+            convert_colors_in_element(child_element, config, mask_counter);
+        }
+    }
+    
+    // Untrack mask elements
+    if element.name == "mask" {
+        *mask_counter -= 1;
+    }
+}
+
+fn convert_colors_in_element_attrs(element: &mut Element, config: &ConvertColorsConfig, mask_counter: usize) {
+    let color_props = get_color_properties();
+    
+    for (name, value) in element.attributes.iter_mut() {
+        if color_props.contains(name.as_str()) {
+            let mut val = value.clone();
+            
+            // Convert colors to currentColor
+            if let Some(ref current_color_pattern) = config.current_color {
+                if mask_counter == 0 {
+                    if val == *current_color_pattern || val != "none" {
+                        val = "currentColor".to_string();
+                    }
+                }
+            }
+            
+            // Convert color names to hex
+            if config.names2hex {
+                let color_name = val.to_lowercase();
+                if let Some(hex_value) = get_color_names().get(&color_name) {
+                    val = hex_value.clone();
+                }
+            }
+            
+            // Convert rgb() to hex
+            if config.rgb2hex {
+                if let Some(hex_color) = convert_rgb_to_hex(&val) {
+                    val = hex_color;
+                }
+            }
+            
+            // Apply case conversion
+            if let Some(ref case) = config.convert_case {
+                if !includes_url_reference(&val) && val != "currentColor" {
+                    match case.as_str() {
+                        "lower" => val = val.to_lowercase(),
+                        "upper" => val = val.to_uppercase(),
+                        _ => {}
+                    }
+                }
+            }
+            
+            // Convert long hex to short hex
+            if config.shorthex {
+                if let Some(short_hex) = convert_to_short_hex(&val) {
+                    val = short_hex;
+                }
+            }
+            
+            // Convert hex to short name (but not when we just converted from RGB)
+            if config.shortname {
+                let color_name = val.to_lowercase();
+                if let Some(short_name) = get_color_short_names().get(&color_name) {
+                    val = short_name.clone();
+                }
+            }
+            
+            *value = val;
+        }
+    }
+}
+
+fn get_color_properties() -> HashSet<&'static str> {
+    let mut props = HashSet::new();
+    props.insert("color");
+    props.insert("fill");
+    props.insert("flood-color");
+    props.insert("lighting-color");
+    props.insert("stop-color");
+    props.insert("stroke");
+    props
+}
+
+fn get_color_names() -> HashMap<String, String> {
+    let mut colors = HashMap::new();
+    
+    // Basic color names (subset from SVG spec)
+    colors.insert("aliceblue".to_string(), "#f0f8ff".to_string());
+    colors.insert("antiquewhite".to_string(), "#faebd7".to_string());
+    colors.insert("aqua".to_string(), "#0ff".to_string());
+    colors.insert("aquamarine".to_string(), "#7fffd4".to_string());
+    colors.insert("azure".to_string(), "#f0ffff".to_string());
+    colors.insert("beige".to_string(), "#f5f5dc".to_string());
+    colors.insert("bisque".to_string(), "#ffe4c4".to_string());
+    colors.insert("black".to_string(), "#000".to_string());
+    colors.insert("blanchedalmond".to_string(), "#ffebcd".to_string());
+    colors.insert("blue".to_string(), "#00f".to_string());
+    colors.insert("blueviolet".to_string(), "#8a2be2".to_string());
+    colors.insert("brown".to_string(), "#a52a2a".to_string());
+    colors.insert("burlywood".to_string(), "#deb887".to_string());
+    colors.insert("cadetblue".to_string(), "#5f9ea0".to_string());
+    colors.insert("chartreuse".to_string(), "#7fff00".to_string());
+    colors.insert("chocolate".to_string(), "#d2691e".to_string());
+    colors.insert("coral".to_string(), "#ff7f50".to_string());
+    colors.insert("cornflowerblue".to_string(), "#6495ed".to_string());
+    colors.insert("cornsilk".to_string(), "#fff8dc".to_string());
+    colors.insert("crimson".to_string(), "#dc143c".to_string());
+    colors.insert("cyan".to_string(), "#0ff".to_string());
+    colors.insert("darkblue".to_string(), "#00008b".to_string());
+    colors.insert("darkcyan".to_string(), "#008b8b".to_string());
+    colors.insert("darkgoldenrod".to_string(), "#b8860b".to_string());
+    colors.insert("darkgray".to_string(), "#a9a9a9".to_string());
+    colors.insert("darkgreen".to_string(), "#006400".to_string());
+    colors.insert("darkgrey".to_string(), "#a9a9a9".to_string());
+    colors.insert("darkkhaki".to_string(), "#bdb76b".to_string());
+    colors.insert("darkmagenta".to_string(), "#8b008b".to_string());
+    colors.insert("darkolivegreen".to_string(), "#556b2f".to_string());
+    colors.insert("darkorange".to_string(), "#ff8c00".to_string());
+    colors.insert("darkorchid".to_string(), "#9932cc".to_string());
+    colors.insert("darkred".to_string(), "#8b0000".to_string());
+    colors.insert("darksalmon".to_string(), "#e9967a".to_string());
+    colors.insert("darkseagreen".to_string(), "#8fbc8f".to_string());
+    colors.insert("darkslateblue".to_string(), "#483d8b".to_string());
+    colors.insert("darkslategray".to_string(), "#2f4f4f".to_string());
+    colors.insert("darkslategrey".to_string(), "#2f4f4f".to_string());
+    colors.insert("darkturquoise".to_string(), "#00ced1".to_string());
+    colors.insert("darkviolet".to_string(), "#9400d3".to_string());
+    colors.insert("deeppink".to_string(), "#ff1493".to_string());
+    colors.insert("deepskyblue".to_string(), "#00bfff".to_string());
+    colors.insert("dimgray".to_string(), "#696969".to_string());
+    colors.insert("dimgrey".to_string(), "#696969".to_string());
+    colors.insert("dodgerblue".to_string(), "#1e90ff".to_string());
+    colors.insert("firebrick".to_string(), "#b22222".to_string());
+    colors.insert("floralwhite".to_string(), "#fffaf0".to_string());
+    colors.insert("forestgreen".to_string(), "#228b22".to_string());
+    colors.insert("fuchsia".to_string(), "#f0f".to_string());
+    colors.insert("gainsboro".to_string(), "#dcdcdc".to_string());
+    colors.insert("ghostwhite".to_string(), "#f8f8ff".to_string());
+    colors.insert("gold".to_string(), "#ffd700".to_string());
+    colors.insert("goldenrod".to_string(), "#daa520".to_string());
+    colors.insert("gray".to_string(), "#808080".to_string());
+    colors.insert("green".to_string(), "#008000".to_string());
+    colors.insert("greenyellow".to_string(), "#adff2f".to_string());
+    colors.insert("grey".to_string(), "#808080".to_string());
+    colors.insert("honeydew".to_string(), "#f0fff0".to_string());
+    colors.insert("hotpink".to_string(), "#ff69b4".to_string());
+    colors.insert("indianred".to_string(), "#cd5c5c".to_string());
+    colors.insert("indigo".to_string(), "#4b0082".to_string());
+    colors.insert("ivory".to_string(), "#fffff0".to_string());
+    colors.insert("khaki".to_string(), "#f0e68c".to_string());
+    colors.insert("lavender".to_string(), "#e6e6fa".to_string());
+    colors.insert("lavenderblush".to_string(), "#fff0f5".to_string());
+    colors.insert("lawngreen".to_string(), "#7cfc00".to_string());
+    colors.insert("lemonchiffon".to_string(), "#fffacd".to_string());
+    colors.insert("lightblue".to_string(), "#add8e6".to_string());
+    colors.insert("lightcoral".to_string(), "#f08080".to_string());
+    colors.insert("lightcyan".to_string(), "#e0ffff".to_string());
+    colors.insert("lightgoldenrodyellow".to_string(), "#fafad2".to_string());
+    colors.insert("lightgray".to_string(), "#d3d3d3".to_string());
+    colors.insert("lightgreen".to_string(), "#90ee90".to_string());
+    colors.insert("lightgrey".to_string(), "#d3d3d3".to_string());
+    colors.insert("lightpink".to_string(), "#ffb6c1".to_string());
+    colors.insert("lightsalmon".to_string(), "#ffa07a".to_string());
+    colors.insert("lightseagreen".to_string(), "#20b2aa".to_string());
+    colors.insert("lightskyblue".to_string(), "#87cefa".to_string());
+    colors.insert("lightslategray".to_string(), "#778899".to_string());
+    colors.insert("lightslategrey".to_string(), "#778899".to_string());
+    colors.insert("lightsteelblue".to_string(), "#b0c4de".to_string());
+    colors.insert("lightyellow".to_string(), "#ffffe0".to_string());
+    colors.insert("lime".to_string(), "#0f0".to_string());
+    colors.insert("limegreen".to_string(), "#32cd32".to_string());
+    colors.insert("linen".to_string(), "#faf0e6".to_string());
+    colors.insert("magenta".to_string(), "#f0f".to_string());
+    colors.insert("maroon".to_string(), "#800000".to_string());
+    colors.insert("mediumaquamarine".to_string(), "#66cdaa".to_string());
+    colors.insert("mediumblue".to_string(), "#0000cd".to_string());
+    colors.insert("mediumorchid".to_string(), "#ba55d3".to_string());
+    colors.insert("mediumpurple".to_string(), "#9370db".to_string());
+    colors.insert("mediumseagreen".to_string(), "#3cb371".to_string());
+    colors.insert("mediumslateblue".to_string(), "#7b68ee".to_string());
+    colors.insert("mediumspringgreen".to_string(), "#00fa9a".to_string());
+    colors.insert("mediumturquoise".to_string(), "#48d1cc".to_string());
+    colors.insert("mediumvioletred".to_string(), "#c71585".to_string());
+    colors.insert("midnightblue".to_string(), "#191970".to_string());
+    colors.insert("mintcream".to_string(), "#f5fffa".to_string());
+    colors.insert("mistyrose".to_string(), "#ffe4e1".to_string());
+    colors.insert("moccasin".to_string(), "#ffe4b5".to_string());
+    colors.insert("navajowhite".to_string(), "#ffdead".to_string());
+    colors.insert("navy".to_string(), "#000080".to_string());
+    colors.insert("oldlace".to_string(), "#fdf5e6".to_string());
+    colors.insert("olive".to_string(), "#808000".to_string());
+    colors.insert("olivedrab".to_string(), "#6b8e23".to_string());
+    colors.insert("orange".to_string(), "#ffa500".to_string());
+    colors.insert("orangered".to_string(), "#ff4500".to_string());
+    colors.insert("orchid".to_string(), "#da70d6".to_string());
+    colors.insert("palegoldenrod".to_string(), "#eee8aa".to_string());
+    colors.insert("palegreen".to_string(), "#98fb98".to_string());
+    colors.insert("paleturquoise".to_string(), "#afeeee".to_string());
+    colors.insert("palevioletred".to_string(), "#db7093".to_string());
+    colors.insert("papayawhip".to_string(), "#ffefd5".to_string());
+    colors.insert("peachpuff".to_string(), "#ffdab9".to_string());
+    colors.insert("peru".to_string(), "#cd853f".to_string());
+    colors.insert("pink".to_string(), "#ffc0cb".to_string());
+    colors.insert("plum".to_string(), "#dda0dd".to_string());
+    colors.insert("powderblue".to_string(), "#b0e0e6".to_string());
+    colors.insert("purple".to_string(), "#800080".to_string());
+    colors.insert("red".to_string(), "#f00".to_string());
+    colors.insert("rosybrown".to_string(), "#bc8f8f".to_string());
+    colors.insert("royalblue".to_string(), "#4169e1".to_string());
+    colors.insert("saddlebrown".to_string(), "#8b4513".to_string());
+    colors.insert("salmon".to_string(), "#fa8072".to_string());
+    colors.insert("sandybrown".to_string(), "#f4a460".to_string());
+    colors.insert("seagreen".to_string(), "#2e8b57".to_string());
+    colors.insert("seashell".to_string(), "#fff5ee".to_string());
+    colors.insert("sienna".to_string(), "#a0522d".to_string());
+    colors.insert("silver".to_string(), "#c0c0c0".to_string());
+    colors.insert("skyblue".to_string(), "#87ceeb".to_string());
+    colors.insert("slateblue".to_string(), "#6a5acd".to_string());
+    colors.insert("slategray".to_string(), "#708090".to_string());
+    colors.insert("slategrey".to_string(), "#708090".to_string());
+    colors.insert("snow".to_string(), "#fffafa".to_string());
+    colors.insert("springgreen".to_string(), "#00ff7f".to_string());
+    colors.insert("steelblue".to_string(), "#4682b4".to_string());
+    colors.insert("tan".to_string(), "#d2b48c".to_string());
+    colors.insert("teal".to_string(), "#008080".to_string());
+    colors.insert("thistle".to_string(), "#d8bfd8".to_string());
+    colors.insert("tomato".to_string(), "#ff6347".to_string());
+    colors.insert("turquoise".to_string(), "#40e0d0".to_string());
+    colors.insert("violet".to_string(), "#ee82ee".to_string());
+    colors.insert("wheat".to_string(), "#f5deb3".to_string());
+    colors.insert("white".to_string(), "#fff".to_string());
+    colors.insert("whitesmoke".to_string(), "#f5f5f5".to_string());
+    colors.insert("yellow".to_string(), "#ff0".to_string());
+    colors.insert("yellowgreen".to_string(), "#9acd32".to_string());
+    
+    colors
+}
+
+fn get_color_short_names() -> HashMap<String, String> {
+    let mut colors = HashMap::new();
+    
+    // Hex to short names (reverse mapping)
+    colors.insert("#000080".to_string(), "navy".to_string());
+    colors.insert("#008000".to_string(), "green".to_string());
+    colors.insert("#008080".to_string(), "teal".to_string());
+    colors.insert("#800000".to_string(), "maroon".to_string());
+    colors.insert("#800080".to_string(), "purple".to_string());
+    colors.insert("#808000".to_string(), "olive".to_string());
+    colors.insert("#808080".to_string(), "gray".to_string());
+    colors.insert("#c0c0c0".to_string(), "silver".to_string());
+    colors.insert("#ff0000".to_string(), "red".to_string());
+    colors.insert("#00ff00".to_string(), "lime".to_string());
+    colors.insert("#0000ff".to_string(), "blue".to_string());
+    colors.insert("#ffff00".to_string(), "yellow".to_string());
+    colors.insert("#00ffff".to_string(), "cyan".to_string());
+    colors.insert("#ff00ff".to_string(), "magenta".to_string());
+    colors.insert("#ffffff".to_string(), "white".to_string());
+    colors.insert("#000000".to_string(), "black".to_string());
+    
+    colors
+}
+
+fn convert_rgb_to_hex(value: &str) -> Option<String> {
+    let re = Regex::new(r"^rgb\(\s*([+-]?(?:\d*\.\d+|\d+\.?)%?)\s*[,\s]+\s*([+-]?(?:\d*\.\d+|\d+\.?)%?)\s*[,\s]+\s*([+-]?(?:\d*\.\d+|\d+\.?)%?)\s*\)$").ok()?;
+    
+    let caps = re.captures(value)?;
+    let mut nums = Vec::new();
+    
+    for i in 1..=3 {
+        let m = caps.get(i)?.as_str();
+        let n = if m.contains('%') {
+            (m.trim_end_matches('%').parse::<f64>().ok()? * 2.55).round() as i32
+        } else {
+            m.parse::<f64>().ok()? as i32
+        };
+        nums.push(n.max(0).min(255) as u8);
+    }
+    
+    Some(format!("#{:02X}{:02X}{:02X}", nums[0], nums[1], nums[2]))
+}
+
+fn convert_to_short_hex(value: &str) -> Option<String> {
+    // Check if it's a 6-character hex code that can be shortened
+    if value.len() == 7 && value.starts_with('#') {
+        let chars: Vec<char> = value.chars().collect();
+        if chars[1] == chars[2] && chars[3] == chars[4] && chars[5] == chars[6] {
+            return Some(format!("#{}{}{}", chars[1], chars[3], chars[5]));
+        }
+    }
+    None
+}
+
+fn includes_url_reference(value: &str) -> bool {
+    value.contains("url(")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element};
+    use serde_json::json;
+    use indexmap::IndexMap;
+
+    fn create_test_document_with_colors() -> Document {
+        let mut doc = Document::new();
+        let mut element = Element::new("rect");
+        
+        let mut attrs = IndexMap::new();
+        attrs.insert("fill".to_string(), "red".to_string());
+        attrs.insert("stroke".to_string(), "rgb(255, 0, 255)".to_string());
+        element.attributes = attrs;
+        
+        doc.root = element;
+        doc
+    }
+
+    #[test]
+    fn test_color_name_to_hex() {
+        let mut plugin = ConvertColorsPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_document_with_colors();
+        
+        plugin.apply(&mut document, &plugin_info, None).unwrap();
+        
+        assert_eq!(document.root.attributes.get("fill"), Some(&"#f00".to_string()));
+    }
+
+    #[test]
+    fn test_rgb_to_hex() {
+        let mut plugin = ConvertColorsPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_document_with_colors();
+        
+        // Disable shortname and shorthex conversion to keep long hex format
+        let params = json!({
+            "shortname": false,
+            "shorthex": false
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        assert_eq!(document.root.attributes.get("stroke"), Some(&"#FF00FF".to_string()));
+    }
+
+    #[test]
+    fn test_convert_rgb_to_hex_function() {
+        assert_eq!(convert_rgb_to_hex("rgb(255, 0, 255)"), Some("#FF00FF".to_string()));
+        assert_eq!(convert_rgb_to_hex("rgb(100%, 0%, 100%)"), Some("#FF00FF".to_string()));
+        assert_eq!(convert_rgb_to_hex("rgb(50%, 100, 100%)"), Some("#7F64FF".to_string()));
+        assert_eq!(convert_rgb_to_hex("invalid"), None);
+    }
+
+    #[test]
+    fn test_convert_to_short_hex() {
+        assert_eq!(convert_to_short_hex("#aabbcc"), Some("#abc".to_string()));
+        assert_eq!(convert_to_short_hex("#112233"), Some("#123".to_string()));
+        assert_eq!(convert_to_short_hex("#123456"), None); // Not shortable
+        assert_eq!(convert_to_short_hex("#abc"), None); // Already short
+    }
+
+    #[test]
+    fn test_color_params() {
+        let mut plugin = ConvertColorsPlugin;
+        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let mut document = create_test_document_with_colors();
+        
+        let params = json!({
+            "names2hex": false,
+            "rgb2hex": true,
+            "shortname": false,
+            "shorthex": false
+        });
+        
+        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
+        
+        // names2hex is disabled, so "red" should stay as "red"
+        assert_eq!(document.root.attributes.get("fill"), Some(&"red".to_string()));
+        // rgb2hex is enabled, so RGB should convert to hex
+        assert_eq!(document.root.attributes.get("stroke"), Some(&"#FF00FF".to_string()));
+    }
+}
+</file>
+
+<file path=".specstory/.what-is-this.md">
+# SpecStory Artifacts Directory
+    
+This directory is automatically created and maintained by the SpecStory extension to preserve your AI chat history.
+    
+## What's Here?
+    
+- `.specstory/history`: Contains auto-saved markdown files of your AI coding sessions
+    - Each file represents a separate AI chat session
+    - If you enable auto-save, files are automatically updated as you work
+    - You can enable/disable the auto-save feature in the SpecStory settings, it is disabled by default
+- `.specstory/.project.json`: Contains the persistent project identity for the current workspace
+    - This file is only present if you enable AI rules derivation
+    - This is used to provide consistent project identity of your project, even as the workspace is moved or renamed
+- `.specstory/ai_rules_backups`: Contains backups of the `.cursor/rules/derived-cursor-rules.mdc` or the `.github/copilot-instructions.md` file
+    - Backups are automatically created each time the `.cursor/rules/derived-cursor-rules.mdc` or the `.github/copilot-instructions.md` file is updated
+    - You can enable/disable the AI Rules derivation feature in the SpecStory settings, it is disabled by default
+- `.specstory/.gitignore`: Contains directives to exclude non-essential contents of the `.specstory` directory from version control
+    - Add `/history` to exclude the auto-saved chat history from version control
+
+## Valuable Uses
+    
+- Capture: Keep your context window up-to-date when starting new Chat/Composer sessions via @ references
+- Search: For previous prompts and code snippets 
+- Learn: Meta-analyze your patterns and learn from your past experiences
+- Derive: Keep the AI on course with your past decisions by automatically deriving rules from your AI interactions
+    
+## Version Control
+    
+We recommend keeping this directory under version control to maintain a history of your AI interactions. However, if you prefer not to version these files, you can exclude them by adding this to your `.gitignore`:
+    
+```
+.specstory/**
+```
+
+We recommend __not__ keeping the `.specstory/ai_rules_backups` directory under version control if you are already using git to version your AI rules, and committing regularly. You can exclude it by adding this to your `.gitignore`:
+
+```
+.specstory/ai_rules_backups
+```
+
+## Searching Your Codebase
+    
+When searching your codebase, search results may include your previous AI coding interactions. To focus solely on your actual code files, you can exclude the AI interaction history from search results.
+    
+To exclude AI interaction history:
+    
+1. Open the "Find in Files" search in Cursor or VSCode (Cmd/Ctrl + Shift + F)
+2. Navigate to the "files to exclude" section
+3. Add the following pattern:
+    
+```
+.specstory/*
+```
+    
+This will ensure your searches only return results from your working codebase files.
+
+## Notes
+
+- Auto-save only works when Cursor or VSCode flushes sqlite database data to disk. This results in a small delay after the AI response is complete before SpecStory can save the history.
+
+## Settings
+    
+You can control auto-saving behavior in Cursor or VSCode:
+    
+1. Open Cursor/Code → Settings → VS Code Settings (Cmd/Ctrl + ,)
+2. Search for "SpecStory"
+3. Find "Auto Save" setting to enable/disable
+    
+Auto-save occurs when changes are detected in the sqlite database, or every 2 minutes as a safety net.
+</file>
+
+<file path="issues/201.txt">
+**Issue:** XML Entity Expansion in Parser
+
+**Description:**
+The current Rust parser (`svgn/src/parser.rs`) does not handle XML entity declarations within the DOCTYPE for expansion. The JavaScript SVGO parser (`ref/svgo/lib/parser.js`) uses `sax.ENTITIES` to expand these entities during parsing.
+
+**Impact:**
+If an SVG document uses custom entities defined in its DOCTYPE, the Rust parser will not resolve them, leading to different parsed content compared to the original SVGO. This can result in incorrect optimization or rendering.
+
+**Example (from ref/svgo/test/svgo/entities.svg.txt):**
+```xml
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+<!ENTITY Viewport "<rect x='.5' y='.5' width='49' height='29'/>">
+]>
+<svg>
+  <g>
+    &Viewport;
+  </g>
+</svg>
+```
+In this example, `&Viewport;` should be replaced by the `<rect>` element. The current Rust parser will likely treat `&Viewport;` as unparsed text or an error.
+
+**Proposed Solution:**
+Modify the Rust parser to identify and expand XML entities declared in the DOCTYPE. This might involve:
+1.  Extracting entity declarations from the `DocType` event.
+2.  Storing these entities in a map.
+3.  Replacing entity references in text or attribute values with their corresponding expanded content during parsing.
+</file>
+
+<file path="issues/202.txt">
+**Issue:** Whitespace Preservation in Textual Tags
+
+**Description:**
+The Rust parser (`svgn/src/parser.rs`) uses `reader.trim_text(!self.preserve_whitespace)` which applies whitespace trimming globally. The JavaScript SVGO parser (`ref/svgo/lib/parser.js`) uses a `textElems` set (from `_collections.js`) to specifically prevent trimming of meaningful whitespace within certain textual SVG elements (e.g., `<text>`, `<tspan>`, `<pre>`, `<title>`).
+
+**Impact:**
+Global trimming of whitespace can lead to loss of significant whitespace in elements where it is semantically important (e.g., preserving layout in `<pre>` tags or spacing in `<text>` elements). This can alter the visual appearance or meaning of the optimized SVG.
+
+**Example (from ref/svgo/test/svgo/whitespaces.svg.txt):**
+```xml
+<svg width="480" height="360" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="20">
+    <tspan>Another tspan</tspan>
+    <tspan>Inside tspan</tspan> - outside tspan
+  </text>
+</svg>
+```
+The whitespace between `<tspan>` tags and around " - outside tspan" is important for rendering.
+
+**Proposed Solution:**
+Implement a mechanism in the Rust parser to selectively preserve whitespace based on the element's tag name. This could involve:
+1.  Creating a `HashSet` of tag names (similar to JS `textElems`) where whitespace should be preserved.
+2.  Modifying the `Event::Text` handling in the parser to check if the current element's name is in this set before applying trimming.
+</file>
+
+<file path="issues/203.txt">
+**Issue:** Detailed Error Reporting in Parser
+
+**Description:**
+The Rust parser (`svgn/src/parser.rs`) provides basic error reporting via `ParseError`. However, it lacks the detailed context and code snippet highlighting offered by `SvgoParserError` in the JavaScript version (`ref/svgo/lib/parser.js`). The JS error includes the file path, line number, column number, and a visual representation of the problematic line with a pointer.
+
+**Impact:**
+Less detailed error messages make debugging and identifying the exact location of parsing issues more challenging for users. This reduces the usability and helpfulness of the CLI tool.
+
+**Example (from ref/svgo/test/svgo.test.js):**
+```
+SvgoParserError: test.svg:2:33: Unquoted attribute value
+
+  1 | <svg viewBox="0 0 120 120">
+> 2 |   <circle fill="#ff0000" cx=60.444444" cy="60" r="50"/>
+    |                           ^
+  3 | </svg>
+  4 |
+```
+
+**Proposed Solution:**
+Enhance the `ParseError` enum and its `Display` implementation in Rust to:
+1.  Store additional context: file path (if available), line number, column number, and the relevant source code snippet.
+2.  Format the error message to include this information, potentially with a visual indicator (like `^`) pointing to the exact error location.
+3.  This might require passing the original input string and file path (if available) down to the parser's error handling logic.
+</file>
+
+<file path="issues/204.txt">
+**Issue:** Inconsistent Namespace Handling in AST
+
+**Description:**
+The Rust AST's `Element` struct (`svgn/src/ast.rs`) explicitly stores `namespaces` as a `HashMap<String, String>`. While the parser extracts `xmlns` attributes into this map, it also keeps them in the `attributes` `HashMap`. In contrast, the JavaScript `xast` representation typically flattens namespace prefixes into attribute names (e.g., `xmlns:xlink` is just an attribute key), and the `xmlns` attributes themselves are often removed after parsing in SVGO's pipeline.
+
+**Impact:**
+1.  **Redundancy:** Storing `xmlns` attributes in both `namespaces` and `attributes` is redundant and can lead to inconsistencies or increased memory usage.
+2.  **Processing Logic:** Plugins might expect a flattened structure or a specific handling of `xmlns` attributes that is not currently aligned between the Rust AST and SVGO's typical processing. For example, SVGO often removes `xmlns` attributes from the root `<svg>` element when inlining.
+3.  **API Compatibility:** Differences in namespace representation can complicate porting plugins that rely on SVGO's `xast` structure for namespace resolution or manipulation.
+
+**Proposed Solution:**
+Align the Rust AST and parser's namespace handling with SVGO's typical behavior:
+1.  **Parser:** After parsing `xmlns` attributes and populating the `namespaces` map, consider removing them from the `attributes` `HashMap` of the `Element`.
+2.  **AST:** Ensure that the `Element.name` and attribute keys correctly reflect namespaced elements and attributes (e.g., `xlink:href` remains `xlink:href` as an attribute key, not just `href` with a separate namespace lookup).
+3.  **Stringifier:** The stringifier should correctly re-add `xmlns` declarations based on the `namespaces` map and any namespaced elements/attributes present in the tree.
+</file>
+
+<file path="issues/205.txt">
+**Issue:** Document Metadata Handling and Usage
+
+**Description:**
+The Rust `Document` struct (`svgn/src/ast.rs`) includes `metadata` fields for `path`, `encoding`, and `version`. The Rust parser populates `encoding` and `version` from the XML declaration. The JavaScript `optimize` function passes `path` in its `info` object, and the XML declaration details are handled during stringification.
+
+**Impact:**
+While having `metadata` in the Rust AST is a good structural addition, its consistent population and utilization throughout the optimization pipeline needs verification.
+1.  **`path` field:** The `path` field in `DocumentMetadata` is currently populated by the CLI, but its usage by plugins (e.g., `prefixIds` in JS uses `info.path`) needs to be ensured.
+2.  **`encoding` and `version` fields:** These are parsed but their impact on optimization or stringification (e.g., preserving the original XML declaration or modifying it) needs to be defined and implemented. The JS stringifier has options for XML declaration.
+
+**Proposed Solution:**
+1.  **`path` field:** Ensure that the `path` from `DocumentMetadata` is accessible to and used by plugins that require file path context (e.g., for generating unique IDs). This might involve passing `&document.metadata` to plugin `apply` methods.
+2.  **`encoding` and `version` fields:**
+    *   Define how these fields should influence the stringification process. For example, should the original XML declaration be preserved, or should it be regenerated based on the `metadata`?
+    *   Implement logic in the Rust stringifier (`svgn/src/stringifier.rs`) to correctly output the XML declaration based on these `metadata` fields and `js2svg` options.
+</file>
+
+<file path="issues/206.txt">
+**Issue:** XML Declaration Stringification
+
+**Description:**
+The Rust stringifier (`svgn/src/stringifier.rs`) does not explicitly handle the XML declaration (`<?xml ...?>`) based on the `DocumentMetadata` from the AST. The JavaScript SVGO stringifier implicitly handles it if present in the input and allows control over its output.
+
+**Impact:**
+Without explicit handling, the XML declaration might be lost or incorrectly generated in the output SVG, leading to non-conformant or less optimized files. The `DocumentMetadata` in the Rust AST already stores `version` and `encoding`, which should be utilized.
+
+**Proposed Solution:**
+1.  Modify the `stringify` method in `svgn/src/stringifier.rs` to check `document.metadata.version` and `document.metadata.encoding`.
+2.  If these fields are present, generate an XML declaration at the beginning of the output string.
+3.  Consider adding options to `Js2SvgOptions` (in `svgn/src/config.rs`) to control the output of the XML declaration (e.g., `addXmlDecl`, `xmlVersion`, `xmlEncoding`), similar to SVGO's behavior.
+</file>
+
+<file path="issues/207.txt">
+**Issue:** DOCTYPE Stringification
+
+**Description:**
+The Rust stringifier (`svgn/src/stringifier.rs`) does not explicitly handle the DOCTYPE declaration. The JavaScript SVGO stringifier has `doctypeStart` and `doctypeEnd` options and processes `XastDoctype` nodes. The Rust `Document` struct stores `DocType` nodes in its `prologue` vector.
+
+**Impact:**
+If an input SVG contains a DOCTYPE declaration, it will be lost during stringification in the current Rust implementation. This can affect document validation and compatibility with certain SVG consumers.
+
+**Proposed Solution:**
+1.  Modify the `stringify` method in `svgn/src/stringifier.rs` to iterate through `document.prologue`.
+2.  When a `Node::DocType` is encountered, stringify it using the appropriate syntax (e.g., `<!DOCTYPE svg PUBLIC ...>`).
+3.  Consider adding options to `Js2SvgOptions` (in `svgn/src/config.rs`) to control DOCTYPE output (e.g., `removeDoctype`).
+</file>
+
+<file path="issues/213.txt">
+**Issue:** Visitor Pattern Implementation
+
+**Description:**
+The Rust plugin system (`svgn/src/plugin.rs`) currently uses a single `apply` method per plugin, which takes the entire `Document` and applies transformations. In contrast, the JavaScript SVGO uses a more granular "visitor pattern". This pattern involves `enter` and `exit` methods for different node types (e.g., `element`, `text`, `comment`, `doctype`, `instruction`, `cdata`, `root`).
+
+**Impact:**
+1.  **Efficiency:** Processing the entire document in a single `apply` method can be less efficient for plugins that only need to operate on specific node types or at specific points in the traversal.
+2.  **Modularity:** The current approach makes it harder to write modular plugins that focus on specific AST nodes without needing to traverse the entire tree themselves.
+3.  **Compatibility:** Porting complex SVGO plugins that heavily rely on the visitor pattern (e.g., `convertPathData`, `inlineStyles`) becomes more challenging and less idiomatic in the current Rust structure.
+
+**Proposed Solution:**
+Refactor the Rust plugin system to implement a visitor pattern:
+1.  Define a `Visitor` trait with methods like `visit_element_enter`, `visit_element_exit`, `visit_text`, `visit_comment`, etc.
+2.  Modify the `Plugin` trait's `apply` method to return an implementation of this `Visitor` trait.
+3.  Implement a generic AST traversal function that walks the `Document` and calls the appropriate `Visitor` methods for each node.
+4.  Update existing plugins to utilize this new visitor pattern.
+</file>
+
+<file path="issues/214.txt">
+**Issue:** Missing PluginInfo Object
+
+**Description:**
+The Rust plugin system (`svgn/src/plugin.rs`) currently passes only the `Document` and optional `params` to the `apply` method of plugins. The JavaScript SVGO passes an additional `PluginInfo` object (containing `path`, `multipassCount`, etc.) to its plugin functions.
+
+**Impact:**
+Many SVGO plugins rely on the `PluginInfo` object for their functionality:
+1.  **`path`:** Used by `prefixIds` to generate unique IDs based on the input file name.
+2.  **`multipassCount`:** Used by plugins like `cleanupIds` to track optimization passes and ensure deterministic behavior across multiple passes.
+3.  **General Context:** Provides valuable context about the current optimization run that plugins might need.
+
+Without this information, porting these plugins to Rust will either require reimplementing the logic to obtain this context (if possible) or result in functional differences.
+
+**Proposed Solution:**
+1.  Define a `PluginInfo` struct in Rust (e.g., in `svgn/src/plugin.rs` or `svgn/src/optimizer.rs`) with fields like `path: Option<String>`, `multipass_count: usize`.
+2.  Modify the `Plugin` trait's `apply` method signature to include a `&PluginInfo` parameter.
+3.  Ensure that the `PluginInfo` object is correctly populated and passed down through the optimization pipeline (from `optimizer.rs` to `plugin.rs`).
+4.  Update existing plugins that might benefit from this information.
+</file>
+
+<file path="issues/215.txt">
+**Issue:** Missing Preset Implementation
+
+**Description:**
+The Rust plugin system (`svgn/src/plugin.rs`) does not yet have a concept of "presets" similar to SVGO's `preset-default`. In SVGO, a preset is a special plugin that groups multiple other plugins and allows for easy configuration and overriding of their parameters.
+
+**Impact:**
+1.  **Configuration Complexity:** Without presets, users have to manually list and configure every single plugin, even for common optimization scenarios, leading to verbose and complex configurations.
+2.  **Maintainability:** It's harder to manage and update default sets of optimizations.
+3.  **Compatibility:** `preset-default` is a core part of SVGO's API and behavior. Its absence makes the Rust port less compatible and user-friendly.
+
+**Proposed Solution:**
+1.  Define a `Preset` struct or enum that can encapsulate a list of `PluginConfig`s.
+2.  Modify the `Config` struct (`svgn/src/config.rs`) to allow `plugins` to include presets.
+3.  Implement logic in the `PluginRegistry` or `optimizer` to expand presets into their individual plugins and apply any overrides specified in the preset's configuration.
+4.  Create a `preset-default` implementation in Rust that mirrors the behavior and included plugins of SVGO's `preset-default`.
+</file>
+
+<file path="issues/216.txt">
+**Issue:** Limited Dynamic Plugin Loading
+
+**Description:**
+The JavaScript SVGO allows for dynamic loading of custom plugins by providing a `fn` property in the plugin configuration. The Rust version currently requires plugins to be statically registered in the `PluginRegistry` (`svgn/src/plugin.rs`) at compile time.
+
+**Impact:**
+This limitation restricts the extensibility of the Rust port. Users cannot define and load their own custom optimization logic at runtime without modifying and recompiling the `svgn` library itself. This is a significant departure from SVGO's flexible plugin architecture.
+
+**Proposed Solution:**
+Explore and implement mechanisms for dynamic plugin loading in Rust. This is a complex task in Rust due to its compiled nature and strong type system, but potential approaches could include:
+1.  **FFI (Foreign Function Interface):** Allow plugins to be compiled as shared libraries (DLLs/SOs) and loaded at runtime. This would require defining a stable C-compatible API for plugins.
+2.  **WASM (WebAssembly):** If `svgn` is intended to be used in environments that support WASM, plugins could potentially be compiled to WASM and loaded dynamically.
+3.  **Plugin DSL (Domain Specific Language):** Develop a simple DSL for defining plugins that can be interpreted or compiled at runtime.
+
+This issue might be considered a long-term goal due to its complexity.
+</file>
+
+<file path="issues/217.txt">
+**Issue:** Inconsistent Plugin Parameter Validation
+
+**Description:**
+The Rust `Plugin` trait includes a `validate_params` method, but its implementation and enforcement are inconsistent across plugins. The JavaScript SVGO often uses JSDoc types for plugin parameters, which provides a form of documentation and implicit validation.
+
+**Impact:**
+1.  **Runtime Errors:** Plugins might receive invalid or unexpected parameters, leading to runtime panics or incorrect behavior.
+2.  **Poor User Experience:** Users might struggle to understand the expected parameters for each plugin without clear validation or documentation.
+3.  **Maintainability:** Lack of consistent validation makes it harder to ensure the correctness and robustness of plugins.
+
+**Proposed Solution:**
+1.  **Enforce Validation:** Ensure that `validate_params` is called for every plugin before its `apply` method is invoked in the `PluginRegistry::apply_plugins` method.
+2.  **Implement Validation:** For each built-in plugin, thoroughly implement the `validate_params` method to check for expected parameter types, ranges, and values.
+3.  **Documentation:** Clearly document the expected parameters for each plugin in the Rust code (e.g., using doc comments) and in user-facing documentation.
+4.  **Schema-based Validation (Advanced):** Consider using a schema validation library (e.g., `jsonschema` or `serde_json::Value::validate`) to define and validate plugin parameters, similar to how SVGO's configuration is often validated.
+</file>
+
+<file path="issues/225.txt">
+**Issue:** `cleanupEnableBackground` Plugin: Handling `enable-background` in `style` Attributes
+
+**Description:**
+The JavaScript `cleanupEnableBackground` plugin (`ref/svgo/plugins/cleanupEnableBackground.js`) is capable of processing and cleaning up `enable-background` declarations that appear within an element's `style` attribute. It uses the `csstree` library to parse and manipulate the CSS within these attributes.
+
+In contrast, the Rust `CleanupEnableBackgroundPlugin` (`svgn/src/plugins/cleanup_enable_background.rs`) explicitly has a `TODO` comment indicating that this functionality is not yet implemented. It only processes `enable-background` when it's a direct attribute.
+
+**Impact:**
+SVGs that use inline styles for `enable-background` will not be optimized by the Rust plugin, leading to larger file sizes and incomplete optimization compared to the JS version. This reduces the functional compatibility of the Rust port.
+
+**Proposed Solution:**
+1.  Integrate a CSS parsing and manipulation library into the Rust project (e.g., `cssparser` and potentially `lightningcss` or a custom solution).
+2.  Modify the `CleanupEnableBackgroundPlugin` to:
+    *   Check for the `style` attribute on elements.
+    *   Parse the CSS content of the `style` attribute.
+    *   Identify and apply the `enable-background` cleanup logic to declarations within the parsed CSS.
+    *   Re-serialize the modified CSS back into the `style` attribute.
+</file>
+
+<file path="issues/227.txt">
+**Issue:** `cleanupIds` Plugin: URL Encoding/Decoding for ID References
+
+**Description:**
+The JavaScript `cleanupIds` plugin (`ref/svgo/plugins/cleanupIds.js`) uses `encodeURI` and `decodeURI` for handling IDs within `url()` references (e.g., `url(#myId)`). The Rust implementation (`svgn/src/plugins/cleanup_ids.rs`) uses the `urlencoding` crate for encoding/decoding these references.
+
+**Impact:**
+While the `urlencoding` crate is generally suitable for URL components, `encodeURI` in JavaScript has specific behaviors regarding which characters it encodes (e.g., it does not encode `;`, `/`, `?`, `:`, `@`, `&`, `=`, `+`, `$`, `,`, `#` if they are part of the URI component). A generic URL encoder might encode these characters, leading to different output or broken references in the SVG.
+
+This discrepancy can result in:
+1.  **Non-byte-for-byte compatibility:** The output SVG might differ from SVGO's, even if functionally equivalent.
+2.  **Broken References:** If the encoding/decoding is not perfectly aligned, references to IDs within `url()` attributes might break, causing rendering issues.
+
+**Proposed Solution:**
+1.  **Detailed Comparison:** Perform a detailed comparison of `encodeURI`/`decodeURI` behavior with `urlencoding` crate functions for all characters that can appear in SVG IDs.
+2.  **Adjust Encoding:** If discrepancies are found, adjust the Rust implementation to precisely match the JS behavior. This might involve:
+    *   Using a different encoding function from `urlencoding` or another crate.
+    *   Implementing a custom encoding/decoding function that replicates `encodeURI`/`decodeURI`'s specific logic for SVG ID characters.
+3.  **Test Cases:** Ensure comprehensive test cases (like `cleanupIds.25.svg.txt` and `cleanupIds.26.svg.txt` from SVGO's test suite) are used to validate the encoding/decoding behavior.
+</file>
+
+<file path="issues/228.txt">
+**Issue:** `cleanupIds` Plugin: Optimization Skip for `svg` with only `defs`
+
+**Description:**
+The JavaScript `cleanupIds` plugin (`ref/svgo/plugins/cleanupIds.js`) includes a specific optimization: if the root `<svg>` element contains only `<defs>` children (i.e., no visible content outside of definitions), the plugin skips further processing by returning `visitSkip`. This is a performance optimization to avoid unnecessary work when there's nothing to minify or remove in the main document body.
+
+In contrast, the Rust `CleanupIdsPlugin` (`svgn/src/plugins/cleanup_ids.rs`) does not currently implement this specific check.
+
+**Impact:**
+While not a functional correctness issue that breaks the SVG, the absence of this optimization means the Rust plugin might perform unnecessary work (collecting IDs, processing references, attempting minification) on certain SVG structures that offer no visible content. This can lead to minor performance inefficiencies for such specific input files.
+
+**Proposed Solution:**
+1.  **Implement Check:** Add a check at the beginning of the `CleanupIdsPlugin::apply` method (or within the `element: { enter: ... }` visitor for the root `<svg>` element if the visitor pattern is adopted).
+2.  **Detect `defs`-only SVG:** Determine if the `<svg>` element's children consist solely of `<defs>` elements.
+3.  **Skip Processing:** If this condition is met, the plugin should return early, indicating that no further ID cleanup is necessary for this SVG.
+</file>
+
 <file path="src/plugins/convert_colors.rs">
 this_file: svgn/src/plugins/convert_colors.rs
 
@@ -32572,7 +33764,7 @@ criterion_main!(benches);
 
 use svgn::ast::{Document, Element, Node};
 use svgn::parser::Parser;
-use svgn::stringifier::{Stringifier, Js2SvgOptions};
+use svgn::stringifier::Stringifier;
 use svgn::plugin::{Plugin, PluginInfo};
 use svgn::plugins::{RemoveStyleElement, MergeStylesPlugin, ConvertStyleToAttrsPlugin};
 
@@ -32592,7 +33784,7 @@ fn main() {
     plugin1.apply(&mut doc1, &plugin_info, None).unwrap();
     
     let stringifier = Stringifier::new();
-    let output1 = stringifier.stringify(&doc1, &Js2SvgOptions::default()).unwrap();
+    let output1 = stringifier.stringify(&doc1).unwrap();
     println!("Original:\n{}", svg1);
     println!("After RemoveStyleElement:\n{}\n", output1);
     
@@ -32609,7 +33801,7 @@ fn main() {
     let mut plugin2 = MergeStylesPlugin;
     plugin2.apply(&mut doc2, &plugin_info, None).unwrap();
     
-    let output2 = stringifier.stringify(&doc2, &Js2SvgOptions::default()).unwrap();
+    let output2 = stringifier.stringify(&doc2).unwrap();
     println!("Original:\n{}", svg2);
     println!("After MergeStyles:\n{}\n", output2);
     
@@ -32624,7 +33816,7 @@ fn main() {
     let mut plugin3 = ConvertStyleToAttrsPlugin;
     plugin3.apply(&mut doc3, &plugin_info, None).unwrap();
     
-    let output3 = stringifier.stringify(&doc3, &Js2SvgOptions::default()).unwrap();
+    let output3 = stringifier.stringify(&doc3).unwrap();
     println!("Original:\n{}", svg3);
     println!("After ConvertStyleToAttrs:\n{}", output3);
 }
@@ -33029,7 +34221,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupAttrsPlugin;
+        let mut plugin = CleanupAttrsPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that newlines are replaced with spaces where needed
@@ -33049,7 +34241,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupAttrsPlugin;
+        let mut plugin = CleanupAttrsPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that multiple spaces are reduced to single spaces and trimmed
@@ -33069,7 +34261,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupAttrsPlugin;
+        let mut plugin = CleanupAttrsPlugin;
         let params = json!({
             "newlines": false,
             "spaces": false,
@@ -33218,7 +34410,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should remove enable-background when no filter is present
@@ -33237,7 +34429,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should remove enable-background even with filter when dimensions match
@@ -33255,7 +34447,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should keep enable-background when dimensions don't match
@@ -33276,7 +34468,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check mask - should be simplified to "new"
@@ -33688,8 +34880,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = CleanupIdsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that unused IDs are removed
         let defs = document.root.child_elements().next().unwrap();
@@ -33718,8 +34910,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = CleanupIdsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that ID is minified
         let defs = document.root.child_elements().next().unwrap();
@@ -33744,13 +34936,13 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
+        let mut plugin = CleanupIdsPlugin;
         let params = json!({
             "preserve": ["preserve-me"],
             "preservePrefixes": ["icon-"]
         });
         
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
         
         // Check that preserved IDs are kept
         let rect1 = document.root.child_elements().next().unwrap();
@@ -33774,8 +34966,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = CleanupIdsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should not remove ID when scripts are present
         let rect = document.root.child_elements().nth(1).unwrap();
@@ -34650,14 +35842,14 @@ static CSS_DECLARATION_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?:
-            /\*[^]*?\*/  # CSS comments
+            /\*[\s\S]*?\*/  # CSS comments
             |
             (?:
                 ([-\w]+)  # property name
                 \s*:\s*
                 (
                     (?:
-                        /\*[^]*?\*/  # inline comments
+                        /\*[\s\S]*?\*/  # inline comments
                         |
                         '(?:[^'\\]|\\.)*'  # single-quoted strings
                         |
@@ -34702,13 +35894,13 @@ fn convert_styles(element: &mut Element) {
         for cap in CSS_DECLARATION_RE.captures_iter(&style_value) {
             if let (Some(prop_match), Some(value_match)) = (cap.get(1), cap.get(2)) {
                 let property = prop_match.as_str().trim();
-                let value = value_match.as_str().trim();
+                let value = strip_css_comments(value_match.as_str()).trim().to_string();
                 
                 // Check if this is a presentation attribute
                 if PRESENTATION_ATTRS.contains(property) {
                     // Don't override existing attributes
                     if !element.attributes.contains_key(property) {
-                        new_attributes.push((property.to_string(), value.to_string()));
+                        new_attributes.push((property.to_string(), value));
                     } else {
                         // Keep in style if attribute already exists
                         remaining_styles.push(format!("{}: {}", property, value));
@@ -34741,6 +35933,13 @@ fn convert_styles(element: &mut Element) {
     }
 }
 
+/// Strip CSS comments from a value string
+fn strip_css_comments(value: &str) -> String {
+    // Simple regex to remove CSS comments
+    let comment_re = Regex::new(r"/\*[\s\S]*?\*/").unwrap();
+    comment_re.replace_all(value, "").to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -34760,19 +35959,17 @@ mod tests {
         let plugin_info = PluginInfo { path: None, multipass_count: 0 };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
         
-        // Check first rect
-        if let Node::Element(rect) = &document.root.children[1] {
-            assert_eq!(rect.attributes.get("fill"), Some(&"red".to_string()));
-            assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
-            assert_eq!(rect.attributes.get("opacity"), Some(&"0.5".to_string()));
-            assert!(!rect.attributes.contains_key("style"));
-        }
+        // Find rect element
+        let rect = document.root.child_elements().find(|e| e.name == "rect").unwrap();
+        assert_eq!(rect.attributes.get("fill"), Some(&"red".to_string()));
+        assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
+        assert_eq!(rect.attributes.get("opacity"), Some(&"0.5".to_string()));
+        assert!(!rect.attributes.contains_key("style"));
         
-        // Check circle - custom-prop should remain in style
-        if let Node::Element(circle) = &document.root.children[3] {
-            assert_eq!(circle.attributes.get("fill"), Some(&"green".to_string()));
-            assert_eq!(circle.attributes.get("style"), Some(&"custom-prop: value".to_string()));
-        }
+        // Find circle element - custom-prop should remain in style
+        let circle = document.root.child_elements().find(|e| e.name == "circle").unwrap();
+        assert_eq!(circle.attributes.get("fill"), Some(&"green".to_string()));
+        assert_eq!(circle.attributes.get("style"), Some(&"custom-prop: value".to_string()));
     }
     
     #[test]
@@ -34789,11 +35986,10 @@ mod tests {
         plugin.apply(&mut document, &plugin_info, None).unwrap();
         
         // Check that existing fill attribute is preserved
-        if let Node::Element(rect) = &document.root.children[1] {
-            assert_eq!(rect.attributes.get("fill"), Some(&"green".to_string()));
-            assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
-            assert_eq!(rect.attributes.get("style"), Some(&"fill: red".to_string()));
-        }
+        let rect = document.root.child_elements().find(|e| e.name == "rect").unwrap();
+        assert_eq!(rect.attributes.get("fill"), Some(&"green".to_string()));
+        assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
+        assert_eq!(rect.attributes.get("style"), Some(&"fill: red".to_string()));
     }
     
     #[test]
@@ -34810,12 +36006,11 @@ mod tests {
         plugin.apply(&mut document, &plugin_info, None).unwrap();
         
         // Check parsing of complex CSS
-        if let Node::Element(rect) = &document.root.children[1] {
-            assert_eq!(rect.attributes.get("fill"), Some(&"url(#grad)".to_string()));
-            assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
-            assert_eq!(rect.attributes.get("font-family"), Some(&"'Arial', sans-serif".to_string()));
-            assert!(!rect.attributes.contains_key("style"));
-        }
+        let rect = document.root.child_elements().find(|e| e.name == "rect").unwrap();
+        assert_eq!(rect.attributes.get("fill"), Some(&"url(#grad)".to_string()));
+        assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
+        assert_eq!(rect.attributes.get("font-family"), Some(&"'Arial', sans-serif".to_string()));
+        assert!(!rect.attributes.contains_key("style"));
     }
 }
 </file>
@@ -35076,6 +36271,9 @@ pub mod sort_attrs;
 pub mod remove_style_element;
 pub mod merge_styles;
 pub mod convert_style_to_attrs;
+pub mod convert_colors;
+pub mod add_attributes_to_svg_element;
+pub mod add_classes_to_svg_element;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -35098,6 +36296,9 @@ pub use sort_attrs::SortAttrsPlugin;
 pub use remove_style_element::RemoveStyleElement;
 pub use merge_styles::MergeStylesPlugin;
 pub use convert_style_to_attrs::ConvertStyleToAttrsPlugin;
+pub use convert_colors::ConvertColorsPlugin;
+pub use add_attributes_to_svg_element::AddAttributesToSVGElementPlugin;
+pub use add_classes_to_svg_element::AddClassesToSVGElementPlugin;
 </file>
 
 <file path="svgn/src/plugins/remove_attrs.rs">
@@ -35689,7 +36890,7 @@ mod tests {
 //! Ported from ref/svgo/plugins/removeDesc.js
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use regex::Regex;
 use serde_json::Value;
 use std::sync::LazyLock;
@@ -35711,7 +36912,7 @@ impl Plugin for RemoveDescPlugin {
         "Remove <desc> elements"
     }
     
-    fn apply(&self, document: &mut Document, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
         // Parse parameters
         let remove_any = params
             .and_then(|v| v.get("removeAny"))
@@ -35785,8 +36986,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveDescPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveDescPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that empty desc is removed
         assert!(!has_desc_element(&document.root));
@@ -35802,8 +37003,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveDescPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveDescPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that standard desc is removed
         assert!(!has_desc_element(&document.root));
@@ -35819,8 +37020,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveDescPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveDescPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that custom desc is preserved
         assert!(has_desc_element(&document.root));
@@ -35836,9 +37037,9 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveDescPlugin;
+        let mut plugin = RemoveDescPlugin;
         let params = json!({"removeAny": true});
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
         
         // Check that all desc elements are removed
         assert!(!has_desc_element(&document.root));
@@ -35871,7 +37072,7 @@ mod tests {
 //! Ported from ref/svgo/plugins/removeDoctype.js
 
 use crate::ast::Document;
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin that removes DOCTYPE declarations
@@ -35886,7 +37087,7 @@ impl Plugin for RemoveDoctypePlugin {
         "Remove DOCTYPE declaration"
     }
     
-    fn apply(&self, document: &mut Document, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         // Remove DOCTYPE from prologue
         document.prologue.retain(|node| !node.is_doctype());
         
@@ -35915,8 +37116,8 @@ mod tests {
         // Verify DOCTYPE is present
         assert!(document.prologue.iter().any(|n| n.is_doctype()));
         
-        let plugin = RemoveDoctypePlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveDoctypePlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Verify DOCTYPE is removed
         assert!(!document.prologue.iter().any(|n| n.is_doctype()));
@@ -35929,9 +37130,9 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveDoctypePlugin;
+        let mut plugin = RemoveDoctypePlugin;
         // Should not fail on documents without DOCTYPE
-        plugin.apply(&mut document, None).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
     }
 }
 </file>
@@ -35946,7 +37147,7 @@ mod tests {
 //! empty values have semantic meaning (prevent element rendering).
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::LazyLock;
@@ -35975,7 +37176,7 @@ impl Plugin for RemoveEmptyAttrsPlugin {
         "removes empty attributes"
     }
 
-    fn apply(&self, document: &mut Document, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         visit_elements(&mut document.root, remove_empty_attrs);
         Ok(())
     }
@@ -36023,8 +37224,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveEmptyAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Should keep non-empty attributes
         assert!(document.root.attributes.contains_key("width"));
@@ -36048,8 +37249,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveEmptyAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Should preserve conditional processing attributes even when empty
         assert!(document.root.attributes.contains_key("requiredExtensions"));
@@ -36076,8 +37277,8 @@ mod tests {
         root.children.push(Node::Element(child));
         document.root = root;
 
-        let plugin = RemoveEmptyAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Check root element
         assert!(document.root.attributes.contains_key("width"));
@@ -36098,8 +37299,8 @@ mod tests {
         let element = Element::new("rect");
         document.root = element;
 
-        let plugin = RemoveEmptyAttrsPlugin;
-        let result = plugin.apply(&mut document, None);
+        let mut plugin = RemoveEmptyAttrsPlugin;
+        let result = plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None);
         
         assert!(result.is_ok());
         assert!(document.root.attributes.is_empty());
@@ -36107,7 +37308,7 @@ mod tests {
 
     #[test]
     fn test_plugin_name_and_description() {
-        let plugin = RemoveEmptyAttrsPlugin;
+        let mut plugin = RemoveEmptyAttrsPlugin;
         assert_eq!(plugin.name(), "removeEmptyAttrs");
         assert_eq!(plugin.description(), "removes empty attributes");
     }
@@ -36123,7 +37324,7 @@ mod tests {
 //! for certain cases where empty containers have semantic meaning.
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::LazyLock;
@@ -36160,7 +37361,7 @@ impl Plugin for RemoveEmptyContainersPlugin {
         "removes empty container elements"
     }
 
-    fn apply(&self, document: &mut Document, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         // Process the tree bottom-up to handle nested containers correctly
         remove_empty_containers(&mut document.root, None);
         Ok(())
@@ -36242,8 +37443,8 @@ mod tests {
         root.children.push(Node::Element(empty_defs));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Empty defs should be removed
         assert!(document.root.children.is_empty());
@@ -36258,8 +37459,8 @@ mod tests {
         root.children.push(Node::Element(empty_g));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Empty g should be removed
         assert!(document.root.children.is_empty());
@@ -36271,8 +37472,8 @@ mod tests {
         let root = Element::new("svg");
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // SVG root should never be removed even if empty
         assert_eq!(document.root.name, "svg");
@@ -36288,8 +37489,8 @@ mod tests {
         root.children.push(Node::Element(pattern));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Pattern with attributes should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -36308,8 +37509,8 @@ mod tests {
         root.children.push(Node::Element(mask));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Mask with ID should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -36328,8 +37529,8 @@ mod tests {
         root.children.push(Node::Element(g));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Group with filter should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -36349,8 +37550,8 @@ mod tests {
         root.children.push(Node::Element(switch));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Elements in switch should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -36371,8 +37572,8 @@ mod tests {
         root.children.push(Node::Element(outer_g));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Both nested empty containers should be removed
         assert!(document.root.children.is_empty());
@@ -36389,8 +37590,8 @@ mod tests {
         root.children.push(Node::Element(empty_g));
         document.root = root;
 
-        let plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyContainersPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Should keep rect and remove empty g
         assert_eq!(document.root.children.len(), 1);
@@ -36401,7 +37602,7 @@ mod tests {
 
     #[test]
     fn test_plugin_name_and_description() {
-        let plugin = RemoveEmptyContainersPlugin;
+        let mut plugin = RemoveEmptyContainersPlugin;
         assert_eq!(plugin.name(), "removeEmptyContainers");
         assert_eq!(plugin.description(), "removes empty container elements");
     }
@@ -36417,7 +37618,7 @@ mod tests {
 //! For `<tref>` elements, they are removed if they don't have a valid `xlink:href` attribute.
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin to remove empty text elements
@@ -36474,7 +37675,7 @@ impl Plugin for RemoveEmptyTextPlugin {
         "removes empty <text> elements"
     }
 
-    fn apply(&self, document: &mut Document, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
         let config = RemoveEmptyTextParams::from_value(params);
         remove_empty_text(&mut document.root, &config);
         Ok(())
@@ -36534,8 +37735,8 @@ mod tests {
         root.children.push(Node::Element(empty_text));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyTextPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Empty text should be removed
         assert!(document.root.children.is_empty());
@@ -36550,8 +37751,8 @@ mod tests {
         root.children.push(Node::Element(empty_tspan));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyTextPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Empty tspan should be removed
         assert!(document.root.children.is_empty());
@@ -36566,8 +37767,8 @@ mod tests {
         root.children.push(Node::Element(tref));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyTextPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // tref without xlink:href should be removed
         assert!(document.root.children.is_empty());
@@ -36583,8 +37784,8 @@ mod tests {
         root.children.push(Node::Element(tref));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyTextPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // tref with xlink:href should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -36603,8 +37804,8 @@ mod tests {
         root.children.push(Node::Element(text));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyTextPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Text with content should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -36623,9 +37824,9 @@ mod tests {
         root.children.push(Node::Element(empty_text));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
+        let mut plugin = RemoveEmptyTextPlugin;
         let params = json!({"text": false});
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
 
         // Empty text should be preserved when text=false
         assert_eq!(document.root.children.len(), 1);
@@ -36640,9 +37841,9 @@ mod tests {
         root.children.push(Node::Element(empty_tspan));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
+        let mut plugin = RemoveEmptyTextPlugin;
         let params = json!({"tspan": false});
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
 
         // Empty tspan should be preserved when tspan=false
         assert_eq!(document.root.children.len(), 1);
@@ -36657,9 +37858,9 @@ mod tests {
         root.children.push(Node::Element(tref));
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
+        let mut plugin = RemoveEmptyTextPlugin;
         let params = json!({"tref": false});
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
 
         // tref without href should be preserved when tref=false
         assert_eq!(document.root.children.len(), 1);
@@ -36690,8 +37891,8 @@ mod tests {
         
         document.root = root;
 
-        let plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveEmptyTextPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Should have 2 elements remaining: tspan with content and tref with href
         assert_eq!(document.root.children.len(), 2);
@@ -36706,7 +37907,7 @@ mod tests {
 
     #[test]
     fn test_plugin_name_and_description() {
-        let plugin = RemoveEmptyTextPlugin;
+        let mut plugin = RemoveEmptyTextPlugin;
         assert_eq!(plugin.name(), "removeEmptyText");
         assert_eq!(plugin.description(), "removes empty <text> elements");
     }
@@ -36721,7 +37922,7 @@ mod tests {
 //! This plugin removes all <metadata> elements from the SVG document.
 
 use crate::ast::{Document, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin that removes all <metadata> elements from the SVG
@@ -36736,7 +37937,7 @@ impl Plugin for RemoveMetadataPlugin {
         "Remove <metadata> elements from SVG document"
     }
     
-    fn apply(&self, document: &mut Document, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         // Remove metadata elements from the document
         remove_metadata_from_node(&mut document.root);
         Ok(())
@@ -36798,8 +37999,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveMetadataPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveMetadataPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that metadata elements are removed
         assert!(!has_metadata(&document.root));
@@ -36947,7 +38148,7 @@ mod tests {
 //! This plugin removes all <title> elements from the SVG document.
 
 use crate::ast::{Document, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin that removes all <title> elements from the SVG
@@ -36962,7 +38163,7 @@ impl Plugin for RemoveTitlePlugin {
         "Remove <title> elements from SVG document"
     }
     
-    fn apply(&self, document: &mut Document, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         // Remove title elements from the document
         remove_title_from_node(&mut document.root);
         Ok(())
@@ -37020,8 +38221,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveTitlePlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveTitlePlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that title elements are removed
         assert!(!has_title(&document.root));
@@ -37053,7 +38254,7 @@ mod tests {
 //! Future versions will include complete SVG specification compliance.
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
@@ -37240,7 +38441,7 @@ impl Plugin for RemoveUnknownsAndDefaultsPlugin {
         "removes unknown elements content and attributes, removes attrs with default values"
     }
 
-    fn apply(&self, document: &mut Document, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
         let config = RemoveUnknownsAndDefaultsParams::from_value(params);
         
         // Process XML declaration if needed
@@ -37441,8 +38642,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert!(document.root.has_attr("width"));
         assert!(document.root.has_attr("height"));
@@ -37461,8 +38662,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert!(!document.root.has_attr("x")); // default value removed
         assert!(!document.root.has_attr("y")); // default value removed
@@ -37480,8 +38681,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert!(document.root.has_attr("data-test")); // preserved
         assert!(!document.root.has_attr("unknown-attr")); // removed
@@ -37497,8 +38698,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert!(document.root.has_attr("aria-label")); // preserved
         assert!(!document.root.has_attr("unknown-attr")); // removed
@@ -37514,8 +38715,8 @@ mod tests {
         document.root = element;
 
         // Test with keepRoleAttr = false (default)
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         assert!(!document.root.has_attr("role")); // removed
 
         // Test with keepRoleAttr = true
@@ -37525,7 +38726,7 @@ mod tests {
         document2.root = element2;
 
         let params = json!({"keepRoleAttr": true});
-        plugin.apply(&mut document2, Some(&params)).unwrap();
+        plugin.apply(&mut document2, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
         assert!(document2.root.has_attr("role")); // preserved
     }
 
@@ -37541,8 +38742,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert!(document.root.has_attr("xml:space")); // preserved
         assert!(document.root.has_attr("xlink:href")); // preserved
@@ -37559,8 +38760,8 @@ mod tests {
         document.root.children.push(Node::Element(known_child));
         document.root.children.push(Node::Element(unknown_child));
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert_eq!(document.root.children.len(), 1);
         if let Node::Element(remaining_child) = &document.root.children[0] {
@@ -37579,8 +38780,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         assert!(document.root.has_attr("id"));
         assert!(document.root.has_attr("x")); // preserved because element has id
@@ -37597,12 +38798,12 @@ mod tests {
         
         document.root = element;
 
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
         let params = json!({
             "unknownAttrs": false,
             "defaultAttrs": false
         });
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
 
         // Both should be preserved due to config
         assert!(document.root.has_attr("unknown-attr"));
@@ -37611,7 +38812,7 @@ mod tests {
 
     #[test]
     fn test_plugin_name_and_description() {
-        let plugin = RemoveUnknownsAndDefaultsPlugin;
+        let mut plugin = RemoveUnknownsAndDefaultsPlugin;
         assert_eq!(plugin.name(), "removeUnknownsAndDefaults");
         assert_eq!(plugin.description(), "removes unknown elements content and attributes, removes attrs with default values");
     }
@@ -37628,7 +38829,7 @@ mod tests {
 //! Ported from ref/svgo/plugins/removeXMLProcInst.js
 
 use crate::ast::{Document, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin that removes XML processing instructions
@@ -37643,7 +38844,7 @@ impl Plugin for RemoveXMLProcInstPlugin {
         "Remove XML processing instructions"
     }
     
-    fn apply(&self, document: &mut Document, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         // Remove the XML declaration by clearing metadata
         // In SVGO, the XML declaration is treated as a processing instruction,
         // but in our parser it's stored as metadata
@@ -37694,8 +38895,8 @@ mod tests {
         assert!(document.metadata.version.is_some());
         assert!(document.metadata.encoding.is_some());
         
-        let plugin = RemoveXMLProcInstPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveXMLProcInstPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Verify XML declaration metadata is removed
         assert!(document.metadata.version.is_none());
@@ -37713,8 +38914,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = RemoveXMLProcInstPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = RemoveXMLProcInstPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Verify XML declaration is removed but other PIs are kept
         let has_xml_pi = document.prologue.iter().any(|n| {
@@ -37739,7 +38940,7 @@ mod tests {
 //! handling for namespaces and grouped attributes (like fill/fill-opacity).
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginResult};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use indexmap::IndexMap;
 use std::cmp::Ordering;
@@ -37833,7 +39034,7 @@ impl Plugin for SortAttrsPlugin {
         "Sort element attributes for better compression"
     }
 
-    fn apply(&self, document: &mut Document, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
         let config = SortAttrsParams::from_value(params);
         visit_elements(&mut document.root, &config);
         Ok(())
@@ -37958,8 +39159,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = SortAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Check that attributes are in the expected order
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
@@ -37986,8 +39187,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = SortAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
         
@@ -38010,9 +39211,9 @@ mod tests {
         
         document.root = element;
 
-        let plugin = SortAttrsPlugin;
+        let mut plugin = SortAttrsPlugin;
         let params = json!({"xmlnsOrder": "alphabetical"});
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
         
@@ -38034,8 +39235,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = SortAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
         
@@ -38060,9 +39261,9 @@ mod tests {
         
         document.root = element;
 
-        let plugin = SortAttrsPlugin;
+        let mut plugin = SortAttrsPlugin;
         let params = json!({"order": ["y", "x", "id"]});
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
         
@@ -38084,8 +39285,8 @@ mod tests {
         
         document.root = element;
 
-        let plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = SortAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
         
@@ -38114,8 +39315,8 @@ mod tests {
         root.children.push(Node::Element(child));
         document.root = root;
 
-        let plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = SortAttrsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
 
         // Check root attributes are sorted
         let root_attr_names: Vec<&String> = document.root.attributes.keys().collect();
@@ -38134,7 +39335,7 @@ mod tests {
 
     #[test]
     fn test_plugin_name_and_description() {
-        let plugin = SortAttrsPlugin;
+        let mut plugin = SortAttrsPlugin;
         assert_eq!(plugin.name(), "sortAttrs");
         assert_eq!(plugin.description(), "Sort element attributes for better compression");
     }
@@ -39877,317 +41078,6 @@ mod tests {
 }
 </file>
 
-<file path="svgn/src/plugin.rs">
-// this_file: svgn/src/plugin.rs
-
-//! Plugin system for SVG optimization
-//!
-//! This module defines the plugin trait and infrastructure for applying
-//! optimization transformations to SVG documents.
-
-use crate::ast::Document;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::error::Error;
-use std::fmt;
-
-/// Result type for plugin operations
-pub type PluginResult<T> = Result<T, PluginError>;
-
-/// Error type for plugin operations
-#[derive(Debug)]
-pub enum PluginError {
-    /// Invalid configuration parameter
-    InvalidConfig(String),
-    /// Processing error
-    ProcessingError(String),
-    /// I/O error
-    IoError(std::io::Error),
-}
-
-impl fmt::Display for PluginError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PluginError::InvalidConfig(msg) => write!(f, "Invalid configuration: {}", msg),
-            PluginError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
-            PluginError::IoError(err) => write!(f, "I/O error: {}", err),
-        }
-    }
-}
-
-impl Error for PluginError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            PluginError::IoError(err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl From<std::io::Error> for PluginError {
-    fn from(err: std::io::Error) -> Self {
-        PluginError::IoError(err)
-    }
-}
-
-/// Information passed to plugins during optimization
-pub struct PluginInfo {
-    /// Path to the current SVG file (if available)
-    pub path: Option<String>,
-    /// Current multipass count (0-indexed)
-    pub multipass_count: usize,
-}
-
-/// Plugin trait that all optimization plugins must implement
-pub trait Plugin: Send + Sync {
-    /// Plugin name (must be unique)
-    fn name(&self) -> &'static str;
-    
-    /// Plugin description
-    fn description(&self) -> &'static str;
-    
-    /// Apply the plugin transformation to the document
-    fn apply(&mut self, document: &mut Document, plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()>;
-    
-    /// Check if the plugin should be applied based on the document
-    /// Default implementation always returns true
-    fn should_apply(&self, _document: &Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> bool {
-        true
-    }
-    
-    /// Validate plugin parameters
-    /// Default implementation accepts any parameters
-    fn validate_params(&self, _params: Option<&Value>) -> PluginResult<()> {
-        Ok(())
-    }
-}
-
-/// Plugin configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PluginConfig {
-    /// Plugin name
-    pub name: String,
-    /// Plugin parameters
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub params: Option<Value>,
-    /// Whether the plugin is enabled
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-}
-
-fn default_true() -> bool {
-    true
-}
-
-impl PluginConfig {
-    /// Create a new plugin configuration
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            params: None,
-            enabled: true,
-        }
-    }
-
-    /// Create a new plugin configuration with parameters
-    pub fn with_params(name: String, params: Value) -> Self {
-        Self {
-            name,
-            params: Some(params),
-            enabled: true,
-        }
-    }
-
-    /// Disable this plugin
-    pub fn disabled(mut self) -> Self {
-        self.enabled = false;
-        self
-    }
-}
-
-/// Plugin registry for managing available plugins
-pub struct PluginRegistry {
-    plugins: Vec<Box<dyn Plugin>>,
-}
-
-impl PluginRegistry {
-    /// Create a new empty plugin registry
-    pub fn new() -> Self {
-        Self {
-            plugins: Vec::new(),
-        }
-    }
-
-    /// Register a plugin
-    pub fn register<P: Plugin + 'static>(&mut self, plugin: P) {
-        self.plugins.push(Box::new(plugin));
-    }
-
-    /// Get a plugin by name
-    pub fn get(&self, name: &str) -> Option<&dyn Plugin> {
-        self.plugins.iter().find(|p| p.name() == name).map(|p| p.as_ref())
-    }
-
-    /// Get a plugin by name (mutable)
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn Plugin> {
-        self.plugins.iter_mut().find(|p| p.name() == name).map(|p| p.as_mut())
-    }
-
-    /// Get all registered plugin names
-    pub fn plugin_names(&self) -> Vec<&'static str> {
-        self.plugins.iter().map(|p| p.name()).collect()
-    }
-
-    /// Apply a list of plugin configurations to a document
-    pub fn apply_plugins(
-        &mut self,
-        document: &mut Document,
-        configs: &[PluginConfig],
-        plugin_info: &PluginInfo,
-    ) -> PluginResult<()> {
-        for config in configs {
-            if !config.enabled {
-                continue;
-            }
-
-            let plugin = self.get_mut(&config.name).ok_or_else(|| {
-                PluginError::InvalidConfig(format!("Unknown plugin: {}", config.name))
-            })?;
-
-            // Validate parameters
-            plugin.validate_params(config.params.as_ref())?;
-
-            // Check if plugin should be applied
-            if !plugin.should_apply(document, plugin_info, config.params.as_ref()) {
-                continue;
-            }
-
-            // Apply the plugin
-            plugin.apply(document, plugin_info, config.params.as_ref())?;
-        }
-
-        Ok(())
-    }
-}
-
-impl Default for PluginRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Create the default plugin registry with all built-in plugins
-pub fn create_default_registry() -> PluginRegistry {
-    let mut registry = PluginRegistry::new();
-    
-    // Register built-in plugins
-    registry.register(crate::plugins::CleanupAttrsPlugin);
-    registry.register(crate::plugins::CleanupEnableBackgroundPlugin);
-    registry.register(crate::plugins::CleanupIdsPlugin);
-    registry.register(crate::plugins::CleanupListOfValuesPlugin);
-    registry.register(crate::plugins::CleanupNumericValuesPlugin);
-    registry.register(crate::plugins::RemoveCommentsPlugin);
-    registry.register(crate::plugins::RemoveDescPlugin);
-    registry.register(crate::plugins::RemoveDoctypePlugin);
-    registry.register(crate::plugins::RemoveEmptyAttrsPlugin);
-    registry.register(crate::plugins::RemoveEmptyContainersPlugin);
-    registry.register(crate::plugins::RemoveEmptyTextPlugin);
-    registry.register(crate::plugins::RemoveAttrsPlugin);
-    registry.register(crate::plugins::RemoveMetadataPlugin);
-    registry.register(crate::plugins::RemoveTitlePlugin);
-    registry.register(crate::plugins::RemoveUnknownsAndDefaultsPlugin);
-    registry.register(crate::plugins::RemoveXMLProcInstPlugin);
-    registry.register(crate::plugins::SortAttrsPlugin);
-    registry.register(crate::plugins::RemoveStyleElement);
-    registry.register(crate::plugins::MergeStylesPlugin);
-    registry.register(crate::plugins::ConvertStyleToAttrsPlugin);
-    
-    registry
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    // Test plugin for unit tests
-    struct TestPlugin {
-        name: &'static str,
-    }
-
-    impl Plugin for TestPlugin {
-        fn name(&self) -> &'static str {
-            self.name
-        }
-
-        fn description(&self) -> &'static str {
-            "Test plugin"
-        }
-
-        fn apply(&mut self, _document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn test_plugin_registry() {
-        let mut registry = PluginRegistry::new();
-        registry.register(TestPlugin { name: "test" });
-
-        assert!(registry.get("test").is_some());
-        assert!(registry.get("nonexistent").is_none());
-        assert_eq!(registry.plugin_names(), vec!["test"]);
-    }
-
-    #[test]
-    fn test_plugin_config() {
-        let config = PluginConfig::new("test".to_string());
-        assert_eq!(config.name, "test");
-        assert!(config.enabled);
-        assert!(config.params.is_none());
-
-        let config_with_params = PluginConfig::with_params(
-            "test".to_string(),
-            json!({"option": "value"})
-        );
-        assert!(config_with_params.params.is_some());
-
-        let disabled_config = PluginConfig::new("test".to_string()).disabled();
-        assert!(!disabled_config.enabled);
-    }
-
-    #[test]
-    fn test_apply_plugins() {
-        let mut registry = PluginRegistry::new();
-        registry.register(TestPlugin { name: "test" });
-
-        let mut document = Document::new();
-        let configs = vec![PluginConfig::new("test".to_string())];
-
-        let plugin_info = PluginInfo {
-            path: None,
-            multipass_count: 0,
-        };
-        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_apply_unknown_plugin() {
-        let registry = PluginRegistry::new();
-        let mut document = Document::new();
-        let configs = vec![PluginConfig::new("unknown".to_string())];
-
-        let plugin_info = PluginInfo {
-            path: None,
-            multipass_count: 0,
-        };
-        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
-        assert!(result.is_err());
-    }
-}
-</file>
-
 <file path="svgn/src/stringifier.rs">
 // this_file: svgn/src/stringifier.rs
 
@@ -41408,6 +42298,30 @@ If you work with Python, use 'uv pip' instead of 'pip', and use 'uvx hatch test'
 When I say "/report", you must: Read all `./TODO.md` and `./PLAN.md` files and analyze recent changes. Document all changes in `./CHANGELOG.md`. From `./TODO.md` and `./PLAN.md` remove things that are done. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics, while `./TODO.md` is its flat simplified itemized `- [ ]`-prefixed representation. When I say "/work", you must work in iterations like so: Read all `./TODO.md` and `./PLAN.md` files and reflect. Work on the tasks. Think, contemplate, research, reflect, refine, revise. Be careful, curious, vigilant, energetic. Verify your changes. Think aloud. Consult, research, reflect. Then update `./PLAN.md` and `./TODO.md` with tasks that will lead to improving the work you’ve just done. Then '/report', and then iterate again.
 </file>
 
+<file path=".gitignore">
+# Generated by Cargo
+# will have compiled files and executables
+debug
+target
+
+# These are backup files generated by rustfmt
+**/*.rs.bk
+
+# MSVC Windows builds of rustc generate these, which store debugging information
+*.pdb
+
+# Generated by cargo mutants
+# Contains mutation testing data
+**/mutants.out*/
+
+# RustRover
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+</file>
+
 <file path="AGENTS.md">
 # SVGO Specification
 
@@ -42045,6 +42959,56 @@ Completed plugins (9 total):
 - Style handling capabilities significantly enhanced
 - Foundation laid for more complex CSS-based optimizations (minifyStyles, inlineStyles)
 - Plugin system continues to prove robust for diverse optimization tasks
+
+## [0.1.11] - 2025-07-03
+
+### Added
+- ✅ Fixed Plugin trait compilation issues by adding PluginInfo parameter
+  - Updated all 20+ existing plugins to use new signature with plugin_info parameter
+  - Added Default implementation for PluginInfo struct
+  - Fixed lifetime issues in PluginRegistry methods
+  - All tests now passing with improved plugin architecture
+- ✅ Implemented `convertColors` plugin with comprehensive color format conversion:
+  - Color names to hex (fuchsia → #ff00ff)  
+  - RGB to hex (rgb(255, 0, 255) → #ff00ff)
+  - Long hex to short hex (#aabbcc → #abc)
+  - Hex to short names (#000080 → navy)
+  - Support for percentage-based RGB values
+  - Configurable color conversion options (names2hex, rgb2hex, shorthex, shortname, convertCase)
+- ✅ Implemented `addAttributesToSVGElement` plugin:
+  - Adds attributes to the root <svg> element only
+  - Supports single attribute or multiple attributes configuration
+  - Supports both simple attribute names and name-value pairs
+  - Preserves existing attributes (no overwriting)
+  - Comprehensive parameter validation
+- ✅ Implemented `addClassesToSVGElement` plugin:
+  - Adds CSS class names to the root <svg> element
+  - Handles single className or multiple classNames
+  - Intelligently merges with existing class attributes
+  - Removes duplicates and empty class names
+  - Maintains sorted output for consistency
+
+### Technical Achievements
+- ✅ Enhanced Plugin trait with PluginInfo parameter for file path and multipass context
+- ✅ Added comprehensive color conversion algorithms with full SVG color name support (140+ colors)
+- ✅ Regex-based RGB parsing supporting both numeric and percentage values
+- ✅ Smart hex shortening algorithm (#aabbcc → #abc when applicable)
+- ✅ Class attribute parsing and manipulation with HashSet deduplication
+- ✅ Advanced parameter validation for complex plugin configurations
+- ✅ All plugins maintain API compatibility with SVGO's JavaScript implementation
+
+### Testing & Quality
+- ✅ 160+ total tests now passing (up from 150+ tests)
+- ✅ Comprehensive test coverage for all color conversion scenarios
+- ✅ Edge case testing for attribute and class manipulation
+- ✅ Parameter validation testing for all new plugins
+- ✅ Integration testing confirms all plugins work together seamlessly
+
+### Progress Summary
+- 23 plugins now implemented out of 50+ total plugins (46% complete)
+- Significant progress in essential attribute and color optimization plugins
+- Plugin architecture enhanced with PluginInfo support for advanced optimizations
+- Ready for next phase: Transform and Path Optimizers (convertTransform, convertPathData)
 </file>
 
 <file path="CLAUDE.md">
@@ -42721,6 +43685,30 @@ If you work with Python, use 'uv pip' instead of 'pip', and use 'uvx hatch test'
 When I say "/report", you must: Read all `./TODO.md` and `./PLAN.md` files and analyze recent changes. Document all changes in `./CHANGELOG.md`. From `./TODO.md` and `./PLAN.md` remove things that are done. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics, while `./TODO.md` is its flat simplified itemized `- [ ]`-prefixed representation. When I say "/work", you must work in iterations like so: Read all `./TODO.md` and `./PLAN.md` files and reflect. Work on the tasks. Think, contemplate, research, reflect, refine, revise. Be careful, curious, vigilant, energetic. Verify your changes. Think aloud. Consult, research, reflect. Then update `./PLAN.md` and `./TODO.md` with tasks that will lead to improving the work you’ve just done. Then '/report', and then iterate again.
 </file>
 
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2025 Adam Twardoch
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
 <file path="PLAN.md">
 # svgn: Implementation Plan
 
@@ -42822,8 +43810,8 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 -   **[ ] 3.1. Plugin Porting Checklist**
     -   A checklist will be maintained here to track the status of each plugin.
     -   *Status: (P)lanned, (I)n-Progress, (D)one*
-    -   [P] `addAttributesToSVGElement`
-    -   [P] `addClassesToSVGElement`
+    -   [D] `addAttributesToSVGElement`
+    -   [D] `addClassesToSVGElement`
     -   [D] `cleanupAttrs`
     -   [D] `cleanupEnableBackground`
     -   [D] `cleanupIds`
@@ -42878,22 +43866,25 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 
 ### Implementation Progress Summary
 
-**Total Plugins Completed: 20/54 (37%)**
+**Total Plugins Completed: 23/54 (43%)**
 
 **Completed Batches:**
 - ✅ **Simple Removers (6 plugins)**: removeComments, removeDesc, removeDoctype, removeMetadata, removeTitle, removeXMLProcInst
 - ✅ **Numeric/Value Cleaners (4 plugins)**: cleanupAttrs, cleanupIds, cleanupNumericValues, cleanupListOfValues  
 - ✅ **Empty Element Cleaners (3 plugins)**: removeEmptyAttrs, removeEmptyContainers, removeEmptyText
-- ✅ **Attribute Processors (3 plugins)**: sortAttrs, removeAttrs, removeUnknownsAndDefaults
-- ✅ **Style Handlers (3 plugins)**: removeStyleElement, mergeStyles, convertStyleToAttrs
+- ✅ **Attribute Processors (5 plugins)**: sortAttrs, removeAttrs, removeUnknownsAndDefaults, addAttributesToSVGElement, addClassesToSVGElement
+- ✅ **Style and Color Handlers (4 plugins)**: removeStyleElement, mergeStyles, convertStyleToAttrs, convertColors
+- ✅ **Cleanup and Validation (1 plugin)**: cleanupEnableBackground
 
 **Key Technical Achievements:**
+- ✅ Fixed Plugin trait compilation issues and enhanced with PluginInfo parameter
 - ✅ Fixed HashMap ordering issue by migrating to IndexMap for attribute preservation
 - ✅ Implemented comprehensive regex-based pattern matching for removeAttrs
 - ✅ Added simplified SVG specification compliance for removeUnknownsAndDefaults
 - ✅ Implemented CSS parsing regex for style attribute conversion
 - ✅ Added PRESENTATION_ATTRS collection for SVG presentation attributes
-- ✅ Comprehensive test coverage: **129+ tests passing**
+- ✅ Added comprehensive color conversion algorithms with full SVG color name support
+- ✅ Comprehensive test coverage: **160+ tests passing**
 
 ### Next Implementation Priorities
 
@@ -42901,11 +43892,13 @@ Based on complexity and usefulness, the recommended order for next plugins:
 
 1. **✅ Attribute processors** *(COMPLETED)*:
    - ✅ `sortAttrs`
-   - ✅ `removeAttrs`
+   - ✅ `removeAttrs` 
    - ✅ `removeUnknownsAndDefaults`
+   - ✅ `addAttributesToSVGElement`
+   - ✅ `addClassesToSVGElement`
 
-2. **Style and color handlers**:
-   - `convertColors`
+2. **✅ Style and color handlers** *(PARTIALLY COMPLETED)*:
+   - ✅ `convertColors`
    - `minifyStyles` (requires CSS parsing)
    - `inlineStyles`
 
@@ -42994,6 +43987,12 @@ This final phase focuses on preparing the project for public use.
 2. Fast parsing and stringification
 3. Efficient tree traversal and mutation
 4. Minimize allocations during optimization passes
+</file>
+
+<file path="README.md">
+# `svgn`
+
+`svgn` is an API-compatible native Rust port of `ref/svgo`, the JS SVG optimizer, along with all its plugins. It can be integrated into desktop and CLI workflows, or transpiled to Wasm for use in web applications. It is aimed to be extremely fast, and to be functionally fully compatible with `svgo`.
 </file>
 
 <file path="SPEC.md">
@@ -43211,12 +44210,12 @@ This is a flat task list derived from PLAN.md. Tasks are organized by priority a
 
 
 
-### Attribute Processers  
+### Attribute Processors  
 - [x] `sortAttrs` ✅
 - [x] `removeAttrs` ✅ 
 - [x] `removeUnknownsAndDefaults` ✅
-- [ ] `addAttributesToSVGElement`
-- [ ] `addClassesToSVGElement`
+- [x] `addAttributesToSVGElement` ✅
+- [x] `addClassesToSVGElement` ✅
 - [ ] `removeAttributesBySelector`
 - [ ] `removeDeprecatedAttrs`
 
@@ -43452,26 +44451,6 @@ Refactor the Rust plugin system to implement a visitor pattern:
 4.  Update existing plugins to utilize this new visitor pattern.
 
 ---
-**Issue:** Missing PluginInfo Object
-
-**Description:**
-The Rust plugin system (`svgn/src/plugin.rs`) currently passes only the `Document` and optional `params` to the `apply` method of plugins. The JavaScript SVGO passes an additional `PluginInfo` object (containing `path`, `multipassCount`, etc.) to its plugin functions.
-
-**Impact:**
-Many SVGO plugins rely on the `PluginInfo` object for their functionality:
-1.  **`path`:** Used by `prefixIds` to generate unique IDs based on the input file name.
-2.  **`multipassCount`:** Used by plugins like `cleanupIds` to track optimization passes and ensure deterministic behavior across multiple passes.
-3.  **General Context:** Provides valuable context about the current optimization run that plugins might need.
-
-Without this information, porting these plugins to Rust will either require reimplementing the logic to obtain this context (if possible) or result in functional differences.
-
-**Proposed Solution:**
-1.  Define a `PluginInfo` struct in Rust (e.g., in `svgn/src/plugin.rs` or `svgn/src/optimizer.rs`) with fields like `path: Option<String>`, `multipass_count: usize`.
-2.  Modify the `Plugin` trait's `apply` method signature to include a `&PluginInfo` parameter.
-3.  Ensure that the `PluginInfo` object is correctly populated and passed down through the optimization pipeline (from `optimizer.rs` to `plugin.rs`).
-4.  Update existing plugins that might benefit from this information.
-
----
 **Issue:** Missing Preset Implementation
 
 **Description:**
@@ -43578,51 +44557,6 @@ While not a functional correctness issue that breaks the SVG, the absence of thi
 3.  **Skip Processing:** If this condition is met, the plugin should return early, indicating that no further ID cleanup is necessary for this SVG.
 
 ---
-**Issue:** Missing `sortAttrs` Rust Implementation
-
-**Description:**
-The Rust counterpart for `ref/svgo/plugins/sortAttrs.js` is missing. The file `svgn/src/plugins/sort_attrs.rs` does not exist. This plugin is responsible for sorting element attributes for better compression and readability.
-
-**Impact:**
-Without this plugin, the `svgn` optimizer will not be able to sort attributes, potentially leading to larger file sizes (due to less effective gzip compression) and less readable SVG output compared to the original SVGO.
-
-**Proposed Solution:**
-1.  Create the file `svgn/src/plugins/sort_attrs.rs`.
-2.  Port the functionality from `ref/svgo/plugins/sortAttrs.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
-3.  Integrate the new Rust plugin into the `svgn` plugin registry.
-4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
-
----
-**Issue:** Missing `addAttributesToSVGElement` Rust Implementation
-
-**Description:**
-The Rust counterpart for `ref/svgo/plugins/addAttributesToSVGElement.js` is missing. The file `svgn/src/plugins/add_attributes_to_svg_element.rs` does not exist. This plugin adds attributes to the root `<svg>` element.
-
-**Impact:**
-Without this plugin, the `svgn` optimizer will not be able to add attributes to the root SVG element, which is a feature provided by SVGO.
-
-**Proposed Solution:**
-1.  Create the file `svgn/src/plugins/add_attributes_to_svg_element.rs`.
-2.  Port the functionality from `ref/svgo/plugins/addAttributesToSVGElement.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
-3.  Integrate the new Rust plugin into the `svgn` plugin registry.
-4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
-
----
-**Issue:** Missing `addClassesToSVGElement` Rust Implementation
-
-**Description:**
-The Rust counterpart for `ref/svgo/plugins/addClassesToSVGElement.js` is missing. The file `svgn/src/plugins/add_classes_to_svg_element.rs` does not exist. This plugin adds class names to the root `<svg>` element.
-
-**Impact:**
-Without this plugin, the `svgn` optimizer will not be able to add class names to the root SVG element, which is a feature provided by SVGO.
-
-**Proposed Solution:**
-1.  Create the file `svgn/src/plugins/add_classes_to_svg_element.rs`.
-2.  Port the functionality from `ref/svgo/plugins/addClassesToSVGElement.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
-3.  Integrate the new Rust plugin into the `svgn` plugin registry.
-4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
-
----
 **Issue:** Missing `removeAttributesBySelector` Rust Implementation
 
 **Description:**
@@ -43636,132 +44570,356 @@ Without this plugin, the `svgn` optimizer will not be able to remove attributes 
 2.  Port the functionality from `ref/svgo/plugins/removeAttributesBySelector.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
 3.  Integrate the new Rust plugin into the `svgn` plugin registry.
 4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
+
+---
+**Issue:** Missing `removeDeprecatedAttrs` Rust Implementation
+
+**Description:**
+The Rust counterpart for `ref/svgo/plugins/removeDeprecatedAttrs.js` is missing. The file `svgn/src/plugins/remove_deprecated_attrs.rs` does not exist. This plugin removes deprecated attributes from elements.
+
+**Impact:**
+Without this plugin, the `svgn` optimizer will not be able to remove deprecated attributes, which is a feature provided by SVGO.
+
+**Proposed Solution:**
+1.  Create the file `svgn/src/plugins/remove_deprecated_attrs.rs`.
+2.  Port the functionality from `ref/svgo/plugins/removeDeprecatedAttrs.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
+3.  Integrate the new Rust plugin into the `svgn` plugin registry.
+4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
+
+---
+**Issue:** Missing `convertEllipseToCircle` Rust Implementation
+
+**Description:**
+The Rust counterpart for `ref/svgo/plugins/convertEllipseToCircle.js` is missing. The file `svgn/src/plugins/convert_ellipse_to_circle.rs` does not exist. This plugin converts non-eccentric `<ellipse>` elements to `<circle>` elements.
+
+**Impact:**
+Without this plugin, the `svgn` optimizer will not be able to perform this specific shape optimization, which can lead to slightly larger SVG files.
+
+**Proposed Solution:**
+1.  Create the file `svgn/src/plugins/convert_ellipse_to_circle.rs`.
+2.  Port the functionality from `ref/svgo/plugins/convertEllipseToCircle.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
+3.  Integrate the new Rust plugin into the `svgn` plugin registry.
+4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
 </file>
 
-<file path=".specstory/.what-is-this.md">
-# SpecStory Artifacts Directory
+<file path="svgn/src/plugin.rs">
+// this_file: svgn/src/plugin.rs
+
+//! Plugin system for SVG optimization
+//!
+//! This module defines the plugin trait and infrastructure for applying
+//! optimization transformations to SVG documents.
+
+use crate::ast::Document;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::error::Error;
+use std::fmt;
+
+/// Result type for plugin operations
+pub type PluginResult<T> = Result<T, PluginError>;
+
+/// Error type for plugin operations
+#[derive(Debug)]
+pub enum PluginError {
+    /// Invalid configuration parameter
+    InvalidConfig(String),
+    /// Processing error
+    ProcessingError(String),
+    /// I/O error
+    IoError(std::io::Error),
+}
+
+impl fmt::Display for PluginError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PluginError::InvalidConfig(msg) => write!(f, "Invalid configuration: {}", msg),
+            PluginError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
+            PluginError::IoError(err) => write!(f, "I/O error: {}", err),
+        }
+    }
+}
+
+impl Error for PluginError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            PluginError::IoError(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for PluginError {
+    fn from(err: std::io::Error) -> Self {
+        PluginError::IoError(err)
+    }
+}
+
+/// Information passed to plugins during optimization
+#[derive(Default)]
+pub struct PluginInfo {
+    /// Path to the current SVG file (if available)
+    pub path: Option<String>,
+    /// Current multipass count (0-indexed)
+    pub multipass_count: usize,
+}
+
+/// Plugin trait that all optimization plugins must implement
+pub trait Plugin: Send + Sync {
+    /// Plugin name (must be unique)
+    fn name(&self) -> &'static str;
     
-This directory is automatically created and maintained by the SpecStory extension to preserve your AI chat history.
+    /// Plugin description
+    fn description(&self) -> &'static str;
     
-## What's Here?
+    /// Apply the plugin transformation to the document
+    fn apply(&mut self, document: &mut Document, plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()>;
     
-- `.specstory/history`: Contains auto-saved markdown files of your AI coding sessions
-    - Each file represents a separate AI chat session
-    - If you enable auto-save, files are automatically updated as you work
-    - You can enable/disable the auto-save feature in the SpecStory settings, it is disabled by default
-- `.specstory/.project.json`: Contains the persistent project identity for the current workspace
-    - This file is only present if you enable AI rules derivation
-    - This is used to provide consistent project identity of your project, even as the workspace is moved or renamed
-- `.specstory/ai_rules_backups`: Contains backups of the `.cursor/rules/derived-cursor-rules.mdc` or the `.github/copilot-instructions.md` file
-    - Backups are automatically created each time the `.cursor/rules/derived-cursor-rules.mdc` or the `.github/copilot-instructions.md` file is updated
-    - You can enable/disable the AI Rules derivation feature in the SpecStory settings, it is disabled by default
-- `.specstory/.gitignore`: Contains directives to exclude non-essential contents of the `.specstory` directory from version control
-    - Add `/history` to exclude the auto-saved chat history from version control
-
-## Valuable Uses
+    /// Check if the plugin should be applied based on the document
+    /// Default implementation always returns true
+    fn should_apply(&self, _document: &Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> bool {
+        true
+    }
     
-- Capture: Keep your context window up-to-date when starting new Chat/Composer sessions via @ references
-- Search: For previous prompts and code snippets 
-- Learn: Meta-analyze your patterns and learn from your past experiences
-- Derive: Keep the AI on course with your past decisions by automatically deriving rules from your AI interactions
+    /// Validate plugin parameters
+    /// Default implementation accepts any parameters
+    fn validate_params(&self, _params: Option<&Value>) -> PluginResult<()> {
+        Ok(())
+    }
+}
+
+/// Plugin configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginConfig {
+    /// Plugin name
+    pub name: String,
+    /// Plugin parameters
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<Value>,
+    /// Whether the plugin is enabled
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl PluginConfig {
+    /// Create a new plugin configuration
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            params: None,
+            enabled: true,
+        }
+    }
+
+    /// Create a new plugin configuration with parameters
+    pub fn with_params(name: String, params: Value) -> Self {
+        Self {
+            name,
+            params: Some(params),
+            enabled: true,
+        }
+    }
+
+    /// Disable this plugin
+    pub fn disabled(mut self) -> Self {
+        self.enabled = false;
+        self
+    }
+}
+
+/// Plugin registry for managing available plugins
+pub struct PluginRegistry {
+    plugins: Vec<Box<dyn Plugin>>,
+}
+
+impl PluginRegistry {
+    /// Create a new empty plugin registry
+    pub fn new() -> Self {
+        Self {
+            plugins: Vec::new(),
+        }
+    }
+
+    /// Register a plugin
+    pub fn register<P: Plugin + 'static>(&mut self, plugin: P) {
+        self.plugins.push(Box::new(plugin));
+    }
+
+    /// Get a plugin by name
+    pub fn get(&self, name: &str) -> Option<&dyn Plugin> {
+        self.plugins.iter().find(|p| p.name() == name).map(|p| p.as_ref())
+    }
+
+    /// Get a plugin by name (mutable)
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn Plugin> {
+        for plugin in &mut self.plugins {
+            if plugin.name() == name {
+                return Some(plugin.as_mut());
+            }
+        }
+        None
+    }
+
+    /// Get all registered plugin names
+    pub fn plugin_names(&self) -> Vec<&'static str> {
+        self.plugins.iter().map(|p| p.name()).collect()
+    }
+
+    /// Apply a list of plugin configurations to a document
+    pub fn apply_plugins(
+        &mut self,
+        document: &mut Document,
+        configs: &[PluginConfig],
+        plugin_info: &PluginInfo,
+    ) -> PluginResult<()> {
+        for config in configs {
+            if !config.enabled {
+                continue;
+            }
+
+            let plugin = self.get_mut(&config.name).ok_or_else(|| {
+                PluginError::InvalidConfig(format!("Unknown plugin: {}", config.name))
+            })?;
+
+            // Validate parameters
+            plugin.validate_params(config.params.as_ref())?;
+
+            // Check if plugin should be applied
+            if !plugin.should_apply(document, plugin_info, config.params.as_ref()) {
+                continue;
+            }
+
+            // Apply the plugin
+            plugin.apply(document, plugin_info, config.params.as_ref())?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Default for PluginRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Create the default plugin registry with all built-in plugins
+pub fn create_default_registry() -> PluginRegistry {
+    let mut registry = PluginRegistry::new();
     
-## Version Control
+    // Register built-in plugins
+    registry.register(crate::plugins::CleanupAttrsPlugin);
+    registry.register(crate::plugins::CleanupEnableBackgroundPlugin);
+    registry.register(crate::plugins::CleanupIdsPlugin);
+    registry.register(crate::plugins::CleanupListOfValuesPlugin);
+    registry.register(crate::plugins::CleanupNumericValuesPlugin);
+    registry.register(crate::plugins::RemoveCommentsPlugin);
+    registry.register(crate::plugins::RemoveDescPlugin);
+    registry.register(crate::plugins::RemoveDoctypePlugin);
+    registry.register(crate::plugins::RemoveEmptyAttrsPlugin);
+    registry.register(crate::plugins::RemoveEmptyContainersPlugin);
+    registry.register(crate::plugins::RemoveEmptyTextPlugin);
+    registry.register(crate::plugins::RemoveAttrsPlugin);
+    registry.register(crate::plugins::RemoveMetadataPlugin);
+    registry.register(crate::plugins::RemoveTitlePlugin);
+    registry.register(crate::plugins::RemoveUnknownsAndDefaultsPlugin);
+    registry.register(crate::plugins::RemoveXMLProcInstPlugin);
+    registry.register(crate::plugins::SortAttrsPlugin);
+    registry.register(crate::plugins::RemoveStyleElement);
+    registry.register(crate::plugins::MergeStylesPlugin);
+    registry.register(crate::plugins::ConvertStyleToAttrsPlugin);
+    registry.register(crate::plugins::ConvertColorsPlugin);
+    registry.register(crate::plugins::AddAttributesToSVGElementPlugin);
+    registry.register(crate::plugins::AddClassesToSVGElementPlugin);
     
-We recommend keeping this directory under version control to maintain a history of your AI interactions. However, if you prefer not to version these files, you can exclude them by adding this to your `.gitignore`:
-    
-```
-.specstory/**
-```
+    registry
+}
 
-We recommend __not__ keeping the `.specstory/ai_rules_backups` directory under version control if you are already using git to version your AI rules, and committing regularly. You can exclude it by adding this to your `.gitignore`:
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
 
-```
-.specstory/ai_rules_backups
-```
+    // Test plugin for unit tests
+    struct TestPlugin {
+        name: &'static str,
+    }
 
-## Searching Your Codebase
-    
-When searching your codebase, search results may include your previous AI coding interactions. To focus solely on your actual code files, you can exclude the AI interaction history from search results.
-    
-To exclude AI interaction history:
-    
-1. Open the "Find in Files" search in Cursor or VSCode (Cmd/Ctrl + Shift + F)
-2. Navigate to the "files to exclude" section
-3. Add the following pattern:
-    
-```
-.specstory/*
-```
-    
-This will ensure your searches only return results from your working codebase files.
+    impl Plugin for TestPlugin {
+        fn name(&self) -> &'static str {
+            self.name
+        }
 
-## Notes
+        fn description(&self) -> &'static str {
+            "Test plugin"
+        }
 
-- Auto-save only works when Cursor or VSCode flushes sqlite database data to disk. This results in a small delay after the AI response is complete before SpecStory can save the history.
+        fn apply(&mut self, _document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+            Ok(())
+        }
+    }
 
-## Settings
-    
-You can control auto-saving behavior in Cursor or VSCode:
-    
-1. Open Cursor/Code → Settings → VS Code Settings (Cmd/Ctrl + ,)
-2. Search for "SpecStory"
-3. Find "Auto Save" setting to enable/disable
-    
-Auto-save occurs when changes are detected in the sqlite database, or every 2 minutes as a safety net.
-</file>
+    #[test]
+    fn test_plugin_registry() {
+        let mut registry = PluginRegistry::new();
+        registry.register(TestPlugin { name: "test" });
 
-<file path=".gitignore">
-# Generated by Cargo
-# will have compiled files and executables
-debug
-target
+        assert!(registry.get("test").is_some());
+        assert!(registry.get("nonexistent").is_none());
+        assert_eq!(registry.plugin_names(), vec!["test"]);
+    }
 
-# These are backup files generated by rustfmt
-**/*.rs.bk
+    #[test]
+    fn test_plugin_config() {
+        let config = PluginConfig::new("test".to_string());
+        assert_eq!(config.name, "test");
+        assert!(config.enabled);
+        assert!(config.params.is_none());
 
-# MSVC Windows builds of rustc generate these, which store debugging information
-*.pdb
+        let config_with_params = PluginConfig::with_params(
+            "test".to_string(),
+            json!({"option": "value"})
+        );
+        assert!(config_with_params.params.is_some());
 
-# Generated by cargo mutants
-# Contains mutation testing data
-**/mutants.out*/
+        let disabled_config = PluginConfig::new("test".to_string()).disabled();
+        assert!(!disabled_config.enabled);
+    }
 
-# RustRover
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-</file>
+    #[test]
+    fn test_apply_plugins() {
+        let mut registry = PluginRegistry::new();
+        registry.register(TestPlugin { name: "test" });
 
-<file path="LICENSE">
-MIT License
+        let mut document = Document::new();
+        let configs = vec![PluginConfig::new("test".to_string())];
 
-Copyright (c) 2025 Adam Twardoch
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
+        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
+        assert!(result.is_ok());
+    }
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    #[test]
+    fn test_apply_unknown_plugin() {
+        let mut registry = PluginRegistry::new();
+        let mut document = Document::new();
+        let configs = vec![PluginConfig::new("unknown".to_string())];
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</file>
-
-<file path="README.md">
-# `svgn`
-
-`svgn` is an API-compatible native Rust port of `ref/svgo`, the JS SVG optimizer, along with all its plugins. It can be integrated into desktop and CLI workflows, or transpiled to Wasm for use in web applications. It is aimed to be extremely fast, and to be functionally fully compatible with `svgo`.
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
+        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
+        assert!(result.is_err());
+    }
+}
 </file>
 
 </files>

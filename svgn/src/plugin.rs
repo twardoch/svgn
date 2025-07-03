@@ -151,7 +151,12 @@ impl PluginRegistry {
 
     /// Get a plugin by name (mutable)
     pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn Plugin> {
-        self.plugins.iter_mut().find(|p| p.name() == name).map(|p| &mut **p)
+        for plugin in &mut self.plugins {
+            if plugin.name() == name {
+                return Some(plugin.as_mut());
+            }
+        }
+        None
     }
 
     /// Get all registered plugin names
@@ -222,6 +227,9 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::RemoveStyleElement);
     registry.register(crate::plugins::MergeStylesPlugin);
     registry.register(crate::plugins::ConvertStyleToAttrsPlugin);
+    registry.register(crate::plugins::ConvertColorsPlugin);
+    registry.register(crate::plugins::AddAttributesToSVGElementPlugin);
+    registry.register(crate::plugins::AddClassesToSVGElementPlugin);
     
     registry
 }

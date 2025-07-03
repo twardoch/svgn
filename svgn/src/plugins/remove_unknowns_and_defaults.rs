@@ -478,7 +478,7 @@ mod tests {
         document2.root = element2;
 
         let params = json!({"keepRoleAttr": true});
-        plugin.apply(&mut document2, Some(&params)).unwrap();
+        plugin.apply(&mut document2, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
         assert!(document2.root.has_attr("role")); // preserved
     }
 

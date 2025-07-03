@@ -297,3 +297,53 @@ Completed plugins (9 total):
 - Style handling capabilities significantly enhanced
 - Foundation laid for more complex CSS-based optimizations (minifyStyles, inlineStyles)
 - Plugin system continues to prove robust for diverse optimization tasks
+
+## [0.1.11] - 2025-07-03
+
+### Added
+- ✅ Fixed Plugin trait compilation issues by adding PluginInfo parameter
+  - Updated all 20+ existing plugins to use new signature with plugin_info parameter
+  - Added Default implementation for PluginInfo struct
+  - Fixed lifetime issues in PluginRegistry methods
+  - All tests now passing with improved plugin architecture
+- ✅ Implemented `convertColors` plugin with comprehensive color format conversion:
+  - Color names to hex (fuchsia → #ff00ff)  
+  - RGB to hex (rgb(255, 0, 255) → #ff00ff)
+  - Long hex to short hex (#aabbcc → #abc)
+  - Hex to short names (#000080 → navy)
+  - Support for percentage-based RGB values
+  - Configurable color conversion options (names2hex, rgb2hex, shorthex, shortname, convertCase)
+- ✅ Implemented `addAttributesToSVGElement` plugin:
+  - Adds attributes to the root <svg> element only
+  - Supports single attribute or multiple attributes configuration
+  - Supports both simple attribute names and name-value pairs
+  - Preserves existing attributes (no overwriting)
+  - Comprehensive parameter validation
+- ✅ Implemented `addClassesToSVGElement` plugin:
+  - Adds CSS class names to the root <svg> element
+  - Handles single className or multiple classNames
+  - Intelligently merges with existing class attributes
+  - Removes duplicates and empty class names
+  - Maintains sorted output for consistency
+
+### Technical Achievements
+- ✅ Enhanced Plugin trait with PluginInfo parameter for file path and multipass context
+- ✅ Added comprehensive color conversion algorithms with full SVG color name support (140+ colors)
+- ✅ Regex-based RGB parsing supporting both numeric and percentage values
+- ✅ Smart hex shortening algorithm (#aabbcc → #abc when applicable)
+- ✅ Class attribute parsing and manipulation with HashSet deduplication
+- ✅ Advanced parameter validation for complex plugin configurations
+- ✅ All plugins maintain API compatibility with SVGO's JavaScript implementation
+
+### Testing & Quality
+- ✅ 160+ total tests now passing (up from 150+ tests)
+- ✅ Comprehensive test coverage for all color conversion scenarios
+- ✅ Edge case testing for attribute and class manipulation
+- ✅ Parameter validation testing for all new plugins
+- ✅ Integration testing confirms all plugins work together seamlessly
+
+### Progress Summary
+- 23 plugins now implemented out of 50+ total plugins (46% complete)
+- Significant progress in essential attribute and color optimization plugins
+- Plugin architecture enhanced with PluginInfo support for advanced optimizations
+- Ready for next phase: Transform and Path Optimizers (convertTransform, convertPathData)

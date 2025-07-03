@@ -127,7 +127,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should remove enable-background when no filter is present
@@ -146,7 +146,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should remove enable-background even with filter when dimensions match
@@ -164,7 +164,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should keep enable-background when dimensions don't match
@@ -185,7 +185,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupEnableBackgroundPlugin;
+        let mut plugin = CleanupEnableBackgroundPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check mask - should be simplified to "new"

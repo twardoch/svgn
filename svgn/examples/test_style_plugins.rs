@@ -2,7 +2,7 @@
 
 use svgn::ast::{Document, Element, Node};
 use svgn::parser::Parser;
-use svgn::stringifier::{Stringifier, Js2SvgOptions};
+use svgn::stringifier::Stringifier;
 use svgn::plugin::{Plugin, PluginInfo};
 use svgn::plugins::{RemoveStyleElement, MergeStylesPlugin, ConvertStyleToAttrsPlugin};
 
@@ -22,7 +22,7 @@ fn main() {
     plugin1.apply(&mut doc1, &plugin_info, None).unwrap();
     
     let stringifier = Stringifier::new();
-    let output1 = stringifier.stringify(&doc1, &Js2SvgOptions::default()).unwrap();
+    let output1 = stringifier.stringify(&doc1).unwrap();
     println!("Original:\n{}", svg1);
     println!("After RemoveStyleElement:\n{}\n", output1);
     
@@ -39,7 +39,7 @@ fn main() {
     let mut plugin2 = MergeStylesPlugin;
     plugin2.apply(&mut doc2, &plugin_info, None).unwrap();
     
-    let output2 = stringifier.stringify(&doc2, &Js2SvgOptions::default()).unwrap();
+    let output2 = stringifier.stringify(&doc2).unwrap();
     println!("Original:\n{}", svg2);
     println!("After MergeStyles:\n{}\n", output2);
     
@@ -54,7 +54,7 @@ fn main() {
     let mut plugin3 = ConvertStyleToAttrsPlugin;
     plugin3.apply(&mut doc3, &plugin_info, None).unwrap();
     
-    let output3 = stringifier.stringify(&doc3, &Js2SvgOptions::default()).unwrap();
+    let output3 = stringifier.stringify(&doc3).unwrap();
     println!("Original:\n{}", svg3);
     println!("After ConvertStyleToAttrs:\n{}", output3);
 }
