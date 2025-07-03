@@ -325,6 +325,69 @@ pub static COLORS_PROPS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     ])
 });
 
+/// Animation elements in SVG
+pub static ANIMATION_ELEMS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "animate",
+        "animateColor",
+        "animateMotion",
+        "animateTransform",
+        "set",
+    ])
+});
+
+/// Inheritable attributes in SVG
+pub static INHERITABLE_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "clip-rule",
+        "color-interpolation-filters",
+        "color-interpolation",
+        "color-profile",
+        "color-rendering",
+        "color",
+        "cursor",
+        "direction",
+        "display",
+        "dominant-baseline",
+        "fill-opacity",
+        "fill-rule",
+        "fill",
+        "font-family",
+        "font-size-adjust",
+        "font-size",
+        "font-stretch",
+        "font-style",
+        "font-variant",
+        "font-weight",
+        "font",
+        "glyph-orientation-horizontal",
+        "glyph-orientation-vertical",
+        "image-rendering",
+        "letter-spacing",
+        "marker-end",
+        "marker-mid",
+        "marker-start",
+        "marker",
+        "paint-order",
+        "pointer-events",
+        "shape-rendering",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-miterlimit",
+        "stroke-opacity",
+        "stroke-width",
+        "stroke",
+        "text-anchor",
+        "text-rendering",
+        "transform",
+        "visibility",
+        "word-spacing",
+        "writing-mode",
+    ])
+});
+
 /// SVG presentation attributes that can be set as attributes
 pub static PRESENTATION_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     HashSet::from([
