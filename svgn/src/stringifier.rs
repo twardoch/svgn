@@ -6,7 +6,7 @@
 //! SVG strings with configurable formatting options.
 
 use crate::ast::{Document, Element, Node};
-use crate::config::QuoteAttrsStyle;
+use crate::config::{QuoteAttrsStyle, LineEnding};
 use std::fmt::Write;
 use thiserror::Error;
 
@@ -35,6 +35,10 @@ pub struct Stringifier {
     self_closing: bool,
     /// How to quote attributes
     quote_attrs: QuoteAttrsStyle,
+    /// Line ending style
+    eol: LineEnding,
+    /// Add final newline
+    final_newline: bool,
 }
 
 impl Stringifier {
@@ -46,6 +50,8 @@ impl Stringifier {
             current_indent: 0,
             self_closing: true,
             quote_attrs: QuoteAttrsStyle::Auto,
+            eol: LineEnding::default(),
+            final_newline: false,
         }
     }
 
@@ -76,6 +82,18 @@ impl Stringifier {
     /// Set attribute quoting style
     pub fn quote_attrs(mut self, style: QuoteAttrsStyle) -> Self {
         self.quote_attrs = style;
+        self
+    }
+    
+    /// Set line ending style
+    pub fn eol(mut self, eol: LineEnding) -> Self {
+        self.eol = eol;
+        self
+    }
+    
+    /// Set final newline
+    pub fn final_newline(mut self, final_newline: bool) -> Self {
+        self.final_newline = final_newline;
         self
     }
 
@@ -120,6 +138,17 @@ impl Stringifier {
         }
 
         Ok(output)
+    }
+    
+    /// Write a newline with the configured line ending
+    fn write_newline(&self, output: &mut String) -> StringifyResult<()> {
+        output.push_str(self.eol.as_str());
+        Ok(())
+    }
+    
+    /// Check if string ends with any kind of newline
+    fn ends_with_newline(&self, s: &str) -> bool {
+        s.ends_with('\n') || s.ends_with("\r\n")
     }
 
     /// Stringify an element

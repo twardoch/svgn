@@ -1,5 +1,137 @@
 # svgn Changelog
 
+## Documentation and Plugin Analysis Update (2025-01-07)
+
+### Overview
+Conducted comprehensive analysis of SVGO v4 plugin system and updated all documentation to reflect accurate plugin counts and implementation status.
+
+### Key Findings
+- **SVGO v4 Total Plugins**: 53 (not 54 as previously documented)
+- **SVGN Implementation**: 46/53 plugins (87% coverage)
+- **Remaining Plugins**: 7 complex plugins to implement
+- **Missing Default Plugin**: `removeUselessStrokeAndFill` not implemented
+
+### Documentation Updates ✅
+
+#### Updated Files
+1. **docs/plugins.md**:
+   - Corrected plugin counts (46/53 implemented)
+   - Added complete SVGO v4 default preset order
+   - Noted `removeUselessStrokeAndFill` is missing from implementation
+   - Clarified that `removeRasterImages` and `removeScripts` ARE implemented
+
+2. **docs/comparison.md**:
+   - Updated plugin coverage to 87% (46/53)
+   - Corrected list of implemented vs unimplemented plugins
+   - Added note about `removeUselessStrokeAndFill`
+
+3. **PLAN.md**:
+   - Enhanced with detailed specifications for all 7+1 missing plugins
+   - Added comprehensive parameter lists for each plugin
+   - Included implementation approaches and complexity assessments
+   - Added specific features and algorithms required
+
+4. **TODO.md**:
+   - Updated plugin counts throughout
+   - Added separate section for missing default preset plugin
+   - Corrected progress metrics
+
+### Missing Plugin Specifications Added
+
+#### Path Optimization
+- **convertPathData**: Detailed algorithm requirements, parameter list, lyon geometry integration approach
+- **mergePaths**: Path combining logic, attribute handling
+- **reusePaths**: Deduplication strategy, <use> element creation
+
+#### Transform Processing  
+- **convertTransform**: Matrix math requirements, optimization strategies
+- **removeUselessTransforms**: Identity transform patterns to detect
+
+#### Style Management
+- **inlineStyles**: CSS parsing requirements, specificity calculation, cascade handling
+
+#### Structural Optimization
+- **moveElemsAttrsToGroup**: Attribute analysis, inheritance rules
+- **moveGroupAttrsToElems**: Distribution logic, empty group removal
+- **removeUselessStrokeAndFill**: SVG rendering model, default value handling
+
+### Technical Accuracy Improvements
+- Verified against official SVGO v4 documentation
+- Cross-referenced with SVGO GitHub repository
+- Confirmed plugin names and descriptions
+- Validated default preset composition
+
+## CLI Compatibility Enhancement - SVGO Feature Parity (2025-01-03)
+
+### Overview
+Implemented comprehensive CLI enhancements to achieve full SVGO command-line compatibility. The CLI now supports all major SVGO features including STDIN/STDOUT, string input, precision control, and advanced folder processing.
+
+### New CLI Features ✅
+
+#### Core I/O Features
+- **STDIN/STDOUT Support**: 
+  - Default behavior: No arguments → read from STDIN, write to STDOUT
+  - Explicit: `-i -` for STDIN, `-o -` for STDOUT
+  - Full unix pipe compatibility
+  
+- **String Input** (`-s, --string <STRING>`):
+  - Direct SVG string optimization without file I/O
+  - Example: `svgn -s '<svg>...</svg>'`
+  
+- **Positional Arguments**:
+  - Support for `svgn file.svg` without requiring `-i`
+  - Multiple input files supported
+
+#### Essential Features
+- **Precision Control** (`-p, --precision <INTEGER>`):
+  - Override decimal precision for all numeric plugins
+  - Applied to: cleanupNumericValues, cleanupListOfValues, convertPathData, convertTransform
+  
+- **Plugin Discovery** (`--show-plugins`):
+  - List all 45+ available plugins with descriptions
+  - Helps users understand optimization options
+  
+- **Output Formatting**:
+  - `--indent <INTEGER>`: Control indentation spaces (not just on/off)
+  - `--eol <lf|crlf>`: Line ending control with platform defaults
+  - `--final-newline`: Ensure trailing newline
+
+#### Folder Processing
+- **Recursive Processing** (`-r, --recursive`):
+  - Walk directory tree recursively
+  - Process all SVG files in subdirectories
+  
+- **Exclusion Patterns** (`--exclude <PATTERN...>`):
+  - Regex patterns for file exclusion
+  - Multiple patterns supported
+
+#### Status Control
+- **Color Control** (`--no-color`):
+  - Disable ANSI color codes in output
+  - Respects NO_COLOR environment variable
+  
+- **Quiet Mode** (`-q, --quiet`):
+  - Enhanced to match SVGO behavior exactly
+
+### Technical Implementation
+
+#### New Types and Structures
+- Added `LineEnding` enum with platform-aware defaults
+- Enhanced `Js2SvgOptions` with `eol` and `final_newline` fields
+- Implemented `InputMode` and `OutputMode` enums for I/O handling
+
+#### Architecture Changes
+- Refactored CLI argument parsing for mutual exclusivity
+- Implemented proper I/O mode determination logic
+- Added precision override mechanism for numeric plugins
+- Enhanced stringifier with configurable line endings
+
+### Breaking Changes
+None - all changes are backward compatible.
+
+### Migration from SVGO
+The CLI is now a drop-in replacement for SVGO's CLI with identical syntax and behavior.
+
 ## Test Suite Complete Success (2025-07-03)
 
 ### All Tests Now Passing ✅

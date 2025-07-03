@@ -17,42 +17,121 @@ In `svgn`, plugins are implemented as Rust functions or structs that operate on 
 
 ## Default Preset
 
-`svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. The specific plugins included in the default preset and their order of execution will mirror `svgo`'s `preset-default` as closely as possible.
+`svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. 
 
-## Ported Plugins
+The default preset currently includes all implemented plugins that are part of SVGO's default preset. Note that some complex plugins from SVGO's default preset (convertPathData, convertTransform, inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems) are not yet implemented and are temporarily excluded from the default configuration.
 
-The following `svgo` plugins have been ported to `svgn`:
+### SVGO v4 Default Preset Order
 
--   **`addAttributesToSVGElement`**: Adds attributes to the root `<svg>` element.
--   **`addClassesToSVGElement`**: Adds class names to the root `<svg>` element.
--   **`cleanupAttrs`**: Cleans up attributes from newlines, trailing, and repeating spaces.
--   **`cleanupEnableBackground`**: Removes or cleans up the `enable-background` attribute.
--   **`cleanupIds`**: Minifies and removes unused IDs.
--   **`cleanupListOfValues`**: Rounds numeric values in attributes that have a list of numbers (like `viewBox` or `stroke-dasharray`).
--   **`cleanupNumericValues`**: Rounds numeric values to a fixed precision.
--   **`collapseGroups`**: Collapses useless groups (`<g>`).
--   **`convertColors`**: Converts colors from `rgb()` to `#rrggbb`, `rgba()` to `#rrggbbaa`, and color names to hex values.
--   **`convertEllipseToCircle`**: Converts `<ellipse>` elements to `<circle>` elements when possible.
--   **`convertOneStopGradients`**: Converts gradients with only one stop to a solid color.
--   **`convertStyleToAttrs`**: Converts styles from `<style>` elements to attributes.
--   **`mergeStyles`**: Merges multiple `<style>` elements into one.
--   **`removeAttributesBySelector`**: Removes attributes of elements that match a CSS selector.
--   **`removeAttrs`**: Removes attributes by name.
--   **`removeComments`**: Removes comments.
--   **`removeDeprecatedAttrs`**: Removes deprecated attributes.
--   **`removeDesc`**: Removes `<desc>` elements.
--   **`removeDoctype`**: Removes doctype declarations.
--   **`removeEmptyAttrs`**: Removes empty attributes.
--   **`removeEmptyContainers`**: Removes empty container elements.
--   **`removeEmptyText`**: Removes empty text elements.
--   **`removeMetadata`**: Removes `<metadata>` elements.
--   **`removeStyleElement`**: Removes `<style>` elements.
--   **`removeTitle`**: Removes `<title>` elements.
--   **`removeUnknownsAndDefaults`**: Removes unknown elements' content and attributes, and removes default attribute values.
--   **`removeXMLProcInst`**: Removes XML processing instructions.
--   **`sortAttrs`**: Sorts element attributes for better gzip compression.
+The SVGO v4 default preset runs plugins in this specific order:
+1. removeDoctype
+2. removeXMLProcInst
+3. removeComments
+4. removeMetadata
+5. removeEditorsNSData
+6. cleanupAttrs
+7. mergeStyles
+8. inlineStyles (not yet implemented)
+9. minifyStyles
+10. cleanupIds
+11. removeUselessDefs
+12. cleanupNumericValues
+13. convertColors
+14. removeUnknownsAndDefaults
+15. removeNonInheritableGroupAttrs
+16. removeUselessStrokeAndFill (not implemented - see note)
+17. cleanupEnableBackground
+18. removeHiddenElems
+19. removeEmptyText
+20. convertShapeToPath
+21. convertEllipseToCircle
+22. moveElemsAttrsToGroup (not yet implemented)
+23. moveGroupAttrsToElems (not yet implemented)
+24. collapseGroups
+25. convertPathData (stub implementation)
+26. convertTransform (not yet implemented)
+27. removeEmptyAttrs
+28. removeEmptyContainers
+29. removeUnusedNS
+30. mergePaths (not yet implemented)
+31. sortAttrs
+32. sortDefsChildren
+33. removeDesc
 
-*(This list will be updated as more plugins are ported and verified.)*
+Note: `removeUselessStrokeAndFill` is listed in SVGO's default preset but is not implemented in svgn. This functionality might be partially covered by other attribute removal plugins.
+
+## Implementation Status
+
+### Fully Implemented Plugins (46/53)
+
+The following `svgo` plugins have been successfully ported to `svgn`:
+
+#### Basic Optimization Plugins
+-   **`cleanupAttrs`**: Cleans up attributes from newlines, trailing, and repeating spaces
+-   **`cleanupEnableBackground`**: Removes or cleans up the `enable-background` attribute
+-   **`cleanupIds`**: Minifies and removes unused IDs
+-   **`cleanupListOfValues`**: Rounds numeric values in attributes that have a list of numbers
+-   **`cleanupNumericValues`**: Rounds numeric values to a fixed precision
+-   **`removeComments`**: Removes comments (preserves legal comments starting with `!`)
+-   **`removeDesc`**: Removes `<desc>` elements
+-   **`removeDoctype`**: Removes doctype declarations
+-   **`removeEmptyAttrs`**: Removes empty attributes
+-   **`removeEmptyContainers`**: Removes empty container elements
+-   **`removeEmptyText`**: Removes empty text elements
+-   **`removeMetadata`**: Removes `<metadata>` elements
+-   **`removeTitle`**: Removes `<title>` elements
+-   **`removeXMLProcInst`**: Removes XML processing instructions
+-   **`sortAttrs`**: Sorts element attributes for better gzip compression
+-   **`sortDefsChildren`**: Sorts children of `<defs>` to improve compression
+
+#### Style and Color Plugins
+-   **`convertColors`**: Converts colors to hex format (rgb→#rrggbb, names→hex)
+-   **`convertStyleToAttrs`**: Converts styles from style attributes to presentation attributes
+-   **`mergeStyles`**: Merges multiple `<style>` elements into one
+-   **`minifyStyles`**: Basic CSS minification (removes comments, normalizes whitespace)
+-   **`removeStyleElement`**: Removes `<style>` elements
+
+#### Structure Optimization Plugins
+-   **`collapseGroups`**: Collapses useless groups (`<g>`)
+-   **`convertEllipseToCircle`**: Converts `<ellipse>` to `<circle>` when possible
+-   **`convertOneStopGradients`**: Converts single-stop gradients to solid colors
+-   **`convertShapeToPath`**: Converts basic shapes to `<path>` elements
+-   **`removeHiddenElems`**: Removes hidden elements (display:none, visibility:hidden)
+-   **`removeNonInheritableGroupAttrs`**: Removes non-inheritable group attributes
+-   **`removeOffCanvasPaths`**: Removes elements outside the viewBox
+-   **`removeUselessDefs`**: Removes `<defs>` elements without IDs
+-   **`removeUselessStrokeAndFill`**: Removes unnecessary stroke and fill attributes
+-   **`removeUselessTransforms`**: Removes identity transforms
+
+#### Attribute Management Plugins
+-   **`addAttributesToSVGElement`**: Adds attributes to the root `<svg>` element
+-   **`addClassesToSVGElement`**: Adds class names to the root `<svg>` element
+-   **`prefixIds`**: Adds a prefix to IDs
+-   **`removeAttrs`**: Removes attributes by pattern/name
+-   **`removeAttributesBySelector`**: Removes attributes matching CSS selectors
+-   **`removeDeprecatedAttrs`**: Removes deprecated SVG attributes
+-   **`removeDimensions`**: Removes width/height attributes (preserves viewBox)
+-   **`removeEditorsNSData`**: Removes editor namespaces and metadata
+-   **`removeElementsByAttr`**: Removes elements by ID or class
+-   **`removeUnknownsAndDefaults`**: Removes unknown elements and default values
+-   **`removeUnusedNS`**: Removes unused namespace declarations
+-   **`removeViewBox`**: Removes viewBox when possible
+-   **`removeXlink`**: Removes deprecated xlink attributes
+-   **`removeXMLNS`**: Removes xmlns attribute from root element
+
+### Not Yet Implemented (7/53)
+
+These complex plugins require additional work:
+
+-   **`convertPathData`**: Complex path optimization (stub implementation exists)
+-   **`convertTransform`**: Transform matrix optimization and simplification
+-   **`inlineStyles`**: Inline styles from `<style>` elements to style attributes
+-   **`mergePaths`**: Merge multiple paths into one
+-   **`moveElemsAttrsToGroup`**: Move common attributes to parent group
+-   **`moveGroupAttrsToElems`**: Move group attributes to child elements
+-   **`reusePaths`**: Replace duplicate paths with `<use>` elements
+
+Note: `removeRasterImages` and `removeScripts` are actually implemented in svgn.
 
 ## Plugin Configuration
 
@@ -60,7 +139,13 @@ Configuring plugins in `svgn` is similar to `svgo`. You can enable or disable pl
 
 ### Example: Disabling a Plugin
 
-To disable a plugin, you would omit it from your `plugins` list in the `SvgnConfig` or explicitly set it to `false` if using a preset override mechanism (which will be implemented to mirror `svgo`'s behavior).
+To disable a plugin from the command line:
+
+```bash
+svgn input.svg -o output.svg --disable removeComments
+```
+
+Or in Rust code, omit it from your `plugins` list in the `SvgnConfig`.
 
 ### Example: Configuring a Plugin with Parameters
 
@@ -83,3 +168,13 @@ let config = SvgnConfig {
 ```
 
 This example demonstrates how to configure the `cleanupNumericValues` plugin to round to 2 decimal places and keep leading zeros, mirroring `svgo`'s parameter structure.
+
+### Viewing Available Plugins
+
+To see all available plugins with their descriptions:
+
+```bash
+svgn --show-plugins
+```
+
+This will list all 45 implemented plugins, making it easy to understand what optimizations are available.

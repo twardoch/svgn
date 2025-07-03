@@ -11,7 +11,7 @@ description: "How to use SVGN CLI and library"
 
 ## Command-Line Interface (CLI)
 
-`svgn` offers a command-line interface for direct file optimization, similar to `svgo`.
+`svgn` offers a command-line interface with full SVGO compatibility and additional enhancements.
 
 ### Basic Usage
 
@@ -21,28 +21,87 @@ To optimize a single SVG file:
 svgn input.svg -o output.svg
 ```
 
-To optimize all SVG files in a folder and overwrite them:
+To use STDIN/STDOUT (default behavior when no arguments provided):
+
+```bash
+cat input.svg | svgn > output.svg
+# or explicitly
+svgn -i - -o -
+```
+
+To optimize a string directly:
+
+```bash
+svgn -s '<svg>...</svg>'
+```
+
+To optimize all SVG files in a folder:
 
 ```bash
 svgn -f input_folder
+# With recursive processing
+svgn -f input_folder -r
+# With exclusion patterns
+svgn -f input_folder -r --exclude "node_modules|build"
 ```
 
 ### Options
 
-`svgn` CLI options largely mirror `svgo`'s, providing a familiar experience:
+`svgn` CLI options provide full `svgo` compatibility with additional features:
 
--   `-i, --input <file|dir>`: Input file or directory. (Similar to `svgo`)
--   `-o, --output <file|dir>`: Output file or directory. (Similar to `svgo`)
--   `-f, --folder <dir>`: Input folder, optimize and rewrite all `*.svg` files. (Similar to `svgo`)
--   `-p, --pretty`: Make SVG pretty printed. (Similar to `svgo`)
--   `--config <file>`: Custom config file. (Similar to `svgo`)
--   `--disable <plugin_name>`: Disable a plugin by name. (Similar to `svgo`)
--   `--enable <plugin_name>`: Enable a plugin by name. (Similar to `svgo`)
--   `--datauri <type>`: Output as Data URI string (`'base64'`, `'enc'`, or `'unenc'`). (Similar to `svgo`)
--   `--multipass`: Optimize SVG multiple times. (Similar to `svgo`)
--   `--quiet`: Only output error messages. (Similar to `svgo`)
--   `-v, --version`: Show version.
--   `-h, --help`: Show help.
+#### Input/Output Options
+-   `-i, --input <FILE|DIR|->`: Input file, directory, or STDIN (`-`). Default: STDIN if no args
+-   `-o, --output <FILE|DIR|->`: Output file, directory, or STDOUT (`-`). Default: STDOUT if no input file
+-   `-s, --string <STRING>`: Process SVG string directly without file I/O
+-   `-f, --folder <DIR>`: Process all SVG files in folder
+-   `-r, --recursive`: Process folders recursively
+-   `--exclude <PATTERN...>`: Exclude files matching regex patterns
+
+#### Formatting Options
+-   `--pretty`: Pretty print output SVG
+-   `--indent <NUM>`: Indentation spaces (default: 2)
+-   `--eol <lf|crlf>`: Line ending style (default: platform-specific)
+-   `--final-newline`: Ensure trailing newline
+-   `-p, --precision <NUM>`: Set numeric precision for all plugins
+
+#### Plugin Options
+-   `--config <FILE>`: Custom config file
+-   `--disable <PLUGIN>`: Disable a plugin
+-   `--enable <PLUGIN>`: Enable a plugin
+-   `--show-plugins`: List all available plugins
+
+#### Output Options
+-   `--datauri <base64|enc|unenc>`: Output as Data URI
+-   `--multipass`: Run optimizations multiple times
+-   `-q, --quiet`: Only show error messages
+-   `--no-color`: Disable colored output
+
+#### Other Options
+-   `-v, --version`: Show version
+-   `-h, --help`: Show help
+
+### CLI Examples
+
+```bash
+# Process multiple files
+svgn icon1.svg icon2.svg icon3.svg
+
+# Use default STDIN/STDOUT behavior
+svgn < input.svg > output.svg
+
+# Optimize with specific precision
+svgn input.svg -o output.svg -p 3
+
+# Pretty print with 4-space indentation
+svgn input.svg -o output.svg --pretty --indent 4
+
+# Process folder with exclusions
+svgn -f ./assets -r --exclude "temp|backup" --exclude ".*\.min\.svg"
+
+# Show optimization statistics
+svgn large-file.svg -o optimized.svg
+# Output: Optimized: 10.5 KB → 7.2 KB (31.4% reduction)
+```
 
 ## As a Rust Library
 

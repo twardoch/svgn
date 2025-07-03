@@ -171,7 +171,9 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
         let stringifier = Stringifier::new()
             .pretty(config.js2svg.pretty)
             .indent(config.js2svg.indent)
-            .self_closing(config.js2svg.self_closing);
+            .self_closing(config.js2svg.self_closing)
+            .eol(config.js2svg.eol)
+            .final_newline(config.js2svg.final_newline);
 
         let current_output = stringifier.stringify(&document)?;
 

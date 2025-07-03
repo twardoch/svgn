@@ -74,6 +74,14 @@ pub struct Js2SvgOptions {
     /// Quote attributes (always, never, auto)
     #[serde(default = "default_quote_attrs")]
     pub quote_attrs: QuoteAttrsStyle,
+    
+    /// Line ending style
+    #[serde(default)]
+    pub eol: LineEnding,
+    
+    /// Ensure final newline
+    #[serde(default)]
+    pub final_newline: bool,
 }
 
 /// Data URI output formats
@@ -98,6 +106,34 @@ pub enum QuoteAttrsStyle {
     Never,
     /// Automatically decide based on content
     Auto,
+}
+
+/// Line ending style
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LineEnding {
+    /// Unix line endings (\n)
+    Lf,
+    /// Windows line endings (\r\n)
+    Crlf,
+}
+
+impl Default for LineEnding {
+    fn default() -> Self {
+        #[cfg(windows)]
+        return LineEnding::Crlf;
+        #[cfg(not(windows))]
+        return LineEnding::Lf;
+    }
+}
+
+impl LineEnding {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LineEnding::Lf => "\n",
+            LineEnding::Crlf => "\r\n",
+        }
+    }
 }
 
 /// Parser configuration options
@@ -130,6 +166,8 @@ impl Default for Js2SvgOptions {
             indent: 2,
             self_closing: true,
             quote_attrs: QuoteAttrsStyle::Auto,
+            eol: LineEnding::default(),
+            final_newline: false,
         }
     }
 }
