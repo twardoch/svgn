@@ -49,6 +49,7 @@ pub mod remove_hidden_elems;
 pub mod remove_non_inheritable_group_attrs;
 pub mod remove_off_canvas_paths;
 pub mod convert_shape_to_path;
+pub mod minify_styles;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -95,3 +96,4 @@ pub use remove_hidden_elems::RemoveHiddenElemsPlugin;
 pub use remove_non_inheritable_group_attrs::RemoveNonInheritableGroupAttrsPlugin;
 pub use remove_off_canvas_paths::RemoveOffCanvasPathsPlugin;
 pub use convert_shape_to_path::ConvertShapeToPathPlugin;
+pub use minify_styles::MinifyStylesPlugin;
