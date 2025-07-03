@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set release version from tag
+        run: |
+          echo "GITHUB_REF=$GITHUB_REF"
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Using TAG_NAME=$TAG_NAME"
+          ./tools/set-cargo-version.sh "$TAG_NAME"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      # Build for all platforms
+      - name: Build Release
+        run: cargo build --release --locked
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          set -e
+          tag=${GITHUB_REF#refs/tags/}
+          version=${tag#v}
+
+          case "${{ matrix.os }}" in
+            macos-latest)
+              # Build universal binary, package as .pkg
+              RUSTFLAGS="-C target-cpu=apple-m1" cargo build --release --target aarch64-apple-darwin
+              cargo build --release --target x86_64-apple-darwin
+              mkdir -p dist/pkg-root/usr/local/bin
+              # Make universal binary
+              lipo -create \
+                target/aarch64-apple-darwin/release/svgn \
+                target/x86_64-apple-darwin/release/svgn \
+                -output dist/pkg-root/usr/local/bin/svgn
+              chmod +x dist/pkg-root/usr/local/bin/svgn
+              pkgbuild --identifier com.twardoch.svgn \
+                --version "$version" \
+                --root dist/pkg-root \
+                dist/svgn-${version}-macos.pkg
+              echo "Package built: dist/svgn-${version}-macos.pkg"
+              ;;
+            ubuntu-latest)
+              mkdir -p dist/bin dist
+              cp target/release/svgn dist/bin/svgn
+              chmod +x dist/bin/svgn
+              cp README.md LICENSE dist/bin/
+              cd dist/bin
+              zip ../svgn-${version}-linux.zip svgn README.md LICENSE
+              cd ../..
+              ;;
+            windows-latest)
+              mkdir -p dist\bin
+              cp target\release\svgn.exe dist\bin\svgn.exe
+              cp README.md LICENSE dist\bin\
+              cd dist\bin
+              powershell Compress-Archive -Path svgn.exe,README.md,LICENSE -DestinationPath ../svgn-${version}-windows.zip
+              cd ..\..
+              ;;
+          esac
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/svgn-*-macos.pkg
+            dist/svgn-*-linux.zip
+            dist/svgn-*-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

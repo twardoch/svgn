@@ -362,7 +362,7 @@ fn convert_rgb_to_hex(value: &str) -> Option<String> {
         nums.push(n.max(0).min(255) as u8);
     }
     
-    Some(format!("#{:02X}{:02X}{:02X}", nums[0], nums[1], nums[2]))
+    Some(format!("#{:02x}{:02x}{:02x}", nums[0], nums[1], nums[2]))
 }
 
 fn convert_to_short_hex(value: &str) -> Option<String> {
