@@ -11,6 +11,7 @@ use crate::collections::{
     GLOBAL_EVENT_ATTRS, GRAPHICAL_EVENT_ATTRS,
 };
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use std::collections::HashMap;
 use indexmap::IndexMap;
 use serde_json::Value;
 
@@ -26,7 +27,7 @@ impl Plugin for RemoveScriptsPlugin {
         "removes scripts (disabled by default)"
     }
 
-    fn apply(&self, document: &mut Document, _info: &PluginInfo, _params: &Value) -> PluginResult {
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
