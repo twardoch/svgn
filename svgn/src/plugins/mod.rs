@@ -28,6 +28,7 @@ pub mod convert_style_to_attrs;
 pub mod convert_colors;
 pub mod add_attributes_to_svg_element;
 pub mod add_classes_to_svg_element;
+pub mod remove_attributes_by_selector;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -53,3 +54,4 @@ pub use convert_style_to_attrs::ConvertStyleToAttrsPlugin;
 pub use convert_colors::ConvertColorsPlugin;
 pub use add_attributes_to_svg_element::AddAttributesToSVGElementPlugin;
 pub use add_classes_to_svg_element::AddClassesToSVGElementPlugin;
+pub use remove_attributes_by_selector::RemoveAttributesBySelectorPlugin;

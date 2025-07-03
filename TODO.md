@@ -396,3 +396,47 @@ Without this plugin, the `svgn` optimizer will not be able to perform this speci
 2.  Port the functionality from `ref/svgo/plugins/convertEllipseToCircle.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
 3.  Integrate the new Rust plugin into the `svgn` plugin registry.
 4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
+
+---
+**Issue:** `convertColors` Plugin: Incomplete `currentColor` Implementation
+
+**Description:**
+The Rust `convertColors` plugin (`svgn/src/plugins/convert_colors.rs`) has a simplified implementation of the `currentColor` feature. The JavaScript version allows `currentColor` to be a boolean, a string, or a RegExp, providing more flexible matching. The Rust version currently only supports a string pattern.
+
+**Impact:**
+The Rust plugin cannot replicate the full range of `currentColor` conversion behaviors available in SVGO, limiting its utility for users who rely on more advanced configurations.
+
+**Proposed Solution:**
+1.  Update the `ConvertColorsConfig` struct in Rust to support a more flexible `currentColor` type (e.g., an enum with variants for `bool`, `String`, and `String` for a regex pattern).
+2.  Modify the plugin logic to handle each variant correctly, applying `currentColor` based on the configured matching strategy.
+3.  Add comprehensive tests to cover all `currentColor` configuration options.
+
+---
+**Issue:** `removeDeprecatedAttrs` Plugin: Missing Implementation
+
+**Description:**
+The Rust counterpart for `ref/svgo/plugins/removeDeprecatedAttrs.js` is missing. The file `svgn/src/plugins/remove_deprecated_attrs.rs` does not exist. This plugin removes deprecated attributes from elements.
+
+**Impact:**
+Without this plugin, the `svgn` optimizer will not be able to remove deprecated attributes, which is a feature provided by SVGO.
+
+**Proposed Solution:**
+1.  Create the file `svgn/src/plugins/remove_deprecated_attrs.rs`.
+2.  Port the functionality from `ref/svgo/plugins/removeDeprecatedAttrs.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
+3.  Integrate the new Rust plugin into the `svgn` plugin registry.
+4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
+
+---
+**Issue:** `convertEllipseToCircle` Plugin: Missing Implementation
+
+**Description:**
+The Rust counterpart for `ref/svgo/plugins/convertEllipseToCircle.js` is missing. The file `svgn/src/plugins/convert_ellipse_to_circle.rs` does not exist. This plugin converts non-eccentric `<ellipse>` elements to `<circle>` elements.
+
+**Impact:**
+Without this plugin, the `svgn` optimizer will not be able to perform this specific shape optimization, which can lead to slightly larger SVG files.
+
+**Proposed Solution:**
+1.  Create the file `svgn/src/plugins/convert_ellipse_to_circle.rs`.
+2.  Port the functionality from `ref/svgo/plugins/convertEllipseToCircle.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
+3.  Integrate the new Rust plugin into the `svgn` plugin registry.
+4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
