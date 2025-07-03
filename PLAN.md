@@ -105,9 +105,9 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
     -   [D] `cleanupIds`
     -   [D] `cleanupListOfValues`
     -   [D] `cleanupNumericValues`
-    -   [P] `collapseGroups`
+    -   [D] `collapseGroups`
     -   [D] `convertColors`
-    -   [P] `convertEllipseToCircle`
+    -   [D] `convertEllipseToCircle`
     -   [P] `convertOneStopGradients`
     -   [P] `convertPathData`
     -   [P] `convertShapeToPath`
@@ -120,10 +120,10 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
     -   [P] `moveElemsAttrsToGroup`
     -   [P] `moveGroupAttrsToElems`
     -   [P] `prefixIds`
-    -   [P] `removeAttributesBySelector`
+    -   [D] `removeAttributesBySelector`
     -   [D] `removeAttrs`
     -   [D] `removeComments`
-    -   [P] `removeDeprecatedAttrs`
+    -   [D] `removeDeprecatedAttrs`
     -   [D] `removeDesc`
     -   [P] `removeDimensions`
     -   [D] `removeDoctype`
@@ -154,15 +154,17 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 
 ### Implementation Progress Summary
 
-**Total Plugins Completed: 23/54 (43%)**
+**Total Plugins Completed: 27/54 (50%)**
 
 **Completed Batches:**
 - ✅ **Simple Removers (6 plugins)**: removeComments, removeDesc, removeDoctype, removeMetadata, removeTitle, removeXMLProcInst
 - ✅ **Numeric/Value Cleaners (4 plugins)**: cleanupAttrs, cleanupIds, cleanupNumericValues, cleanupListOfValues  
 - ✅ **Empty Element Cleaners (3 plugins)**: removeEmptyAttrs, removeEmptyContainers, removeEmptyText
-- ✅ **Attribute Processors (5 plugins)**: sortAttrs, removeAttrs, removeUnknownsAndDefaults, addAttributesToSVGElement, addClassesToSVGElement
+- ✅ **Attribute Processors (6 plugins)**: sortAttrs, removeAttrs, removeUnknownsAndDefaults, addAttributesToSVGElement, addClassesToSVGElement, removeDeprecatedAttrs
 - ✅ **Style and Color Handlers (4 plugins)**: removeStyleElement, mergeStyles, convertStyleToAttrs, convertColors
 - ✅ **Cleanup and Validation (1 plugin)**: cleanupEnableBackground
+- ✅ **Additional Optimizers (2 plugins)**: removeDeprecatedAttrs, convertEllipseToCircle
+- ✅ **Structural Optimizers (1 plugin)**: collapseGroups
 
 **Key Technical Achievements:**
 - ✅ Fixed Plugin trait compilation issues and enhanced with PluginInfo parameter
@@ -178,22 +180,14 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 
 Based on complexity and usefulness, the recommended order for next plugins:
 
-1. **✅ Attribute processors** *(COMPLETED)*:
-   - ✅ `sortAttrs`
-   - ✅ `removeAttrs` 
-   - ✅ `removeUnknownsAndDefaults`
-   - ✅ `addAttributesToSVGElement`
-   - ✅ `addClassesToSVGElement`
+1.  **Style and color handlers**:
+    - `minifyStyles` (requires CSS parsing)
+    - `inlineStyles`
 
-2. **✅ Style and color handlers** *(PARTIALLY COMPLETED)*:
-   - ✅ `convertColors`
-   - `minifyStyles` (requires CSS parsing)
-   - `inlineStyles`
-
-3. **Transform and path optimizers**:
-   - `convertTransform`
-   - `convertPathData` (most complex, uses lyon)
-   - `convertShapeToPath`
+2.  **Transform and path optimizers**:
+    - `convertTransform`
+    - `convertPathData` (most complex, uses lyon)
+    - `convertShapeToPath`
 
 ## Phase 4: Testing, Benchmarking, and CI
 

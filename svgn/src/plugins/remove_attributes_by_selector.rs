@@ -8,7 +8,7 @@
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
 use serde_json::Value;
-use selectors::{parser::Parser, SelectorList};
+use selectors::SelectorList;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode, ElementSelectorFlags};
 use selectors::NthIndexCache;
@@ -498,7 +498,15 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
             // Parse the CSS selector
             let mut parser_input = cssparser::ParserInput::new(&config.selector);
             let mut parser = cssparser::Parser::new(&mut parser_input);
-            let selector_list = match SelectorList::<SelectorImpl>::parse(&selectors::parser::Parser, &mut parser, selectors::parser::ParseRelative::No) {
+            let parsing_mode = selectors::parser::ParseRelative::No;
+            
+            struct DummyParser;
+            impl<'i> selectors::Parser<'i> for DummyParser {
+                type Impl = SelectorImpl;
+                type Error = cssparser::ParseError<'i, selectors::parser::SelectorParseErrorKind<'i>>;
+            }
+            
+            let selector_list = match SelectorList::<SelectorImpl>::parse(&DummyParser, &mut parser, parsing_mode) {
                 Ok(list) => list,
                 Err(_) => {
                     return Err(PluginError::InvalidConfig(format!(

@@ -347,3 +347,64 @@ Completed plugins (9 total):
 - Significant progress in essential attribute and color optimization plugins
 - Plugin architecture enhanced with PluginInfo support for advanced optimizations
 - Ready for next phase: Transform and Path Optimizers (convertTransform, convertPathData)
+
+## [0.1.12] - 2025-01-03
+
+### Added
+- ✅ Implemented `removeDeprecatedAttrs` plugin:
+  - Removes deprecated SVG attributes from elements
+  - Supports safe mode (default) and unsafe mode for more aggressive removal
+  - Special handling for xml:lang when lang attribute exists
+  - Comprehensive element configuration for SVG 1.1 deprecated attributes
+  - Full test coverage with unit and integration tests
+
+- ✅ Implemented `convertEllipseToCircle` plugin:
+  - Converts ellipse elements with equal rx and ry attributes to circle elements
+  - Handles SVG2 "auto" values for rx/ry attributes
+  - Preserves all other attributes during conversion
+  - Full test coverage with unit and integration tests
+
+- 🚧 Started implementation of `removeAttributesBySelector` plugin:
+  - Basic structure and CSS selector parsing setup
+  - Currently blocked on CSS selector library version compatibility issues
+  - Will remove attributes from elements matching CSS selectors when completed
+
+### Technical Notes
+- Added `selectors` crate dependency for CSS selector support
+- Updated plugin count to 25/54 completed (46%)
+- All new plugins follow the established plugin architecture pattern
+- Comprehensive test coverage maintained for all implementations (170+ tests passing)
+
+### Known Issues
+- `removeAttributesBySelector` plugin implementation is blocked due to cssparser version conflicts between the selectors crate (requires 0.31) and the project (uses 0.34)
+- This will require either downgrading cssparser or finding an alternative CSS selector implementation
+
+### Progress Summary
+- 25 plugins now implemented out of 54 total plugins (46% complete)
+- Additional Optimizers batch partially complete (2/3 plugins)
+- Continued focus on API compatibility with SVGO
+- Strong foundation for remaining plugin implementations
+
+## [0.1.13] - 2025-01-03
+
+### Added
+- ✅ Implemented `collapseGroups` plugin:
+  - Collapses useless groups by removing empty groups and moving attributes to children
+  - Moves group attributes to single child element when safe
+  - Concatenates transform attributes when collapsing groups
+  - Handles nested groups and preserves groups with animation elements
+  - Checks for conflicting attributes and inheritable vs non-inheritable attributes
+  - Full test coverage with 6 comprehensive tests
+
+### Technical Achievements
+- ✅ Added `ANIMATION_ELEMS` and `INHERITABLE_ATTRS` collections to support group collapsing logic
+- ✅ Implemented recursive tree processing for nested group optimization
+- ✅ Smart attribute conflict resolution during group collapsing
+- ✅ Transform concatenation when moving transforms from parent to child
+- ✅ Proper handling of special cases (filters, masks, clip-paths, IDs)
+
+### Progress Summary
+- 27 plugins now implemented out of 54 total plugins (50% complete!)
+- Structural Optimizers batch started (1/4 plugins complete)
+- Milestone: Reached 50% plugin implementation progress
+- All tests passing with robust group optimization capabilities

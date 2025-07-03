@@ -28,7 +28,10 @@ pub mod convert_style_to_attrs;
 pub mod convert_colors;
 pub mod add_attributes_to_svg_element;
 pub mod add_classes_to_svg_element;
-pub mod remove_attributes_by_selector;
+// pub mod remove_attributes_by_selector; // TODO: Fix CSS selector parsing
+pub mod remove_deprecated_attrs;
+pub mod convert_ellipse_to_circle;
+pub mod collapse_groups;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -54,4 +57,7 @@ pub use convert_style_to_attrs::ConvertStyleToAttrsPlugin;
 pub use convert_colors::ConvertColorsPlugin;
 pub use add_attributes_to_svg_element::AddAttributesToSVGElementPlugin;
 pub use add_classes_to_svg_element::AddClassesToSVGElementPlugin;
-pub use remove_attributes_by_selector::RemoveAttributesBySelectorPlugin;
+// pub use remove_attributes_by_selector::RemoveAttributesBySelectorPlugin; // TODO: Fix CSS selector parsing
+pub use remove_deprecated_attrs::RemoveDeprecatedAttrsPlugin;
+pub use convert_ellipse_to_circle::ConvertEllipseToCirclePlugin;
+pub use collapse_groups::CollapseGroupsPlugin;
