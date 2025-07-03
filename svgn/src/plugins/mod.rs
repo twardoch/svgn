@@ -33,6 +33,8 @@ pub mod remove_deprecated_attrs;
 pub mod convert_ellipse_to_circle;
 pub mod collapse_groups;
 pub mod convert_one_stop_gradients;
+pub mod prefix_ids;
+pub mod remove_editors_ns_data;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -63,3 +65,5 @@ pub use remove_deprecated_attrs::RemoveDeprecatedAttrsPlugin;
 pub use convert_ellipse_to_circle::ConvertEllipseToCirclePlugin;
 pub use collapse_groups::CollapseGroupsPlugin;
 pub use convert_one_stop_gradients::ConvertOneStopGradientsPlugin;
+pub use prefix_ids::PrefixIdsPlugin;
+pub use remove_editors_ns_data::RemoveEditorsNSDataPlugin;
