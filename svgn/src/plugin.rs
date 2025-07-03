@@ -239,6 +239,18 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::RemoveEditorsNSDataPlugin);
     registry.register(crate::plugins::RemoveElementsByAttrPlugin);
     registry.register(crate::plugins::RemoveDimensionsPlugin);
+    registry.register(crate::plugins::RemoveScriptsPlugin);
+    registry.register(crate::plugins::RemoveUselessDefsPlugin);
+    registry.register(crate::plugins::RemoveUnusedNSPlugin);
+    registry.register(crate::plugins::RemoveViewBoxPlugin);
+    registry.register(crate::plugins::RemoveXlinkPlugin);
+    registry.register(crate::plugins::RemoveXMLNSPlugin);
+    registry.register(crate::plugins::RemoveRasterImagesPlugin);
+    registry.register(crate::plugins::SortDefsChildrenPlugin);
+    registry.register(crate::plugins::RemoveHiddenElemsPlugin);
+    registry.register(crate::plugins::RemoveNonInheritableGroupAttrsPlugin);
+    registry.register(crate::plugins::RemoveOffCanvasPathsPlugin);
+    registry.register(crate::plugins::ConvertShapeToPathPlugin);
     
     registry
 }

@@ -96,7 +96,7 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
     -   [D] `convertEllipseToCircle`
     -   [D] `convertOneStopGradients`
     -   [P] `convertPathData`
-    -   [P] `convertShapeToPath`
+    -   [D] `convertShapeToPath`
     -   [D] `convertStyleToAttrs`
     -   [P] `convertTransform`
     -   [P] `inlineStyles`
@@ -140,7 +140,7 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 
 ### Implementation Progress Summary
 
-**Total Plugins Completed: 43/54 (80%)**
+**Total Plugins Completed: 44/54 (81%)**
 
 **Completed Batches:**
 - ✅ **Simple Removers (6 plugins)**: removeComments, removeDesc, removeDoctype, removeMetadata, removeTitle, removeXMLProcInst

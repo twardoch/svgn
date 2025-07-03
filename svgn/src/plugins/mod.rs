@@ -94,4 +94,4 @@ pub use sort_defs_children::SortDefsChildrenPlugin;
 pub use remove_hidden_elems::RemoveHiddenElemsPlugin;
 pub use remove_non_inheritable_group_attrs::RemoveNonInheritableGroupAttrsPlugin;
 pub use remove_off_canvas_paths::RemoveOffCanvasPathsPlugin;
-pub use convert_shape_to_path::ConvertShapeToPath;
+pub use convert_shape_to_path::ConvertShapeToPathPlugin;
