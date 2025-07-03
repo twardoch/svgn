@@ -119,18 +119,18 @@ impl Default for Js2SvgOptions {
 pub fn optimize(input: &str, config: Option<Config>) -> Result<OptimizeResult> {
     let _config = config.unwrap_or_default();
     let original_size = input.len();
-    
+
     // TODO: Implement actual optimization logic
     // For now, just return the input unchanged
     let optimized_data = input.to_string();
     let optimized_size = optimized_data.len();
-    
+
     let compression_ratio = if original_size > 0 {
         1.0 - (optimized_size as f64 / original_size as f64)
     } else {
         0.0
     };
-    
+
     Ok(OptimizeResult {
         data: optimized_data,
         info: OptimizeInfo {

@@ -3,10 +3,10 @@
 //! SVGN CLI - Command-line interface for the SVGN SVG optimizer
 
 use anyhow::{Context, Result};
+use base64::prelude::*;
 use clap::{Arg, Command};
 use std::fs;
 use svgn::{optimize, Config};
-use base64::prelude::*;
 
 fn main() -> Result<()> {
     let matches = Command::new("svgn")
@@ -74,8 +74,7 @@ fn main() -> Result<()> {
     };
 
     // Optimize the SVG
-    let result = optimize(&input_svg, Some(config))
-        .with_context(|| "Failed to optimize SVG")?;
+    let result = optimize(&input_svg, Some(config)).with_context(|| "Failed to optimize SVG")?;
 
     if let Some(error) = result.error {
         eprintln!("Error during optimization: {}", error);
@@ -113,7 +112,10 @@ fn main() -> Result<()> {
     println!("Optimization complete!");
     println!("Original size: {} bytes", result.info.original_size);
     println!("Optimized size: {} bytes", result.info.optimized_size);
-    println!("Compression ratio: {:.2}%", result.info.compression_ratio * 100.0);
+    println!(
+        "Compression ratio: {:.2}%",
+        result.info.compression_ratio * 100.0
+    );
 
     Ok(())
 }
