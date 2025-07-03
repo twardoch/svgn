@@ -22154,18 +22154,44 @@ For efficient plugin porting, we'll categorize plugins by complexity and depende
 - ✅ **Additional Plugins (10 plugins)**: removeScripts, removeUselessDefs, removeViewBox, removeUnusedNS, removeXlink, removeXMLNS, sortDefsChildren, removeRasterImages, removeHiddenElems, removeNonInheritableGroupAttrs, removeOffCanvasPaths
 - ✅ Comprehensive test coverage: **300+ tests passing**
 
-### Next Implementation Priorities
+## Phase 3.5: Remaining Complex Plugins - IN PROGRESS 🚧
 
-Based on complexity and usefulness, the recommended order for next plugins:
+The final 20% of plugins represent the most complex optimizations requiring advanced algorithms and dependencies.
 
-1.  **Style and color handlers**:
-    - `minifyStyles` (requires CSS parsing)
-    - `inlineStyles`
+### Remaining Complex Plugins (11 plugins)
 
-2.  **Transform and path optimizers**:
-    - `convertTransform`
-    - `convertPathData` (most complex, uses lyon)
-    - `convertShapeToPath`
+**Path and Shape Transformers** (Highest Priority):
+- `convertPathData` (most complex, uses lyon crate for path optimization)
+- `convertShapeToPath` (convert basic shapes to paths for better optimization)
+- `mergePaths` (combine compatible paths for reduced file size)
+- `reusePaths` (path deduplication with content hashing)
+
+**Style and CSS Processors** (High Priority):
+- `minifyStyles` (CSS minification using cssparser)
+- `inlineStyles` (move CSS from style elements to inline attributes)
+
+**Transform Optimizers** (Medium Priority):
+- `convertTransform` (matrix transformations and mathematical optimization)
+
+**Attribute Movement Optimizers** (Lower Priority):
+- `moveElemsAttrsToGroup` (move common attributes to parent groups)
+- `moveGroupAttrsToElems` (distribute group attributes to children when beneficial)
+
+**Advanced Optimizers** (Lower Priority):
+- `removeUselessStrokeAndFill` (intelligent stroke/fill removal based on inheritance)
+
+### Implementation Strategy for Complex Plugins
+
+**New Dependencies Required:**
+- `lyon` (already added) - for advanced path data manipulation
+- Enhanced CSS parsing capabilities - for style optimization
+- Matrix mathematics - for transform operations (custom or nalgebra)
+
+**Technical Challenges:**
+1. **Path Data Processing**: Requires understanding SVG path syntax and applying geometric optimizations
+2. **CSS Parsing**: Need robust CSS property parsing and minification
+3. **Transform Mathematics**: Matrix operations for rotation, scaling, translation optimization
+4. **Context-Aware Optimization**: Understanding when attributes can be safely moved or removed
 
 ## Phase 4: Testing, Benchmarking, and CI
 
