@@ -762,58 +762,6 @@ TODO.md
 <files>
 This section contains the contents of the repository's files.
 
-<file path="docs/_sass/custom/custom.scss">
-// Custom styles for SVGN documentation
-
-// Color theme overrides
-$body-background-color: $white;
-$sidebar-color: $grey-lt-100;
-$border-color: $grey-lt-100;
-
-// Custom styling
-.code-example {
-  border: 1px solid $border-color;
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 16px;
-  background-color: $grey-lt-000;
-}
-
-// Table styling improvements
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 16px;
-  
-  th, td {
-    border: 1px solid $border-color;
-    padding: 8px 12px;
-    text-align: left;
-  }
-  
-  th {
-    background-color: $grey-lt-000;
-    font-weight: 600;
-  }
-}
-
-// Improve code block styling
-pre.highlight {
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid $border-color;
-}
-
-// Better link styling
-a {
-  text-decoration: none;
-  
-  &:hover {
-    text-decoration: underline;
-  }
-}
-</file>
-
 <file path="ref/svgo/.github/ISSUE_TEMPLATE/bug_report.md">
 ---
 name: Bug report
@@ -30915,318 +30863,6 @@ export default [
 }
 </file>
 
-<file path="svgn/src/plugins/remove_dimensions.rs">
-// this_file: svgn/src/plugins/remove_dimensions.rs
-
-use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-
-pub struct RemoveDimensionsPlugin;
-
-impl RemoveDimensionsPlugin {
-    pub fn new() -> Self {
-        Self
-    }
-
-    fn process_svg_element(&self, element: &mut Element) {
-        if element.name != "svg" {
-            return;
-        }
-
-        // If viewBox already exists, just remove width and height
-        if element.attributes.contains_key("viewBox") {
-            element.attributes.shift_remove("width");
-            element.attributes.shift_remove("height");
-        } else {
-            // Try to create viewBox from width and height if both are present and numeric
-            let width_str = element.attributes.get("width");
-            let height_str = element.attributes.get("height");
-
-            if let (Some(width_str), Some(height_str)) = (width_str, height_str) {
-                // Try to parse width and height as numbers
-                if let (Ok(width), Ok(height)) = (width_str.parse::<f64>(), height_str.parse::<f64>()) {
-                    // Only proceed if both are valid numbers (not NaN)
-                    if !width.is_nan() && !height.is_nan() {
-                        // Create viewBox and remove width/height
-                        let viewbox = format!("0 0 {} {}", width, height);
-                        element.attributes.insert("viewBox".to_string(), viewbox);
-                        element.attributes.shift_remove("width");
-                        element.attributes.shift_remove("height");
-                    }
-                }
-            }
-        }
-    }
-
-    fn process_element(&self, element: &mut Element) {
-        // Process this element if it's an SVG element
-        self.process_svg_element(element);
-
-        // Process children recursively
-        for child in &mut element.children {
-            if let Node::Element(ref mut child_elem) = child {
-                self.process_element(child_elem);
-            }
-        }
-    }
-}
-
-impl Plugin for RemoveDimensionsPlugin {
-    fn name(&self) -> &'static str {
-        "removeDimensions"
-    }
-
-    fn description(&self) -> &'static str {
-        "removes width and height in presence of viewBox (opposite to removeViewBox)"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        self.process_element(&mut document.root);
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Document, Element, Node};
-    use crate::plugin::PluginInfo;
-    use indexmap::IndexMap;
-    use std::collections::HashMap;
-
-    fn create_test_document() -> Document {
-        Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: IndexMap::new(),
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            prologue: vec![],
-            epilogue: vec![],
-            metadata: crate::ast::DocumentMetadata {
-                path: None,
-                encoding: None,
-                version: None,
-            },
-        }
-    }
-
-    #[test]
-    fn test_plugin_creation() {
-        let plugin = RemoveDimensionsPlugin::new();
-        assert_eq!(plugin.name(), "removeDimensions");
-        assert_eq!(plugin.description(), "removes width and height in presence of viewBox (opposite to removeViewBox)");
-    }
-
-    #[test]
-    fn test_remove_dimensions_with_existing_viewbox() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up SVG with width, height, and viewBox
-        doc.root.attributes.insert("width".to_string(), "100".to_string());
-        doc.root.attributes.insert("height".to_string(), "50".to_string());
-        doc.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Width and height should be removed, viewBox should remain unchanged
-        assert!(!doc.root.attributes.contains_key("width"));
-        assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
-    }
-
-    #[test]
-    fn test_create_viewbox_from_dimensions() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up SVG with only width and height
-        doc.root.attributes.insert("width".to_string(), "100".to_string());
-        doc.root.attributes.insert("height".to_string(), "50".to_string());
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Width and height should be removed, viewBox should be created
-        assert!(!doc.root.attributes.contains_key("width"));
-        assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
-    }
-
-    #[test]
-    fn test_decimal_dimensions() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up SVG with decimal dimensions
-        doc.root.attributes.insert("width".to_string(), "100.5".to_string());
-        doc.root.attributes.insert("height".to_string(), "50.25".to_string());
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Width and height should be removed, viewBox should be created with decimals
-        assert!(!doc.root.attributes.contains_key("width"));
-        assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100.5 50.25".to_string()));
-    }
-
-    #[test]
-    fn test_invalid_dimensions_ignored() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up SVG with invalid dimensions
-        doc.root.attributes.insert("width".to_string(), "invalid".to_string());
-        doc.root.attributes.insert("height".to_string(), "50".to_string());
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Width and height should remain since they're not both valid numbers
-        assert_eq!(doc.root.attributes.get("width"), Some(&"invalid".to_string()));
-        assert_eq!(doc.root.attributes.get("height"), Some(&"50".to_string()));
-        assert!(!doc.root.attributes.contains_key("viewBox"));
-    }
-
-    #[test]
-    fn test_missing_dimension_ignored() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up SVG with only width
-        doc.root.attributes.insert("width".to_string(), "100".to_string());
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Width should remain since height is missing
-        assert_eq!(doc.root.attributes.get("width"), Some(&"100".to_string()));
-        assert!(!doc.root.attributes.contains_key("viewBox"));
-    }
-
-    #[test]
-    fn test_only_processes_svg_elements() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Add a rect element with width and height (should not be processed)
-        let mut rect_attrs = IndexMap::new();
-        rect_attrs.insert("width".to_string(), "100".to_string());
-        rect_attrs.insert("height".to_string(), "50".to_string());
-        rect_attrs.insert("x".to_string(), "10".to_string());
-        rect_attrs.insert("y".to_string(), "10".to_string());
-        
-        doc.root.children.push(Node::Element(Element {
-            name: "rect".to_string(),
-            attributes: rect_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        }));
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Rect dimensions should remain unchanged
-        if let Node::Element(rect) = &doc.root.children[0] {
-            assert_eq!(rect.attributes.get("width"), Some(&"100".to_string()));
-            assert_eq!(rect.attributes.get("height"), Some(&"50".to_string()));
-            assert!(!rect.attributes.contains_key("viewBox"));
-        } else {
-            panic!("Expected rect element");
-        }
-    }
-
-    #[test]
-    fn test_nested_svg_elements() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up root SVG
-        doc.root.attributes.insert("width".to_string(), "200".to_string());
-        doc.root.attributes.insert("height".to_string(), "100".to_string());
-        
-        // Add nested SVG element
-        let mut nested_svg_attrs = IndexMap::new();
-        nested_svg_attrs.insert("width".to_string(), "100".to_string());
-        nested_svg_attrs.insert("height".to_string(), "50".to_string());
-        
-        doc.root.children.push(Node::Element(Element {
-            name: "svg".to_string(),
-            attributes: nested_svg_attrs,
-            namespaces: HashMap::new(),
-            children: vec![],
-        }));
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Root SVG should have viewBox and no dimensions
-        assert!(!doc.root.attributes.contains_key("width"));
-        assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
-        
-        // Nested SVG should also be processed
-        if let Node::Element(nested_svg) = &doc.root.children[0] {
-            assert!(!nested_svg.attributes.contains_key("width"));
-            assert!(!nested_svg.attributes.contains_key("height"));
-            assert_eq!(nested_svg.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
-        } else {
-            panic!("Expected nested SVG element");
-        }
-    }
-
-    #[test]
-    fn test_zero_dimensions() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // Set up SVG with zero dimensions
-        doc.root.attributes.insert("width".to_string(), "0".to_string());
-        doc.root.attributes.insert("height".to_string(), "0".to_string());
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Should still create viewBox even with zero dimensions
-        assert!(!doc.root.attributes.contains_key("width"));
-        assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 0 0".to_string()));
-    }
-
-    #[test]
-    fn test_no_dimensions_no_change() {
-        let mut plugin = RemoveDimensionsPlugin::new();
-        let mut doc = create_test_document();
-        
-        // SVG with no width, height, or viewBox
-        let original_count = doc.root.attributes.len();
-        
-        let info = PluginInfo::default();
-        let result = plugin.apply(&mut doc, &info, None);
-        assert!(result.is_ok());
-        
-        // Should not add any attributes
-        assert_eq!(doc.root.attributes.len(), original_count);
-        assert!(!doc.root.attributes.contains_key("width"));
-        assert!(!doc.root.attributes.contains_key("height"));
-        assert!(!doc.root.attributes.contains_key("viewBox"));
-    }
-}
-</file>
-
 <file path=".github/workflows/rust.yml">
 name: Rust
 
@@ -31324,356 +30960,56 @@ You can control auto-saving behavior in Cursor or VSCode:
 Auto-save occurs when changes are detected in the sqlite database, or every 2 minutes as a safety net.
 </file>
 
-<file path="docs/architecture.md">
----
-layout: default
-title: Architecture
-nav_order: 5
-description: "SVGN internal architecture and design"
----
-
-# SVGN Architecture
-
-`svgn` is designed as a native Rust port of `svgo`, aiming to replicate its core architectural principles while leveraging Rust's strengths for performance and reliability. The architecture closely mirrors `svgo`'s modular design, consisting of a core engine, parser, stringifier, and a robust plugin system.
-
-## Core Components
-
-### 1. Core Engine (`svgn/src/optimizer.rs`)
-
-Similar to `svgo`'s `lib/svgo.js`, the `svgn` core engine orchestrates the SVG optimization process. It takes an SVG string and a configuration object, then applies a pipeline of plugins to the parsed SVG Abstract Syntax Tree (AST). The engine manages the order of plugin execution and handles multi-pass optimizations if configured.
-
-### 2. Parser (`svgn/src/parser.rs`)
-
-The parser component is responsible for transforming an SVG string into an Abstract Syntax Tree (AST). In `svgo`, this is handled by `lib/parser.js`, which uses a SAX-like approach. `svgn` implements its own efficient SVG parser in Rust, converting the raw SVG XML into a structured, traversable AST representation that plugins can operate on.
-
-### 3. Plugins (`svgn/src/plugins/`)
-
-Plugins are the heart of `svgn`'s optimization capabilities. Each plugin is a self-contained module that performs a specific optimization or transformation on the SVG AST. `svgn`'s plugin system is designed to be compatible with `svgo`'s plugin API concepts, allowing for a systematic porting of existing `svgo` plugins.
-
--   **Modularity**: Each optimization is encapsulated within its own plugin, promoting code organization and reusability.
--   **AST Transformation**: Plugins receive and modify the SVG AST, enabling complex manipulations of SVG elements, attributes, and styles.
--   **Configurability**: Plugins can be enabled, disabled, and configured with specific parameters via the `SvgnConfig` object.
-
-### 4. Stringifier (`svgn/src/stringifier.rs`)
-
-After all plugins have processed the AST, the stringifier component converts the optimized AST back into a minified SVG string. This component is analogous to `svgo`'s `lib/stringifier.js`. The stringifier handles proper XML serialization, including attribute ordering, whitespace management, and numeric precision, to ensure the smallest possible output size while maintaining valid SVG syntax.
-
-### 5. Command-Line Interface (CLI) (`svgn/src/bin/svgn.rs`)
-
-The `svgn` CLI provides a user-friendly interface for optimizing SVG files directly from the terminal. It parses command-line arguments, loads configuration, invokes the core optimization engine, and outputs the results. This component mirrors the functionality of `svgo`'s `bin/svgo` and `lib/svgo-node.js`.
-
-## Design Principles
-
-`svgn`'s architecture is guided by several key design principles:
-
--   **Performance**: Leveraging Rust's capabilities for zero-cost abstractions, memory safety, and concurrency to achieve superior optimization speeds.
--   **Functional Parity**: Ensuring that `svgn` produces identical optimization results to `svgo` for the same inputs and configurations.
--   **Modularity**: Maintaining a clear separation of concerns between parsing, optimization, and stringification, and promoting a plugin-based approach for extensibility.
--   **API Compatibility**: Designing the Rust API to be conceptually similar to `svgo`'s JavaScript API where appropriate, to ease migration for developers.
--   **WASM Readiness**: Structuring the codebase to facilitate efficient compilation to WebAssembly, enabling broad deployment scenarios.
-
-By adhering to these principles, `svgn` aims to be a robust, high-performance, and functionally equivalent alternative to `svgo` in the Rust ecosystem.
-</file>
-
-<file path="docs/comparison.md">
----
-layout: default
-title: Comparison
-nav_order: 4
-description: "SVGN vs. SVGO: A detailed comparison"
----
-
-# SVGN vs. SVGO: A Comparison
-
-`svgn` is a native Rust port of `svgo`, the popular JavaScript-based SVG optimizer. While `svgn` aims for functional parity and API compatibility with `svgo`, there are fundamental differences stemming from their underlying technologies (Rust vs. JavaScript) that impact performance, deployment, and ecosystem integration.
-
-## Key Differences
-
-| Feature             | SVGN (Rust)                                     | SVGO (JavaScript)                               |
-| :------------------ | :---------------------------------------------- | :---------------------------------------------- |
-| **Language**        | Rust                                            | JavaScript (Node.js)                            |
-| **Performance**     | Generally faster due to Rust's native execution and memory management. Ideal for CPU-bound tasks. | Good performance, but limited by JavaScript runtime overhead. |
-| **Memory Usage**    | Lower memory footprint due to Rust's ownership model and lack of garbage collector. | Higher memory usage due to JavaScript's garbage collection and runtime. |
-| **Ecosystem**       | Integrates seamlessly with Rust projects and the Cargo ecosystem. | Integrates with Node.js projects and the npm/Yarn ecosystem. |
-| **Deployment**      | Compiles to native executables, WebAssembly (WASM), or can be used as a library. | Requires Node.js runtime for execution. Browser usage requires bundling. |
-| **Concurrency**     | Leverages Rust's strong concurrency primitives for potential parallel processing of SVG optimization tasks. | Primarily single-threaded, though asynchronous operations are common. |
-| **Error Handling**  | Rust's robust type system and `Result`/`Option` enums enforce explicit error handling at compile time. | Relies on exceptions and runtime error handling. |
-| **Binary Size**     | Native executables can be larger due to static linking, but WASM output can be compact. | Smaller package size, but requires Node.js runtime. |
-| **Use Cases**       | High-performance backend services, desktop applications, CLI tools, WASM in browsers. | Web development workflows, build tools, Node.js applications, browser-based optimization (with bundling). |
-
-## Functional Parity
-
-`svgn`'s primary goal is to achieve full functional parity with `svgo` v4.0.0. This means that for a given SVG input and configuration, `svgn` should produce an identical (or byte-for-byte equivalent) optimized SVG output as `svgo`.
-
--   **Plugin Porting**: All `svgo` plugins are being systematically ported to `svgn`, ensuring that the same optimization rules and logic are applied.
--   **Test Suite Replication**: `svgn` utilizes a comprehensive test suite that includes many of `svgo`'s original test cases, ensuring that the output matches the reference implementation.
--   **Configuration Mapping**: `svgn`'s configuration structure (`SvgnConfig`) is designed to directly map to `svgo`'s configuration object, allowing for easy migration of existing `svgo` configurations.
-
-## When to Choose SVGN?
-
-Consider using `svgn` if:
-
--   You require maximum performance for SVG optimization, especially for large batches of files or in performance-critical environments.
--   You are working within a Rust ecosystem and prefer a native solution without Node.js dependencies.
--   You plan to deploy SVG optimization to WebAssembly (WASM) for client-side or edge computing scenarios.
--   You value strong type safety and compile-time error checking.
-
-## When to Choose SVGO?
-
-`svgo` remains an excellent choice if:
-
--   You are already heavily invested in the Node.js/JavaScript ecosystem.
--   Your performance requirements are met by `svgo`'s current capabilities.
--   You need immediate access to the latest `svgo` features and plugins as they are released (as `svgn` will have a slight lag for porting).
--   You prefer the flexibility and rapid development cycles often associated with JavaScript.
-
-Ultimately, the choice between `svgn` and `svgo` depends on your specific project requirements, performance needs, and technology stack preferences.
-</file>
-
-<file path="docs/plugins.md">
----
-layout: default
-title: Plugins
-nav_order: 3
-description: "SVGN plugin architecture and available plugins"
----
-
-# SVGN Plugins
-
-Plugins are the core of `svgn`'s optimization capabilities, just as they are for `svgo`. They perform specific transformations on the SVG's Abstract Syntax Tree (AST) to reduce file size and improve rendering efficiency. `svgn` aims to port all of `svgo`'s plugins, maintaining functional parity and API compatibility where it makes sense in a Rust context.
-
-## Plugin Architecture
-
-Similar to `svgo`, `svgn` utilizes a plugin-based architecture. Each plugin is a distinct module responsible for a specific optimization task. This modularity allows for flexible configuration and extensibility.
-
-In `svgn`, plugins are implemented as Rust functions or structs that operate on the SVG's AST. The core optimizer iterates through the enabled plugins, applying their transformations sequentially.
-
-## Default Preset
-
-`svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. The specific plugins included in the default preset and their order of execution will mirror `svgo`'s `preset-default` as closely as possible.
-
-## Ported Plugins
-
-The following `svgo` plugins have been ported to `svgn`:
-
--   **`addAttributesToSVGElement`**: Adds attributes to the root `<svg>` element.
--   **`addClassesToSVGElement`**: Adds class names to the root `<svg>` element.
--   **`cleanupAttrs`**: Cleans up attributes from newlines, trailing, and repeating spaces.
--   **`cleanupEnableBackground`**: Removes or cleans up the `enable-background` attribute.
--   **`cleanupIds`**: Minifies and removes unused IDs.
--   **`cleanupListOfValues`**: Rounds numeric values in attributes that have a list of numbers (like `viewBox` or `stroke-dasharray`).
--   **`cleanupNumericValues`**: Rounds numeric values to a fixed precision.
--   **`collapseGroups`**: Collapses useless groups (`<g>`).
--   **`convertColors`**: Converts colors from `rgb()` to `#rrggbb`, `rgba()` to `#rrggbbaa`, and color names to hex values.
--   **`convertEllipseToCircle`**: Converts `<ellipse>` elements to `<circle>` elements when possible.
--   **`convertOneStopGradients`**: Converts gradients with only one stop to a solid color.
--   **`convertStyleToAttrs`**: Converts styles from `<style>` elements to attributes.
--   **`mergeStyles`**: Merges multiple `<style>` elements into one.
--   **`removeAttributesBySelector`**: Removes attributes of elements that match a CSS selector.
--   **`removeAttrs`**: Removes attributes by name.
--   **`removeComments`**: Removes comments.
--   **`removeDeprecatedAttrs`**: Removes deprecated attributes.
--   **`removeDesc`**: Removes `<desc>` elements.
--   **`removeDoctype`**: Removes doctype declarations.
--   **`removeEmptyAttrs`**: Removes empty attributes.
--   **`removeEmptyContainers`**: Removes empty container elements.
--   **`removeEmptyText`**: Removes empty text elements.
--   **`removeMetadata`**: Removes `<metadata>` elements.
--   **`removeStyleElement`**: Removes `<style>` elements.
--   **`removeTitle`**: Removes `<title>` elements.
--   **`removeUnknownsAndDefaults`**: Removes unknown elements' content and attributes, and removes default attribute values.
--   **`removeXMLProcInst`**: Removes XML processing instructions.
--   **`sortAttrs`**: Sorts element attributes for better gzip compression.
-
-*(This list will be updated as more plugins are ported and verified.)*
-
-## Plugin Configuration
-
-Configuring plugins in `svgn` is similar to `svgo`. You can enable or disable plugins, and for some, provide specific parameters to control their behavior. This is done through the `SvgnConfig` structure, as shown in the [Usage documentation](./usage.md).
-
-### Example: Disabling a Plugin
-
-To disable a plugin, you would omit it from your `plugins` list in the `SvgnConfig` or explicitly set it to `false` if using a preset override mechanism (which will be implemented to mirror `svgo`'s behavior).
-
-### Example: Configuring a Plugin with Parameters
-
-```rust
-use svgn::config::{SvgnConfig, PluginConfig};
-use serde_json::json;
-
-let config = SvgnConfig {
-    plugins: vec![
-        PluginConfig::WithParams {
-            name: "cleanupNumericValues".to_string(),
-            params: json!({
-                "floatPrecision": 2,
-                "leadingZero": false,
-            }),
-        },
-    ],
-    ..SvgnConfig::default()
-};
-```
-
-This example demonstrates how to configure the `cleanupNumericValues` plugin to round to 2 decimal places and keep leading zeros, mirroring `svgo`'s parameter structure.
-</file>
-
-<file path="docs/usage.md">
----
-layout: default
-title: Usage
-nav_order: 2
-description: "How to use SVGN CLI and library"
----
-
-# SVGN Usage
-
-`svgn` provides a powerful and efficient way to optimize SVG files, leveraging the performance benefits of Rust. It aims for API compatibility with `svgo` where applicable, making the transition for users familiar with the JavaScript version as smooth as possible.
-
-## Command-Line Interface (CLI)
-
-`svgn` offers a command-line interface for direct file optimization, similar to `svgo`.
-
-### Basic Usage
-
-To optimize a single SVG file:
-
-```bash
-svgn input.svg -o output.svg
-```
-
-To optimize all SVG files in a folder and overwrite them:
-
-```bash
-svgn -f input_folder
-```
-
-### Options
-
-`svgn` CLI options largely mirror `svgo`'s, providing a familiar experience:
-
--   `-i, --input <file|dir>`: Input file or directory. (Similar to `svgo`)
--   `-o, --output <file|dir>`: Output file or directory. (Similar to `svgo`)
--   `-f, --folder <dir>`: Input folder, optimize and rewrite all `*.svg` files. (Similar to `svgo`)
--   `-p, --pretty`: Make SVG pretty printed. (Similar to `svgo`)
--   `--config <file>`: Custom config file. (Similar to `svgo`)
--   `--disable <plugin_name>`: Disable a plugin by name. (Similar to `svgo`)
--   `--enable <plugin_name>`: Enable a plugin by name. (Similar to `svgo`)
--   `--datauri <type>`: Output as Data URI string (`'base64'`, `'enc'`, or `'unenc'`). (Similar to `svgo`)
--   `--multipass`: Optimize SVG multiple times. (Similar to `svgo`)
--   `--quiet`: Only output error messages. (Similar to `svgo`)
--   `-v, --version`: Show version.
--   `-h, --help`: Show help.
-
-## As a Rust Library
-
-`svgn` can be integrated directly into your Rust projects for programmatic SVG optimization. The core optimization function is designed to be intuitive and efficient.
-
-### Basic Example
-
-To use `svgn` in your Rust code, first ensure you've added it to your `Cargo.toml` (as described in the [Installation](/#installation) section). Then, you can use the `optimize` function:
-
-```rust
-use svgn::optimize;
-use svgn::config::SvgnConfig;
-
-fn main() {
-    let svg_string = r#"
-<svg xmlns="http://www.w3.org/2000/svg"
-  xmlns:xlink="http://www.w3.org/1999/xlink"
-  viewBox="0 0 100 100">
-  <text x="50" y="50" text-anchor="middle">•ᴗ•</text>
-</svg>
-"#;
-
-    let config = SvgnConfig::default();
-    let result = optimize(svg_string, &config);
-
-    match result {
-        Ok(optimized_svg) => {
-            println!("Optimized SVG:\n{}", optimized_svg.data);
-        }
-        Err(e) => {
-            eprintln!("Error optimizing SVG: {}", e);
-        }
-    }
-}
-```
-
-### Configuration
-
-The `optimize` function in `svgn` takes an SVG string and a configuration object, similar to `svgo`'s `optimize(input, config)`.
-
-```rust
-pub struct SvgnConfig {
-    pub path: Option<String>,
-    pub plugins: Vec<PluginConfig>,
-    pub multipass: bool,
-    pub js2svg: Js2SvgConfig,
-    pub datauri: Option<String>,
+<file path="docs/_sass/custom/custom.scss">
+// Custom styles for SVGN documentation
+
+// Color theme overrides
+$body-background-color: $white;
+$sidebar-color: $grey-lt-100;
+$border-color: $grey-lt-100;
+
+// Custom styling
+.code-example {
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: $grey-lt-000;
 }
 
-pub struct Js2SvgConfig {
-    pub pretty: bool,
-    pub indent: usize,
+// Table styling improvements
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  
+  th, td {
+    border: 1px solid $border-color;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  
+  th {
+    background-color: $grey-lt-000;
+    font-weight: 600;
+  }
 }
 
-pub enum PluginConfig {
-    // Represents a plugin enabled by its name (e.g., "removeDimensions")
-    Enabled(String),
-    // Represents a plugin with custom parameters
-    WithParams {
-        name: String,
-        params: serde_json::Value, // Use serde_json::Value for flexible parameters
-    },
+// Improve code block styling
+pre.highlight {
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid $border-color;
 }
-```
 
-**Comparison with `svgo`'s Configuration:**
-
-`svgn`'s `SvgnConfig` directly maps to `svgo`'s configuration object. The `plugins` array in `svgo` can contain either plugin names (strings) or objects with `name` and `params`. In `svgn`, this is represented by the `PluginConfig` enum, allowing for both simple enablement and parameter customization.
-
-### Example with Custom Plugins
-
-```rust
-use svgn::optimize;
-use svgn::config::{SvgnConfig, PluginConfig};
-use serde_json::json;
-
-fn main() {
-    let svg_string = r#"<svg width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="red"/></svg>"#;
-
-    let config = SvgnConfig {
-        plugins: vec![
-            PluginConfig::Enabled("removeDimensions".to_string()),
-            PluginConfig::WithParams {
-                name: "sortAttrs".to_string(),
-                params: json!({
-                    "xmlnsOrder": "alphabetical",
-                }),
-            },
-        ],
-        ..SvgnConfig::default()
-    };
-
-    let result = optimize(svg_string, &config);
-
-    match result {
-        Ok(optimized_svg) => {
-            println!("Optimized SVG:\n{}", optimized_svg.data);
-        }
-        Err(e) => {
-            eprintln!("Error optimizing SVG: {}", e);
-        }
-    }
+// Better link styling
+a {
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
 }
-```
-
-## WebAssembly (WASM)
-
-`svgn` is designed to be compiled to WebAssembly, allowing you to run SVG optimization directly in the browser or other WASM environments. This provides a significant performance boost compared to JavaScript-based optimizers in the browser.
-
-*(Details on WASM usage will be added as the WASM compilation target matures.)*
 </file>
 
 <file path="issues/201.txt">
@@ -36563,6 +35899,318 @@ mod tests {
             }
         }
         false
+    }
+}
+</file>
+
+<file path="svgn/src/plugins/remove_dimensions.rs">
+// this_file: svgn/src/plugins/remove_dimensions.rs
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+
+pub struct RemoveDimensionsPlugin;
+
+impl RemoveDimensionsPlugin {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn process_svg_element(&self, element: &mut Element) {
+        if element.name != "svg" {
+            return;
+        }
+
+        // If viewBox already exists, just remove width and height
+        if element.attributes.contains_key("viewBox") {
+            element.attributes.shift_remove("width");
+            element.attributes.shift_remove("height");
+        } else {
+            // Try to create viewBox from width and height if both are present and numeric
+            let width_str = element.attributes.get("width");
+            let height_str = element.attributes.get("height");
+
+            if let (Some(width_str), Some(height_str)) = (width_str, height_str) {
+                // Try to parse width and height as numbers
+                if let (Ok(width), Ok(height)) = (width_str.parse::<f64>(), height_str.parse::<f64>()) {
+                    // Only proceed if both are valid numbers (not NaN)
+                    if !width.is_nan() && !height.is_nan() {
+                        // Create viewBox and remove width/height
+                        let viewbox = format!("0 0 {} {}", width, height);
+                        element.attributes.insert("viewBox".to_string(), viewbox);
+                        element.attributes.shift_remove("width");
+                        element.attributes.shift_remove("height");
+                    }
+                }
+            }
+        }
+    }
+
+    fn process_element(&self, element: &mut Element) {
+        // Process this element if it's an SVG element
+        self.process_svg_element(element);
+
+        // Process children recursively
+        for child in &mut element.children {
+            if let Node::Element(ref mut child_elem) = child {
+                self.process_element(child_elem);
+            }
+        }
+    }
+}
+
+impl Plugin for RemoveDimensionsPlugin {
+    fn name(&self) -> &'static str {
+        "removeDimensions"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes width and height in presence of viewBox (opposite to removeViewBox)"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        self.process_element(&mut document.root);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::PluginInfo;
+    use indexmap::IndexMap;
+    use std::collections::HashMap;
+
+    fn create_test_document() -> Document {
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            prologue: vec![],
+            epilogue: vec![],
+            metadata: crate::ast::DocumentMetadata {
+                path: None,
+                encoding: None,
+                version: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_plugin_creation() {
+        let plugin = RemoveDimensionsPlugin::new();
+        assert_eq!(plugin.name(), "removeDimensions");
+        assert_eq!(plugin.description(), "removes width and height in presence of viewBox (opposite to removeViewBox)");
+    }
+
+    #[test]
+    fn test_remove_dimensions_with_existing_viewbox() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with width, height, and viewBox
+        doc.root.attributes.insert("width".to_string(), "100".to_string());
+        doc.root.attributes.insert("height".to_string(), "50".to_string());
+        doc.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should be removed, viewBox should remain unchanged
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
+    }
+
+    #[test]
+    fn test_create_viewbox_from_dimensions() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with only width and height
+        doc.root.attributes.insert("width".to_string(), "100".to_string());
+        doc.root.attributes.insert("height".to_string(), "50".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should be removed, viewBox should be created
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
+    }
+
+    #[test]
+    fn test_decimal_dimensions() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with decimal dimensions
+        doc.root.attributes.insert("width".to_string(), "100.5".to_string());
+        doc.root.attributes.insert("height".to_string(), "50.25".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should be removed, viewBox should be created with decimals
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100.5 50.25".to_string()));
+    }
+
+    #[test]
+    fn test_invalid_dimensions_ignored() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with invalid dimensions
+        doc.root.attributes.insert("width".to_string(), "invalid".to_string());
+        doc.root.attributes.insert("height".to_string(), "50".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width and height should remain since they're not both valid numbers
+        assert_eq!(doc.root.attributes.get("width"), Some(&"invalid".to_string()));
+        assert_eq!(doc.root.attributes.get("height"), Some(&"50".to_string()));
+        assert!(!doc.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_missing_dimension_ignored() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with only width
+        doc.root.attributes.insert("width".to_string(), "100".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Width should remain since height is missing
+        assert_eq!(doc.root.attributes.get("width"), Some(&"100".to_string()));
+        assert!(!doc.root.attributes.contains_key("viewBox"));
+    }
+
+    #[test]
+    fn test_only_processes_svg_elements() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Add a rect element with width and height (should not be processed)
+        let mut rect_attrs = IndexMap::new();
+        rect_attrs.insert("width".to_string(), "100".to_string());
+        rect_attrs.insert("height".to_string(), "50".to_string());
+        rect_attrs.insert("x".to_string(), "10".to_string());
+        rect_attrs.insert("y".to_string(), "10".to_string());
+        
+        doc.root.children.push(Node::Element(Element {
+            name: "rect".to_string(),
+            attributes: rect_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Rect dimensions should remain unchanged
+        if let Node::Element(rect) = &doc.root.children[0] {
+            assert_eq!(rect.attributes.get("width"), Some(&"100".to_string()));
+            assert_eq!(rect.attributes.get("height"), Some(&"50".to_string()));
+            assert!(!rect.attributes.contains_key("viewBox"));
+        } else {
+            panic!("Expected rect element");
+        }
+    }
+
+    #[test]
+    fn test_nested_svg_elements() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up root SVG
+        doc.root.attributes.insert("width".to_string(), "200".to_string());
+        doc.root.attributes.insert("height".to_string(), "100".to_string());
+        
+        // Add nested SVG element
+        let mut nested_svg_attrs = IndexMap::new();
+        nested_svg_attrs.insert("width".to_string(), "100".to_string());
+        nested_svg_attrs.insert("height".to_string(), "50".to_string());
+        
+        doc.root.children.push(Node::Element(Element {
+            name: "svg".to_string(),
+            attributes: nested_svg_attrs,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }));
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Root SVG should have viewBox and no dimensions
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
+        
+        // Nested SVG should also be processed
+        if let Node::Element(nested_svg) = &doc.root.children[0] {
+            assert!(!nested_svg.attributes.contains_key("width"));
+            assert!(!nested_svg.attributes.contains_key("height"));
+            assert_eq!(nested_svg.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
+        } else {
+            panic!("Expected nested SVG element");
+        }
+    }
+
+    #[test]
+    fn test_zero_dimensions() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // Set up SVG with zero dimensions
+        doc.root.attributes.insert("width".to_string(), "0".to_string());
+        doc.root.attributes.insert("height".to_string(), "0".to_string());
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Should still create viewBox even with zero dimensions
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 0 0".to_string()));
+    }
+
+    #[test]
+    fn test_no_dimensions_no_change() {
+        let mut plugin = RemoveDimensionsPlugin::new();
+        let mut doc = create_test_document();
+        
+        // SVG with no width, height, or viewBox
+        let original_count = doc.root.attributes.len();
+        
+        let info = PluginInfo::default();
+        let result = plugin.apply(&mut doc, &info, None);
+        assert!(result.is_ok());
+        
+        // Should not add any attributes
+        assert_eq!(doc.root.attributes.len(), original_count);
+        assert!(!doc.root.attributes.contains_key("width"));
+        assert!(!doc.root.attributes.contains_key("height"));
+        assert!(!doc.root.attributes.contains_key("viewBox"));
     }
 }
 </file>
@@ -43356,52 +43004,356 @@ svgo input.svg -o output.svg
 -   `-h, --help`: Show help.
 </file>
 
-<file path="docs/_config.yml">
-theme: just-the-docs
+<file path="docs/architecture.md">
+---
+layout: default
+title: Architecture
+nav_order: 5
+description: "SVGN internal architecture and design"
+---
 
-# Site settings
-title: SVGN Documentation
-description: A native Rust SVG optimizer - API-compatible port of SVGO
-baseurl: ""
-url: "https://twardoch.github.io/svgn"
+# SVGN Architecture
 
-# Just the Docs specific settings
-search_enabled: true
-search:
-  heading_level: 2
-  previews: 3
-  preview_words_before: 5
-  preview_words_after: 10
-  tokenizer_separator: /[\s/]+/
-  rel_url: true
-  button: false
+`svgn` is designed as a native Rust port of `svgo`, aiming to replicate its core architectural principles while leveraging Rust's strengths for performance and reliability. The architecture closely mirrors `svgo`'s modular design, consisting of a core engine, parser, stringifier, and a robust plugin system.
 
-# Navigation
-nav_sort: case_insensitive
-nav_external_links:
-  - title: GitHub Repository
-    url: https://github.com/twardoch/svgn
-  - title: SVGO Reference
-    url: https://github.com/svg/svgo
+## Core Components
 
-# Footer
-footer_content: "Copyright &copy; 2024 Adam Twardoch. Distributed under the MIT License."
+### 1. Core Engine (`svgn/src/optimizer.rs`)
 
-# Color scheme
-color_scheme: light
+Similar to `svgo`'s `lib/svgo.js`, the `svgn` core engine orchestrates the SVG optimization process. It takes an SVG string and a configuration object, then applies a pipeline of plugins to the parsed SVG Abstract Syntax Tree (AST). The engine manages the order of plugin execution and handles multi-pass optimizations if configured.
 
-# Enable copy to clipboard
-enable_copy_code_button: true
+### 2. Parser (`svgn/src/parser.rs`)
 
-# Aux links
-aux_links:
-  "View on GitHub":
-    - "https://github.com/twardoch/svgn"
+The parser component is responsible for transforming an SVG string into an Abstract Syntax Tree (AST). In `svgo`, this is handled by `lib/parser.js`, which uses a SAX-like approach. `svgn` implements its own efficient SVG parser in Rust, converting the raw SVG XML into a structured, traversable AST representation that plugins can operate on.
 
-# Collections
-collections:
-  data:
-    output: true
+### 3. Plugins (`svgn/src/plugins/`)
+
+Plugins are the heart of `svgn`'s optimization capabilities. Each plugin is a self-contained module that performs a specific optimization or transformation on the SVG AST. `svgn`'s plugin system is designed to be compatible with `svgo`'s plugin API concepts, allowing for a systematic porting of existing `svgo` plugins.
+
+-   **Modularity**: Each optimization is encapsulated within its own plugin, promoting code organization and reusability.
+-   **AST Transformation**: Plugins receive and modify the SVG AST, enabling complex manipulations of SVG elements, attributes, and styles.
+-   **Configurability**: Plugins can be enabled, disabled, and configured with specific parameters via the `SvgnConfig` object.
+
+### 4. Stringifier (`svgn/src/stringifier.rs`)
+
+After all plugins have processed the AST, the stringifier component converts the optimized AST back into a minified SVG string. This component is analogous to `svgo`'s `lib/stringifier.js`. The stringifier handles proper XML serialization, including attribute ordering, whitespace management, and numeric precision, to ensure the smallest possible output size while maintaining valid SVG syntax.
+
+### 5. Command-Line Interface (CLI) (`svgn/src/bin/svgn.rs`)
+
+The `svgn` CLI provides a user-friendly interface for optimizing SVG files directly from the terminal. It parses command-line arguments, loads configuration, invokes the core optimization engine, and outputs the results. This component mirrors the functionality of `svgo`'s `bin/svgo` and `lib/svgo-node.js`.
+
+## Design Principles
+
+`svgn`'s architecture is guided by several key design principles:
+
+-   **Performance**: Leveraging Rust's capabilities for zero-cost abstractions, memory safety, and concurrency to achieve superior optimization speeds.
+-   **Functional Parity**: Ensuring that `svgn` produces identical optimization results to `svgo` for the same inputs and configurations.
+-   **Modularity**: Maintaining a clear separation of concerns between parsing, optimization, and stringification, and promoting a plugin-based approach for extensibility.
+-   **API Compatibility**: Designing the Rust API to be conceptually similar to `svgo`'s JavaScript API where appropriate, to ease migration for developers.
+-   **WASM Readiness**: Structuring the codebase to facilitate efficient compilation to WebAssembly, enabling broad deployment scenarios.
+
+By adhering to these principles, `svgn` aims to be a robust, high-performance, and functionally equivalent alternative to `svgo` in the Rust ecosystem.
+</file>
+
+<file path="docs/comparison.md">
+---
+layout: default
+title: Comparison
+nav_order: 4
+description: "SVGN vs. SVGO: A detailed comparison"
+---
+
+# SVGN vs. SVGO: A Comparison
+
+`svgn` is a native Rust port of `svgo`, the popular JavaScript-based SVG optimizer. While `svgn` aims for functional parity and API compatibility with `svgo`, there are fundamental differences stemming from their underlying technologies (Rust vs. JavaScript) that impact performance, deployment, and ecosystem integration.
+
+## Key Differences
+
+| Feature             | SVGN (Rust)                                     | SVGO (JavaScript)                               |
+| :------------------ | :---------------------------------------------- | :---------------------------------------------- |
+| **Language**        | Rust                                            | JavaScript (Node.js)                            |
+| **Performance**     | Generally faster due to Rust's native execution and memory management. Ideal for CPU-bound tasks. | Good performance, but limited by JavaScript runtime overhead. |
+| **Memory Usage**    | Lower memory footprint due to Rust's ownership model and lack of garbage collector. | Higher memory usage due to JavaScript's garbage collection and runtime. |
+| **Ecosystem**       | Integrates seamlessly with Rust projects and the Cargo ecosystem. | Integrates with Node.js projects and the npm/Yarn ecosystem. |
+| **Deployment**      | Compiles to native executables, WebAssembly (WASM), or can be used as a library. | Requires Node.js runtime for execution. Browser usage requires bundling. |
+| **Concurrency**     | Leverages Rust's strong concurrency primitives for potential parallel processing of SVG optimization tasks. | Primarily single-threaded, though asynchronous operations are common. |
+| **Error Handling**  | Rust's robust type system and `Result`/`Option` enums enforce explicit error handling at compile time. | Relies on exceptions and runtime error handling. |
+| **Binary Size**     | Native executables can be larger due to static linking, but WASM output can be compact. | Smaller package size, but requires Node.js runtime. |
+| **Use Cases**       | High-performance backend services, desktop applications, CLI tools, WASM in browsers. | Web development workflows, build tools, Node.js applications, browser-based optimization (with bundling). |
+
+## Functional Parity
+
+`svgn`'s primary goal is to achieve full functional parity with `svgo` v4.0.0. This means that for a given SVG input and configuration, `svgn` should produce an identical (or byte-for-byte equivalent) optimized SVG output as `svgo`.
+
+-   **Plugin Porting**: All `svgo` plugins are being systematically ported to `svgn`, ensuring that the same optimization rules and logic are applied.
+-   **Test Suite Replication**: `svgn` utilizes a comprehensive test suite that includes many of `svgo`'s original test cases, ensuring that the output matches the reference implementation.
+-   **Configuration Mapping**: `svgn`'s configuration structure (`SvgnConfig`) is designed to directly map to `svgo`'s configuration object, allowing for easy migration of existing `svgo` configurations.
+
+## When to Choose SVGN?
+
+Consider using `svgn` if:
+
+-   You require maximum performance for SVG optimization, especially for large batches of files or in performance-critical environments.
+-   You are working within a Rust ecosystem and prefer a native solution without Node.js dependencies.
+-   You plan to deploy SVG optimization to WebAssembly (WASM) for client-side or edge computing scenarios.
+-   You value strong type safety and compile-time error checking.
+
+## When to Choose SVGO?
+
+`svgo` remains an excellent choice if:
+
+-   You are already heavily invested in the Node.js/JavaScript ecosystem.
+-   Your performance requirements are met by `svgo`'s current capabilities.
+-   You need immediate access to the latest `svgo` features and plugins as they are released (as `svgn` will have a slight lag for porting).
+-   You prefer the flexibility and rapid development cycles often associated with JavaScript.
+
+Ultimately, the choice between `svgn` and `svgo` depends on your specific project requirements, performance needs, and technology stack preferences.
+</file>
+
+<file path="docs/plugins.md">
+---
+layout: default
+title: Plugins
+nav_order: 3
+description: "SVGN plugin architecture and available plugins"
+---
+
+# SVGN Plugins
+
+Plugins are the core of `svgn`'s optimization capabilities, just as they are for `svgo`. They perform specific transformations on the SVG's Abstract Syntax Tree (AST) to reduce file size and improve rendering efficiency. `svgn` aims to port all of `svgo`'s plugins, maintaining functional parity and API compatibility where it makes sense in a Rust context.
+
+## Plugin Architecture
+
+Similar to `svgo`, `svgn` utilizes a plugin-based architecture. Each plugin is a distinct module responsible for a specific optimization task. This modularity allows for flexible configuration and extensibility.
+
+In `svgn`, plugins are implemented as Rust functions or structs that operate on the SVG's AST. The core optimizer iterates through the enabled plugins, applying their transformations sequentially.
+
+## Default Preset
+
+`svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. The specific plugins included in the default preset and their order of execution will mirror `svgo`'s `preset-default` as closely as possible.
+
+## Ported Plugins
+
+The following `svgo` plugins have been ported to `svgn`:
+
+-   **`addAttributesToSVGElement`**: Adds attributes to the root `<svg>` element.
+-   **`addClassesToSVGElement`**: Adds class names to the root `<svg>` element.
+-   **`cleanupAttrs`**: Cleans up attributes from newlines, trailing, and repeating spaces.
+-   **`cleanupEnableBackground`**: Removes or cleans up the `enable-background` attribute.
+-   **`cleanupIds`**: Minifies and removes unused IDs.
+-   **`cleanupListOfValues`**: Rounds numeric values in attributes that have a list of numbers (like `viewBox` or `stroke-dasharray`).
+-   **`cleanupNumericValues`**: Rounds numeric values to a fixed precision.
+-   **`collapseGroups`**: Collapses useless groups (`<g>`).
+-   **`convertColors`**: Converts colors from `rgb()` to `#rrggbb`, `rgba()` to `#rrggbbaa`, and color names to hex values.
+-   **`convertEllipseToCircle`**: Converts `<ellipse>` elements to `<circle>` elements when possible.
+-   **`convertOneStopGradients`**: Converts gradients with only one stop to a solid color.
+-   **`convertStyleToAttrs`**: Converts styles from `<style>` elements to attributes.
+-   **`mergeStyles`**: Merges multiple `<style>` elements into one.
+-   **`removeAttributesBySelector`**: Removes attributes of elements that match a CSS selector.
+-   **`removeAttrs`**: Removes attributes by name.
+-   **`removeComments`**: Removes comments.
+-   **`removeDeprecatedAttrs`**: Removes deprecated attributes.
+-   **`removeDesc`**: Removes `<desc>` elements.
+-   **`removeDoctype`**: Removes doctype declarations.
+-   **`removeEmptyAttrs`**: Removes empty attributes.
+-   **`removeEmptyContainers`**: Removes empty container elements.
+-   **`removeEmptyText`**: Removes empty text elements.
+-   **`removeMetadata`**: Removes `<metadata>` elements.
+-   **`removeStyleElement`**: Removes `<style>` elements.
+-   **`removeTitle`**: Removes `<title>` elements.
+-   **`removeUnknownsAndDefaults`**: Removes unknown elements' content and attributes, and removes default attribute values.
+-   **`removeXMLProcInst`**: Removes XML processing instructions.
+-   **`sortAttrs`**: Sorts element attributes for better gzip compression.
+
+*(This list will be updated as more plugins are ported and verified.)*
+
+## Plugin Configuration
+
+Configuring plugins in `svgn` is similar to `svgo`. You can enable or disable plugins, and for some, provide specific parameters to control their behavior. This is done through the `SvgnConfig` structure, as shown in the [Usage documentation](./usage.md).
+
+### Example: Disabling a Plugin
+
+To disable a plugin, you would omit it from your `plugins` list in the `SvgnConfig` or explicitly set it to `false` if using a preset override mechanism (which will be implemented to mirror `svgo`'s behavior).
+
+### Example: Configuring a Plugin with Parameters
+
+```rust
+use svgn::config::{SvgnConfig, PluginConfig};
+use serde_json::json;
+
+let config = SvgnConfig {
+    plugins: vec![
+        PluginConfig::WithParams {
+            name: "cleanupNumericValues".to_string(),
+            params: json!({
+                "floatPrecision": 2,
+                "leadingZero": false,
+            }),
+        },
+    ],
+    ..SvgnConfig::default()
+};
+```
+
+This example demonstrates how to configure the `cleanupNumericValues` plugin to round to 2 decimal places and keep leading zeros, mirroring `svgo`'s parameter structure.
+</file>
+
+<file path="docs/usage.md">
+---
+layout: default
+title: Usage
+nav_order: 2
+description: "How to use SVGN CLI and library"
+---
+
+# SVGN Usage
+
+`svgn` provides a powerful and efficient way to optimize SVG files, leveraging the performance benefits of Rust. It aims for API compatibility with `svgo` where applicable, making the transition for users familiar with the JavaScript version as smooth as possible.
+
+## Command-Line Interface (CLI)
+
+`svgn` offers a command-line interface for direct file optimization, similar to `svgo`.
+
+### Basic Usage
+
+To optimize a single SVG file:
+
+```bash
+svgn input.svg -o output.svg
+```
+
+To optimize all SVG files in a folder and overwrite them:
+
+```bash
+svgn -f input_folder
+```
+
+### Options
+
+`svgn` CLI options largely mirror `svgo`'s, providing a familiar experience:
+
+-   `-i, --input <file|dir>`: Input file or directory. (Similar to `svgo`)
+-   `-o, --output <file|dir>`: Output file or directory. (Similar to `svgo`)
+-   `-f, --folder <dir>`: Input folder, optimize and rewrite all `*.svg` files. (Similar to `svgo`)
+-   `-p, --pretty`: Make SVG pretty printed. (Similar to `svgo`)
+-   `--config <file>`: Custom config file. (Similar to `svgo`)
+-   `--disable <plugin_name>`: Disable a plugin by name. (Similar to `svgo`)
+-   `--enable <plugin_name>`: Enable a plugin by name. (Similar to `svgo`)
+-   `--datauri <type>`: Output as Data URI string (`'base64'`, `'enc'`, or `'unenc'`). (Similar to `svgo`)
+-   `--multipass`: Optimize SVG multiple times. (Similar to `svgo`)
+-   `--quiet`: Only output error messages. (Similar to `svgo`)
+-   `-v, --version`: Show version.
+-   `-h, --help`: Show help.
+
+## As a Rust Library
+
+`svgn` can be integrated directly into your Rust projects for programmatic SVG optimization. The core optimization function is designed to be intuitive and efficient.
+
+### Basic Example
+
+To use `svgn` in your Rust code, first ensure you've added it to your `Cargo.toml` (as described in the [Installation](/#installation) section). Then, you can use the `optimize` function:
+
+```rust
+use svgn::optimize;
+use svgn::config::SvgnConfig;
+
+fn main() {
+    let svg_string = r#"
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="0 0 100 100">
+  <text x="50" y="50" text-anchor="middle">•ᴗ•</text>
+</svg>
+"#;
+
+    let config = SvgnConfig::default();
+    let result = optimize(svg_string, &config);
+
+    match result {
+        Ok(optimized_svg) => {
+            println!("Optimized SVG:\n{}", optimized_svg.data);
+        }
+        Err(e) => {
+            eprintln!("Error optimizing SVG: {}", e);
+        }
+    }
+}
+```
+
+### Configuration
+
+The `optimize` function in `svgn` takes an SVG string and a configuration object, similar to `svgo`'s `optimize(input, config)`.
+
+```rust
+pub struct SvgnConfig {
+    pub path: Option<String>,
+    pub plugins: Vec<PluginConfig>,
+    pub multipass: bool,
+    pub js2svg: Js2SvgConfig,
+    pub datauri: Option<String>,
+}
+
+pub struct Js2SvgConfig {
+    pub pretty: bool,
+    pub indent: usize,
+}
+
+pub enum PluginConfig {
+    // Represents a plugin enabled by its name (e.g., "removeDimensions")
+    Enabled(String),
+    // Represents a plugin with custom parameters
+    WithParams {
+        name: String,
+        params: serde_json::Value, // Use serde_json::Value for flexible parameters
+    },
+}
+```
+
+**Comparison with `svgo`'s Configuration:**
+
+`svgn`'s `SvgnConfig` directly maps to `svgo`'s configuration object. The `plugins` array in `svgo` can contain either plugin names (strings) or objects with `name` and `params`. In `svgn`, this is represented by the `PluginConfig` enum, allowing for both simple enablement and parameter customization.
+
+### Example with Custom Plugins
+
+```rust
+use svgn::optimize;
+use svgn::config::{SvgnConfig, PluginConfig};
+use serde_json::json;
+
+fn main() {
+    let svg_string = r#"<svg width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="red"/></svg>"#;
+
+    let config = SvgnConfig {
+        plugins: vec![
+            PluginConfig::Enabled("removeDimensions".to_string()),
+            PluginConfig::WithParams {
+                name: "sortAttrs".to_string(),
+                params: json!({
+                    "xmlnsOrder": "alphabetical",
+                }),
+            },
+        ],
+        ..SvgnConfig::default()
+    };
+
+    let result = optimize(svg_string, &config);
+
+    match result {
+        Ok(optimized_svg) => {
+            println!("Optimized SVG:\n{}", optimized_svg.data);
+        }
+        Err(e) => {
+            eprintln!("Error optimizing SVG: {}", e);
+        }
+    }
+}
+```
+
+## WebAssembly (WASM)
+
+`svgn` is designed to be compiled to WebAssembly, allowing you to run SVG optimization directly in the browser or other WASM environments. This provides a significant performance boost compared to JavaScript-based optimizers in the browser.
+
+*(Details on WASM usage will be added as the WASM compilation target matures.)*
 </file>
 
 <file path="svgn/examples/test_style_plugins.rs">
@@ -45476,62 +45428,52 @@ yarn qa             # Run all quality checks
 ```
 </file>
 
-<file path="docs/index.md">
----
-layout: default
-title: Home
-nav_order: 1
-description: "SVGN: A Native Rust SVG Optimizer"
-permalink: /
----
+<file path="docs/_config.yml">
+theme: just-the-docs
 
-# SVGN: A Native Rust SVG Optimizer
+# Site settings
+title: SVGN Documentation
+description: A native Rust SVG optimizer - API-compatible port of SVGO
+baseurl: ""
+url: "https://twardoch.github.io/svgn"
 
-## 1. Introduction
+# Just the Docs specific settings
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
 
-`svgn` is a high-performance, native Rust port of `svgo` (SVG Optimizer), the popular Node.js-based tool for optimizing SVG vector graphics files. While `svgo` has been instrumental in reducing SVG file sizes by removing redundant information, minifying code, and applying various optimizations, `svgn` aims to bring these benefits to a new level with the power and efficiency of Rust.
+# Navigation
+nav_sort: case_insensitive
+nav_external_links:
+  - title: GitHub Repository
+    url: https://github.com/twardoch/svgn
+  - title: SVGO Reference
+    url: https://github.com/svg/svgo
 
-This document describes `svgn`'s structure, API, and plugins, drawing parallels and highlighting differences with the original JavaScript `svgo` reference implementation.
+# Footer
+footer_content: "Copyright &copy; 2024 Adam Twardoch. Distributed under the MIT License."
 
-## 2. Why SVGN?
+# Color scheme
+color_scheme: light
 
-The primary motivations behind developing `svgn` are:
+# Enable copy to clipboard
+enable_copy_code_button: true
 
--   **Performance**: Rust's focus on performance and memory safety allows `svgn` to process SVG files significantly faster than its JavaScript counterpart, making it ideal for large-scale optimization tasks or real-time applications.
--   **Native Integration**: As a native Rust library, `svgn` can be seamlessly integrated into other Rust applications, desktop tools, and command-line interfaces without the overhead of a Node.js runtime.
--   **WebAssembly (WASM) Compatibility**: `svgn` is designed with WebAssembly compilation in mind, enabling high-performance SVG optimization directly within web browsers or other WASM environments.
--   **API Compatibility**: `svgn` strives for API compatibility with `svgo` v4.0.0, making it easier for developers familiar with `svgo` to transition to `svgn`.
+# Aux links
+aux_links:
+  "View on GitHub":
+    - "https://github.com/twardoch/svgn"
 
-## 3. Project Structure
-
-The `svgn` repository is organized to reflect its native Rust implementation while referencing the original `svgo` structure:
-
--   **/svgn**: Contains the core Rust library and CLI application.
--   **/src**: Rust source code for `svgn`, including the parser, optimizer, stringifier, and plugin implementations.
--   **/ref/svgo**: The complete `svgo` v4.0.0 JavaScript reference implementation, used for functional parity testing and architectural guidance.
--   **/docs**: This documentation.
--   **/tests**: Comprehensive test suites for `svgn`, including integration and unit tests, often mirroring `svgo`'s test cases.
-
-## 4. Installation
-
-To get started with `svgn`, you'll need to have Rust and Cargo installed. If you don't have them, you can install them via `rustup`:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-Once Rust is set up, you can install `svgn` as a command-line tool:
-
-```bash
-cargo install svgn
-```
-
-Or, if you want to use `svgn` as a library in your Rust project, add it to your `Cargo.toml`:
-
-```toml
-[dependencies]
-svgn = "0.1.0" # Use the latest version
-```
+# Collections
+collections:
+  data:
+    output: true
 </file>
 
 <file path="svgn/src/plugins/convert_one_stop_gradients.rs">
@@ -45950,6 +45892,64 @@ criterion = "0.5"
 [[bench]]
 name = "optimization"
 harness = false
+</file>
+
+<file path="docs/index.md">
+---
+layout: default
+title: Home
+nav_order: 1
+description: "SVGN: A Native Rust SVG Optimizer"
+permalink: /
+---
+
+# SVGN: A Native Rust SVG Optimizer
+
+## 1. Introduction
+
+`svgn` is a high-performance, native Rust port of `svgo` (SVG Optimizer), the popular Node.js-based tool for optimizing SVG vector graphics files. While `svgo` has been instrumental in reducing SVG file sizes by removing redundant information, minifying code, and applying various optimizations, `svgn` aims to bring these benefits to a new level with the power and efficiency of Rust.
+
+This document describes `svgn`'s structure, API, and plugins, drawing parallels and highlighting differences with the original JavaScript `svgo` reference implementation.
+
+## 2. Why SVGN?
+
+The primary motivations behind developing `svgn` are:
+
+-   **Performance**: Rust's focus on performance and memory safety allows `svgn` to process SVG files significantly faster than its JavaScript counterpart, making it ideal for large-scale optimization tasks or real-time applications.
+-   **Native Integration**: As a native Rust library, `svgn` can be seamlessly integrated into other Rust applications, desktop tools, and command-line interfaces without the overhead of a Node.js runtime.
+-   **WebAssembly (WASM) Compatibility**: `svgn` is designed with WebAssembly compilation in mind, enabling high-performance SVG optimization directly within web browsers or other WASM environments.
+-   **API Compatibility**: `svgn` strives for API compatibility with `svgo` v4.0.0, making it easier for developers familiar with `svgo` to transition to `svgn`.
+
+## 3. Project Structure
+
+The `svgn` repository is organized to reflect its native Rust implementation while referencing the original `svgo` structure:
+
+-   **/svgn**: Contains the core Rust library and CLI application.
+-   **/src**: Rust source code for `svgn`, including the parser, optimizer, stringifier, and plugin implementations.
+-   **/ref/svgo**: The complete `svgo` v4.0.0 JavaScript reference implementation, used for functional parity testing and architectural guidance.
+-   **/docs**: This documentation.
+-   **/tests**: Comprehensive test suites for `svgn`, including integration and unit tests, often mirroring `svgo`'s test cases.
+
+## 4. Installation
+
+To get started with `svgn`, you'll need to have Rust and Cargo installed. If you don't have them, you can install them via `rustup`:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Once Rust is set up, you can install `svgn` as a command-line tool:
+
+```bash
+cargo install svgn
+```
+
+Or, if you want to use `svgn` as a library in your Rust project, add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+svgn = "0.1.0" # Use the latest version
+```
 </file>
 
 <file path="svgn/src/plugins/remove_attributes_by_selector.rs">
@@ -47972,335 +47972,6 @@ pub use remove_elements_by_attr::RemoveElementsByAttrPlugin;
 pub use remove_dimensions::RemoveDimensionsPlugin;
 </file>
 
-<file path="svgn/src/plugin.rs">
-// this_file: svgn/src/plugin.rs
-
-//! Plugin system for SVG optimization
-//!
-//! This module defines the plugin trait and infrastructure for applying
-//! optimization transformations to SVG documents.
-
-use crate::ast::Document;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::error::Error;
-use std::fmt;
-
-/// Result type for plugin operations
-pub type PluginResult<T> = Result<T, PluginError>;
-
-/// Error type for plugin operations
-#[derive(Debug)]
-pub enum PluginError {
-    /// Invalid configuration parameter
-    InvalidConfig(String),
-    /// Processing error
-    ProcessingError(String),
-    /// I/O error
-    IoError(std::io::Error),
-}
-
-impl fmt::Display for PluginError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PluginError::InvalidConfig(msg) => write!(f, "Invalid configuration: {}", msg),
-            PluginError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
-            PluginError::IoError(err) => write!(f, "I/O error: {}", err),
-        }
-    }
-}
-
-impl Error for PluginError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            PluginError::IoError(err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl From<std::io::Error> for PluginError {
-    fn from(err: std::io::Error) -> Self {
-        PluginError::IoError(err)
-    }
-}
-
-/// Information passed to plugins during optimization
-#[derive(Default)]
-pub struct PluginInfo {
-    /// Path to the current SVG file (if available)
-    pub path: Option<String>,
-    /// Current multipass count (0-indexed)
-    pub multipass_count: usize,
-}
-
-/// Plugin trait that all optimization plugins must implement
-pub trait Plugin: Send + Sync {
-    /// Plugin name (must be unique)
-    fn name(&self) -> &'static str;
-    
-    /// Plugin description
-    fn description(&self) -> &'static str;
-    
-    /// Apply the plugin transformation to the document
-    fn apply(&mut self, document: &mut Document, plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()>;
-    
-    /// Check if the plugin should be applied based on the document
-    /// Default implementation always returns true
-    fn should_apply(&self, _document: &Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> bool {
-        true
-    }
-    
-    /// Validate plugin parameters
-    /// Default implementation accepts any parameters
-    fn validate_params(&self, _params: Option<&Value>) -> PluginResult<()> {
-        Ok(())
-    }
-}
-
-/// Plugin configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PluginConfig {
-    /// Plugin name
-    pub name: String,
-    /// Plugin parameters
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub params: Option<Value>,
-    /// Whether the plugin is enabled
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-}
-
-fn default_true() -> bool {
-    true
-}
-
-impl PluginConfig {
-    /// Create a new plugin configuration
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
-            params: None,
-            enabled: true,
-        }
-    }
-
-    /// Create a new plugin configuration with parameters
-    pub fn with_params(name: String, params: Value) -> Self {
-        Self {
-            name,
-            params: Some(params),
-            enabled: true,
-        }
-    }
-
-    /// Disable this plugin
-    pub fn disabled(mut self) -> Self {
-        self.enabled = false;
-        self
-    }
-}
-
-/// Plugin registry for managing available plugins
-pub struct PluginRegistry {
-    plugins: Vec<Box<dyn Plugin>>,
-}
-
-impl PluginRegistry {
-    /// Create a new empty plugin registry
-    pub fn new() -> Self {
-        Self {
-            plugins: Vec::new(),
-        }
-    }
-
-    /// Register a plugin
-    pub fn register<P: Plugin + 'static>(&mut self, plugin: P) {
-        self.plugins.push(Box::new(plugin));
-    }
-
-    /// Get a plugin by name
-    pub fn get(&self, name: &str) -> Option<&dyn Plugin> {
-        self.plugins.iter().find(|p| p.name() == name).map(|p| p.as_ref())
-    }
-
-    /// Get a plugin by name (mutable)
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn Plugin> {
-        for plugin in &mut self.plugins {
-            if plugin.name() == name {
-                return Some(plugin.as_mut());
-            }
-        }
-        None
-    }
-
-    /// Get all registered plugin names
-    pub fn plugin_names(&self) -> Vec<&'static str> {
-        self.plugins.iter().map(|p| p.name()).collect()
-    }
-
-    /// Apply a list of plugin configurations to a document
-    pub fn apply_plugins(
-        &mut self,
-        document: &mut Document,
-        configs: &[PluginConfig],
-        plugin_info: &PluginInfo,
-    ) -> PluginResult<()> {
-        for config in configs {
-            if !config.enabled {
-                continue;
-            }
-
-            let plugin = self.get_mut(&config.name).ok_or_else(|| {
-                PluginError::InvalidConfig(format!("Unknown plugin: {}", config.name))
-            })?;
-
-            // Validate parameters
-            plugin.validate_params(config.params.as_ref())?;
-
-            // Check if plugin should be applied
-            if !plugin.should_apply(document, plugin_info, config.params.as_ref()) {
-                continue;
-            }
-
-            // Apply the plugin
-            plugin.apply(document, plugin_info, config.params.as_ref())?;
-        }
-
-        Ok(())
-    }
-}
-
-impl Default for PluginRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Create the default plugin registry with all built-in plugins
-pub fn create_default_registry() -> PluginRegistry {
-    let mut registry = PluginRegistry::new();
-    
-    // Register built-in plugins
-    registry.register(crate::plugins::CleanupAttrsPlugin);
-    registry.register(crate::plugins::CleanupEnableBackgroundPlugin);
-    registry.register(crate::plugins::CleanupIdsPlugin);
-    registry.register(crate::plugins::CleanupListOfValuesPlugin);
-    registry.register(crate::plugins::CleanupNumericValuesPlugin);
-    registry.register(crate::plugins::RemoveCommentsPlugin);
-    registry.register(crate::plugins::RemoveDescPlugin);
-    registry.register(crate::plugins::RemoveDoctypePlugin);
-    registry.register(crate::plugins::RemoveEmptyAttrsPlugin);
-    registry.register(crate::plugins::RemoveEmptyContainersPlugin);
-    registry.register(crate::plugins::RemoveEmptyTextPlugin);
-    registry.register(crate::plugins::RemoveAttrsPlugin);
-    registry.register(crate::plugins::RemoveMetadataPlugin);
-    registry.register(crate::plugins::RemoveTitlePlugin);
-    registry.register(crate::plugins::RemoveUnknownsAndDefaultsPlugin);
-    registry.register(crate::plugins::RemoveXMLProcInstPlugin);
-    registry.register(crate::plugins::SortAttrsPlugin);
-    registry.register(crate::plugins::RemoveStyleElement);
-    registry.register(crate::plugins::MergeStylesPlugin);
-    registry.register(crate::plugins::ConvertStyleToAttrsPlugin);
-    registry.register(crate::plugins::ConvertColorsPlugin);
-    registry.register(crate::plugins::AddAttributesToSVGElementPlugin);
-    registry.register(crate::plugins::AddClassesToSVGElementPlugin);
-    // registry.register(crate::plugins::RemoveAttributesBySelectorPlugin); // TODO: Fix CSS selector parsing
-    registry.register(crate::plugins::RemoveDeprecatedAttrsPlugin);
-    registry.register(crate::plugins::ConvertEllipseToCirclePlugin);
-    registry.register(crate::plugins::CollapseGroupsPlugin);
-    registry.register(crate::plugins::ConvertOneStopGradientsPlugin);
-    registry.register(crate::plugins::PrefixIdsPlugin);
-    registry.register(crate::plugins::RemoveEditorsNSDataPlugin);
-    registry.register(crate::plugins::RemoveElementsByAttrPlugin);
-    registry.register(crate::plugins::RemoveDimensionsPlugin);
-    
-    registry
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    // Test plugin for unit tests
-    struct TestPlugin {
-        name: &'static str,
-    }
-
-    impl Plugin for TestPlugin {
-        fn name(&self) -> &'static str {
-            self.name
-        }
-
-        fn description(&self) -> &'static str {
-            "Test plugin"
-        }
-
-        fn apply(&mut self, _document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn test_plugin_registry() {
-        let mut registry = PluginRegistry::new();
-        registry.register(TestPlugin { name: "test" });
-
-        assert!(registry.get("test").is_some());
-        assert!(registry.get("nonexistent").is_none());
-        assert_eq!(registry.plugin_names(), vec!["test"]);
-    }
-
-    #[test]
-    fn test_plugin_config() {
-        let config = PluginConfig::new("test".to_string());
-        assert_eq!(config.name, "test");
-        assert!(config.enabled);
-        assert!(config.params.is_none());
-
-        let config_with_params = PluginConfig::with_params(
-            "test".to_string(),
-            json!({"option": "value"})
-        );
-        assert!(config_with_params.params.is_some());
-
-        let disabled_config = PluginConfig::new("test".to_string()).disabled();
-        assert!(!disabled_config.enabled);
-    }
-
-    #[test]
-    fn test_apply_plugins() {
-        let mut registry = PluginRegistry::new();
-        registry.register(TestPlugin { name: "test" });
-
-        let mut document = Document::new();
-        let configs = vec![PluginConfig::new("test".to_string())];
-
-        let plugin_info = PluginInfo {
-            path: None,
-            multipass_count: 0,
-        };
-        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_apply_unknown_plugin() {
-        let mut registry = PluginRegistry::new();
-        let mut document = Document::new();
-        let configs = vec![PluginConfig::new("unknown".to_string())];
-
-        let plugin_info = PluginInfo {
-            path: None,
-            multipass_count: 0,
-        };
-        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
-        assert!(result.is_err());
-    }
-}
-</file>
-
 <file path="TODO.md">
 # TODO
 
@@ -48674,6 +48345,335 @@ The Rust plugin cannot replicate the full range of `currentColor` conversion beh
 1.  Update the `ConvertColorsConfig` struct in Rust to support a more flexible `currentColor` type (e.g., an enum with variants for `bool`, `String`, and `String` for a regex pattern).
 2.  Modify the plugin logic to handle each variant correctly, applying `currentColor` based on the configured matching strategy.
 3.  Add comprehensive tests to cover all `currentColor` configuration options.
+</file>
+
+<file path="svgn/src/plugin.rs">
+// this_file: svgn/src/plugin.rs
+
+//! Plugin system for SVG optimization
+//!
+//! This module defines the plugin trait and infrastructure for applying
+//! optimization transformations to SVG documents.
+
+use crate::ast::Document;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::error::Error;
+use std::fmt;
+
+/// Result type for plugin operations
+pub type PluginResult<T> = Result<T, PluginError>;
+
+/// Error type for plugin operations
+#[derive(Debug)]
+pub enum PluginError {
+    /// Invalid configuration parameter
+    InvalidConfig(String),
+    /// Processing error
+    ProcessingError(String),
+    /// I/O error
+    IoError(std::io::Error),
+}
+
+impl fmt::Display for PluginError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PluginError::InvalidConfig(msg) => write!(f, "Invalid configuration: {}", msg),
+            PluginError::ProcessingError(msg) => write!(f, "Processing error: {}", msg),
+            PluginError::IoError(err) => write!(f, "I/O error: {}", err),
+        }
+    }
+}
+
+impl Error for PluginError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            PluginError::IoError(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for PluginError {
+    fn from(err: std::io::Error) -> Self {
+        PluginError::IoError(err)
+    }
+}
+
+/// Information passed to plugins during optimization
+#[derive(Default)]
+pub struct PluginInfo {
+    /// Path to the current SVG file (if available)
+    pub path: Option<String>,
+    /// Current multipass count (0-indexed)
+    pub multipass_count: usize,
+}
+
+/// Plugin trait that all optimization plugins must implement
+pub trait Plugin: Send + Sync {
+    /// Plugin name (must be unique)
+    fn name(&self) -> &'static str;
+    
+    /// Plugin description
+    fn description(&self) -> &'static str;
+    
+    /// Apply the plugin transformation to the document
+    fn apply(&mut self, document: &mut Document, plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()>;
+    
+    /// Check if the plugin should be applied based on the document
+    /// Default implementation always returns true
+    fn should_apply(&self, _document: &Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> bool {
+        true
+    }
+    
+    /// Validate plugin parameters
+    /// Default implementation accepts any parameters
+    fn validate_params(&self, _params: Option<&Value>) -> PluginResult<()> {
+        Ok(())
+    }
+}
+
+/// Plugin configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginConfig {
+    /// Plugin name
+    pub name: String,
+    /// Plugin parameters
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<Value>,
+    /// Whether the plugin is enabled
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl PluginConfig {
+    /// Create a new plugin configuration
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            params: None,
+            enabled: true,
+        }
+    }
+
+    /// Create a new plugin configuration with parameters
+    pub fn with_params(name: String, params: Value) -> Self {
+        Self {
+            name,
+            params: Some(params),
+            enabled: true,
+        }
+    }
+
+    /// Disable this plugin
+    pub fn disabled(mut self) -> Self {
+        self.enabled = false;
+        self
+    }
+}
+
+/// Plugin registry for managing available plugins
+pub struct PluginRegistry {
+    plugins: Vec<Box<dyn Plugin>>,
+}
+
+impl PluginRegistry {
+    /// Create a new empty plugin registry
+    pub fn new() -> Self {
+        Self {
+            plugins: Vec::new(),
+        }
+    }
+
+    /// Register a plugin
+    pub fn register<P: Plugin + 'static>(&mut self, plugin: P) {
+        self.plugins.push(Box::new(plugin));
+    }
+
+    /// Get a plugin by name
+    pub fn get(&self, name: &str) -> Option<&dyn Plugin> {
+        self.plugins.iter().find(|p| p.name() == name).map(|p| p.as_ref())
+    }
+
+    /// Get a plugin by name (mutable)
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn Plugin> {
+        for plugin in &mut self.plugins {
+            if plugin.name() == name {
+                return Some(plugin.as_mut());
+            }
+        }
+        None
+    }
+
+    /// Get all registered plugin names
+    pub fn plugin_names(&self) -> Vec<&'static str> {
+        self.plugins.iter().map(|p| p.name()).collect()
+    }
+
+    /// Apply a list of plugin configurations to a document
+    pub fn apply_plugins(
+        &mut self,
+        document: &mut Document,
+        configs: &[PluginConfig],
+        plugin_info: &PluginInfo,
+    ) -> PluginResult<()> {
+        for config in configs {
+            if !config.enabled {
+                continue;
+            }
+
+            let plugin = self.get_mut(&config.name).ok_or_else(|| {
+                PluginError::InvalidConfig(format!("Unknown plugin: {}", config.name))
+            })?;
+
+            // Validate parameters
+            plugin.validate_params(config.params.as_ref())?;
+
+            // Check if plugin should be applied
+            if !plugin.should_apply(document, plugin_info, config.params.as_ref()) {
+                continue;
+            }
+
+            // Apply the plugin
+            plugin.apply(document, plugin_info, config.params.as_ref())?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Default for PluginRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Create the default plugin registry with all built-in plugins
+pub fn create_default_registry() -> PluginRegistry {
+    let mut registry = PluginRegistry::new();
+    
+    // Register built-in plugins
+    registry.register(crate::plugins::CleanupAttrsPlugin);
+    registry.register(crate::plugins::CleanupEnableBackgroundPlugin);
+    registry.register(crate::plugins::CleanupIdsPlugin);
+    registry.register(crate::plugins::CleanupListOfValuesPlugin);
+    registry.register(crate::plugins::CleanupNumericValuesPlugin);
+    registry.register(crate::plugins::RemoveCommentsPlugin);
+    registry.register(crate::plugins::RemoveDescPlugin);
+    registry.register(crate::plugins::RemoveDoctypePlugin);
+    registry.register(crate::plugins::RemoveEmptyAttrsPlugin);
+    registry.register(crate::plugins::RemoveEmptyContainersPlugin);
+    registry.register(crate::plugins::RemoveEmptyTextPlugin);
+    registry.register(crate::plugins::RemoveAttrsPlugin);
+    registry.register(crate::plugins::RemoveMetadataPlugin);
+    registry.register(crate::plugins::RemoveTitlePlugin);
+    registry.register(crate::plugins::RemoveUnknownsAndDefaultsPlugin);
+    registry.register(crate::plugins::RemoveXMLProcInstPlugin);
+    registry.register(crate::plugins::SortAttrsPlugin);
+    registry.register(crate::plugins::RemoveStyleElement);
+    registry.register(crate::plugins::MergeStylesPlugin);
+    registry.register(crate::plugins::ConvertStyleToAttrsPlugin);
+    registry.register(crate::plugins::ConvertColorsPlugin);
+    registry.register(crate::plugins::AddAttributesToSVGElementPlugin);
+    registry.register(crate::plugins::AddClassesToSVGElementPlugin);
+    // registry.register(crate::plugins::RemoveAttributesBySelectorPlugin); // TODO: Fix CSS selector parsing
+    registry.register(crate::plugins::RemoveDeprecatedAttrsPlugin);
+    registry.register(crate::plugins::ConvertEllipseToCirclePlugin);
+    registry.register(crate::plugins::CollapseGroupsPlugin);
+    registry.register(crate::plugins::ConvertOneStopGradientsPlugin);
+    registry.register(crate::plugins::PrefixIdsPlugin);
+    registry.register(crate::plugins::RemoveEditorsNSDataPlugin);
+    registry.register(crate::plugins::RemoveElementsByAttrPlugin);
+    registry.register(crate::plugins::RemoveDimensionsPlugin);
+    
+    registry
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    // Test plugin for unit tests
+    struct TestPlugin {
+        name: &'static str,
+    }
+
+    impl Plugin for TestPlugin {
+        fn name(&self) -> &'static str {
+            self.name
+        }
+
+        fn description(&self) -> &'static str {
+            "Test plugin"
+        }
+
+        fn apply(&mut self, _document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_plugin_registry() {
+        let mut registry = PluginRegistry::new();
+        registry.register(TestPlugin { name: "test" });
+
+        assert!(registry.get("test").is_some());
+        assert!(registry.get("nonexistent").is_none());
+        assert_eq!(registry.plugin_names(), vec!["test"]);
+    }
+
+    #[test]
+    fn test_plugin_config() {
+        let config = PluginConfig::new("test".to_string());
+        assert_eq!(config.name, "test");
+        assert!(config.enabled);
+        assert!(config.params.is_none());
+
+        let config_with_params = PluginConfig::with_params(
+            "test".to_string(),
+            json!({"option": "value"})
+        );
+        assert!(config_with_params.params.is_some());
+
+        let disabled_config = PluginConfig::new("test".to_string()).disabled();
+        assert!(!disabled_config.enabled);
+    }
+
+    #[test]
+    fn test_apply_plugins() {
+        let mut registry = PluginRegistry::new();
+        registry.register(TestPlugin { name: "test" });
+
+        let mut document = Document::new();
+        let configs = vec![PluginConfig::new("test".to_string())];
+
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
+        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_apply_unknown_plugin() {
+        let mut registry = PluginRegistry::new();
+        let mut document = Document::new();
+        let configs = vec![PluginConfig::new("unknown".to_string())];
+
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
+        let result = registry.apply_plugins(&mut document, &configs, &plugin_info);
+        assert!(result.is_err());
+    }
+}
 </file>
 
 </files>
