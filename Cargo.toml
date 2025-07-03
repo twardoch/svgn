@@ -1,45 +1,58 @@
 # this_file: Cargo.toml
 
-[package]
-name = "svgn"
+[workspace]
+members = ["svgn"]
+default-members = ["svgn"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["Adam Twardoch <adam@twardoch.com>"]
-description = "A native Rust port of SVGO (SVG Optimizer) with API compatibility"
 license = "MIT"
 repository = "https://github.com/twardoch/svgn"
 homepage = "https://github.com/twardoch/svgn"
-readme = "README.md"
-keywords = ["svg", "optimization", "graphics", "xml", "cli"]
-categories = ["command-line-utilities", "graphics", "web-programming"]
 
-[dependencies]
+[workspace.dependencies]
+# Core dependencies
 clap = { version = "4.4", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
 thiserror = "1.0"
-quick-xml = "0.36"
+
+# XML parsing
+quick-xml = "0.31"
 roxmltree = "0.20"
-regex = "1.10"
-indexmap = "2.2"
-base64 = "0.22"
-urlencoding = "2.1"
+
+# CSS parsing
 cssparser = "0.31"
+selectors = "0.25"
 lightningcss = "1.0.0-alpha.67"
 
-[dev-dependencies]
+# Utils
+regex = "1.10"
+indexmap = "2.0"
+base64 = "0.22"
+urlencoding = "2.1"
+once_cell = "1.19.0"
+toml = "0.8"
+
+# Path processing
+lyon = "1.0"
+
+# Optional: SVG utilities
+usvg = { version = "0.42" }
+
+# Dev dependencies
 assert_cmd = "2.0"
 predicates = "3.0"
 tempfile = "3.8"
+criterion = "0.5"
 
-[[bin]]
-name = "svgn"
-path = "src/main.rs"
-
-[lib]
-name = "svgn"
-path = "src/lib.rs"
+# WASM support
+wasm-bindgen = "0.2"
+js-sys = "0.3"
 
 [profile.release]
 opt-level = 3
