@@ -179,7 +179,7 @@ Based on complexity and usefulness, the recommended order for next plugins:
 
 This phase focuses on ensuring the correctness, performance, and stability of the project.
 
--   **[ ] 4.1. Test Suite Porting**
+-   **[I] 4.1. Test Suite Porting**
     -   [ ] Systematically port the entire `svgo` test suite from `ref/svgo/test/`.
     -   [ ] Create a test runner that can easily execute these tests and compare the output of `svgn` with the expected output from `svgo`.
 
@@ -188,12 +188,12 @@ This phase focuses on ensuring the correctness, performance, and stability of th
     -   [ ] Benchmarks should cover parsing, stringifying, and each of the major plugins.
     -   [ ] Compare the performance of `svgn` against the original `svgo` to quantify the performance gains.
 
--   **[ ] 4.3. Continuous Integration (CI)**
+-   **[I] 4.3. Continuous Integration (CI)**
     -   [ ] Set up a CI pipeline using GitHub Actions.
-    -   [ ] The CI pipeline will:
-        -   Run `cargo test` on every push and pull request.
-        -   Run `cargo clippy` to enforce code quality.
-        -   Run `cargo fmt --check` to ensure consistent formatting.
+    -   [x] The CI pipeline will:
+        -   [x] Run `cargo test` on every push and pull request.
+        -   [ ] Run `cargo clippy` to enforce code quality.
+        -   [ ] Run `cargo fmt --check` to ensure consistent formatting.
         -   (Optional) Run benchmarks and report on performance changes.
 
 ## Phase 5: WebAssembly (WASM) Target

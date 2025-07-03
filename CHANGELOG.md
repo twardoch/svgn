@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.17] - 2025-07-03
+
+### Added
+- **Test Execution and Issue Documentation**:
+  - Ran tests for `ref/svgo` (JavaScript reference implementation) and `svgn` (Rust implementation).
+  - Documented `ref/svgo` test failures (CLI timeouts) and console warnings in `ref/svgo/TODO.md`.
+  - Documented `svgn` compiler warnings in `svgn/TODO.md`.
+
 ## [0.1.16] - 2025-07-03
 
 ### Added
@@ -35,14 +43,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - ✅ Rewrote and expanded documentation in the `docs/` folder to focus on `svgn` (Rust port) and compare it to `svgo` (JavaScript reference).
-  - Updated `docs/index.md` with an introduction to `svgn`.
-  - Created `docs/usage.md` detailing `svgn`'s CLI and library usage.
-  - Created `docs/plugins.md` explaining `svgn`'s plugin system and listing ported plugins.
-  - Created `docs/comparison.md` providing a detailed comparison between `svgn` and `svgo`.
-  - Created `docs/architecture.md` describing `svgn`'s architecture.
-- ✅ Updated `docs/_config.yml` to include new navigation and Jekyll collections.
-- ✅ Updated `docs/_layouts/default.html` to integrate the new navigation.
-- ✅ Updated `README.md` to reflect the new documentation structure and focus on `svgn`.
+  - Updated `docs/index.md` with an introduction to `svgn`
+  - Created `docs/usage.md` detailing `svgn`'s CLI and library usage
+  - Created `docs/plugins.md` explaining `svgn`'s plugin system and listing ported plugins
+  - Created `docs/comparison.md` providing a detailed comparison between `svgn` and `svgo`
+  - Created `docs/architecture.md` describing `svgn`'s architecture
+- ✅ Updated `docs/_config.yml` to include new navigation and Jekyll collections
+- ✅ Updated `docs/_layouts/default.html` to integrate the new navigation
+- ✅ Updated `README.md` to reflect the new documentation structure and focus on `svgn`
 
 ## [0.1.14] - 2025-07-03
 
@@ -449,6 +457,7 @@ The three initial plugins are complete and tested. Ready to continue with Phase 
 - ✅ Added comprehensive test suite for all core components
 - ✅ Set up benchmark infrastructure using criterion
 - ✅ Enhanced PLAN.md with detailed technical architecture decisions
+- ✅ Created TODO.md as flat task list representation
 - ✅ Created TODO.md as flat task list representation
 
 ### Technical Achievements
