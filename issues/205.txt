@@ -1,0 +1,15 @@
+**Issue:** Document Metadata Handling and Usage
+
+**Description:**
+The Rust `Document` struct (`svgn/src/ast.rs`) includes `metadata` fields for `path`, `encoding`, and `version`. The Rust parser populates `encoding` and `version` from the XML declaration. The JavaScript `optimize` function passes `path` in its `info` object, and the XML declaration details are handled during stringification.
+
+**Impact:**
+While having `metadata` in the Rust AST is a good structural addition, its consistent population and utilization throughout the optimization pipeline needs verification.
+1.  **`path` field:** The `path` field in `DocumentMetadata` is currently populated by the CLI, but its usage by plugins (e.g., `prefixIds` in JS uses `info.path`) needs to be ensured.
+2.  **`encoding` and `version` fields:** These are parsed but their impact on optimization or stringification (e.g., preserving the original XML declaration or modifying it) needs to be defined and implemented. The JS stringifier has options for XML declaration.
+
+**Proposed Solution:**
+1.  **`path` field:** Ensure that the `path` from `DocumentMetadata` is accessible to and used by plugins that require file path context (e.g., for generating unique IDs). This might involve passing `&document.metadata` to plugin `apply` methods.
+2.  **`encoding` and `version` fields:**
+    *   Define how these fields should influence the stringification process. For example, should the original XML declaration be preserved, or should it be regenerated based on the `metadata`?
+    *   Implement logic in the Rust stringifier (`svgn/src/stringifier.rs`) to correctly output the XML declaration based on these `metadata` fields and `js2svg` options.

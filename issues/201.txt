@@ -1,0 +1,26 @@
+**Issue:** XML Entity Expansion in Parser
+
+**Description:**
+The current Rust parser (`svgn/src/parser.rs`) does not handle XML entity declarations within the DOCTYPE for expansion. The JavaScript SVGO parser (`ref/svgo/lib/parser.js`) uses `sax.ENTITIES` to expand these entities during parsing.
+
+**Impact:**
+If an SVG document uses custom entities defined in its DOCTYPE, the Rust parser will not resolve them, leading to different parsed content compared to the original SVGO. This can result in incorrect optimization or rendering.
+
+**Example (from ref/svgo/test/svgo/entities.svg.txt):**
+```xml
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+<!ENTITY Viewport "<rect x='.5' y='.5' width='49' height='29'/>">
+]>
+<svg>
+  <g>
+    &Viewport;
+  </g>
+</svg>
+```
+In this example, `&Viewport;` should be replaced by the `<rect>` element. The current Rust parser will likely treat `&Viewport;` as unparsed text or an error.
+
+**Proposed Solution:**
+Modify the Rust parser to identify and expand XML entities declared in the DOCTYPE. This might involve:
+1.  Extracting entity declarations from the `DocType` event.
+2.  Storing these entities in a map.
+3.  Replacing entity references in text or attribute values with their corresponding expanded content during parsing.

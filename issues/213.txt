@@ -1,0 +1,16 @@
+**Issue:** Visitor Pattern Implementation
+
+**Description:**
+The Rust plugin system (`svgn/src/plugin.rs`) currently uses a single `apply` method per plugin, which takes the entire `Document` and applies transformations. In contrast, the JavaScript SVGO uses a more granular "visitor pattern". This pattern involves `enter` and `exit` methods for different node types (e.g., `element`, `text`, `comment`, `doctype`, `instruction`, `cdata`, `root`).
+
+**Impact:**
+1.  **Efficiency:** Processing the entire document in a single `apply` method can be less efficient for plugins that only need to operate on specific node types or at specific points in the traversal.
+2.  **Modularity:** The current approach makes it harder to write modular plugins that focus on specific AST nodes without needing to traverse the entire tree themselves.
+3.  **Compatibility:** Porting complex SVGO plugins that heavily rely on the visitor pattern (e.g., `convertPathData`, `inlineStyles`) becomes more challenging and less idiomatic in the current Rust structure.
+
+**Proposed Solution:**
+Refactor the Rust plugin system to implement a visitor pattern:
+1.  Define a `Visitor` trait with methods like `visit_element_enter`, `visit_element_exit`, `visit_text`, `visit_comment`, etc.
+2.  Modify the `Plugin` trait's `apply` method to return an implementation of this `Visitor` trait.
+3.  Implement a generic AST traversal function that walks the `Document` and calls the appropriate `Visitor` methods for each node.
+4.  Update existing plugins to utilize this new visitor pattern.

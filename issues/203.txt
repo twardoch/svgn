@@ -1,0 +1,24 @@
+**Issue:** Detailed Error Reporting in Parser
+
+**Description:**
+The Rust parser (`svgn/src/parser.rs`) provides basic error reporting via `ParseError`. However, it lacks the detailed context and code snippet highlighting offered by `SvgoParserError` in the JavaScript version (`ref/svgo/lib/parser.js`). The JS error includes the file path, line number, column number, and a visual representation of the problematic line with a pointer.
+
+**Impact:**
+Less detailed error messages make debugging and identifying the exact location of parsing issues more challenging for users. This reduces the usability and helpfulness of the CLI tool.
+
+**Example (from ref/svgo/test/svgo.test.js):**
+```
+SvgoParserError: test.svg:2:33: Unquoted attribute value
+
+  1 | <svg viewBox="0 0 120 120">
+> 2 |   <circle fill="#ff0000" cx=60.444444" cy="60" r="50"/>
+    |                           ^
+  3 | </svg>
+  4 |
+```
+
+**Proposed Solution:**
+Enhance the `ParseError` enum and its `Display` implementation in Rust to:
+1.  Store additional context: file path (if available), line number, column number, and the relevant source code snippet.
+2.  Format the error message to include this information, potentially with a visual indicator (like `^`) pointing to the exact error location.
+3.  This might require passing the original input string and file path (if available) down to the parser's error handling logic.

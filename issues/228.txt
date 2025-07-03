@@ -1,0 +1,14 @@
+**Issue:** `cleanupIds` Plugin: Optimization Skip for `svg` with only `defs`
+
+**Description:**
+The JavaScript `cleanupIds` plugin (`ref/svgo/plugins/cleanupIds.js`) includes a specific optimization: if the root `<svg>` element contains only `<defs>` children (i.e., no visible content outside of definitions), the plugin skips further processing by returning `visitSkip`. This is a performance optimization to avoid unnecessary work when there's nothing to minify or remove in the main document body.
+
+In contrast, the Rust `CleanupIdsPlugin` (`svgn/src/plugins/cleanup_ids.rs`) does not currently implement this specific check.
+
+**Impact:**
+While not a functional correctness issue that breaks the SVG, the absence of this optimization means the Rust plugin might perform unnecessary work (collecting IDs, processing references, attempting minification) on certain SVG structures that offer no visible content. This can lead to minor performance inefficiencies for such specific input files.
+
+**Proposed Solution:**
+1.  **Implement Check:** Add a check at the beginning of the `CleanupIdsPlugin::apply` method (or within the `element: { enter: ... }` visitor for the root `<svg>` element if the visitor pattern is adopted).
+2.  **Detect `defs`-only SVG:** Determine if the `<svg>` element's children consist solely of `<defs>` elements.
+3.  **Skip Processing:** If this condition is met, the plugin should return early, indicating that no further ID cleanup is necessary for this SVG.

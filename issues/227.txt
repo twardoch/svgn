@@ -1,0 +1,18 @@
+**Issue:** `cleanupIds` Plugin: URL Encoding/Decoding for ID References
+
+**Description:**
+The JavaScript `cleanupIds` plugin (`ref/svgo/plugins/cleanupIds.js`) uses `encodeURI` and `decodeURI` for handling IDs within `url()` references (e.g., `url(#myId)`). The Rust implementation (`svgn/src/plugins/cleanup_ids.rs`) uses the `urlencoding` crate for encoding/decoding these references.
+
+**Impact:**
+While the `urlencoding` crate is generally suitable for URL components, `encodeURI` in JavaScript has specific behaviors regarding which characters it encodes (e.g., it does not encode `;`, `/`, `?`, `:`, `@`, `&`, `=`, `+`, `$`, `,`, `#` if they are part of the URI component). A generic URL encoder might encode these characters, leading to different output or broken references in the SVG.
+
+This discrepancy can result in:
+1.  **Non-byte-for-byte compatibility:** The output SVG might differ from SVGO's, even if functionally equivalent.
+2.  **Broken References:** If the encoding/decoding is not perfectly aligned, references to IDs within `url()` attributes might break, causing rendering issues.
+
+**Proposed Solution:**
+1.  **Detailed Comparison:** Perform a detailed comparison of `encodeURI`/`decodeURI` behavior with `urlencoding` crate functions for all characters that can appear in SVG IDs.
+2.  **Adjust Encoding:** If discrepancies are found, adjust the Rust implementation to precisely match the JS behavior. This might involve:
+    *   Using a different encoding function from `urlencoding` or another crate.
+    *   Implementing a custom encoding/decoding function that replicates `encodeURI`/`decodeURI`'s specific logic for SVG ID characters.
+3.  **Test Cases:** Ensure comprehensive test cases (like `cleanupIds.25.svg.txt` and `cleanupIds.26.svg.txt` from SVGO's test suite) are used to validate the encoding/decoding behavior.

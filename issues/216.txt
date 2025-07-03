@@ -1,0 +1,15 @@
+**Issue:** Limited Dynamic Plugin Loading
+
+**Description:**
+The JavaScript SVGO allows for dynamic loading of custom plugins by providing a `fn` property in the plugin configuration. The Rust version currently requires plugins to be statically registered in the `PluginRegistry` (`svgn/src/plugin.rs`) at compile time.
+
+**Impact:**
+This limitation restricts the extensibility of the Rust port. Users cannot define and load their own custom optimization logic at runtime without modifying and recompiling the `svgn` library itself. This is a significant departure from SVGO's flexible plugin architecture.
+
+**Proposed Solution:**
+Explore and implement mechanisms for dynamic plugin loading in Rust. This is a complex task in Rust due to its compiled nature and strong type system, but potential approaches could include:
+1.  **FFI (Foreign Function Interface):** Allow plugins to be compiled as shared libraries (DLLs/SOs) and loaded at runtime. This would require defining a stable C-compatible API for plugins.
+2.  **WASM (WebAssembly):** If `svgn` is intended to be used in environments that support WASM, plugins could potentially be compiled to WASM and loaded dynamically.
+3.  **Plugin DSL (Domain Specific Language):** Develop a simple DSL for defining plugins that can be interpreted or compiled at runtime.
+
+This issue might be considered a long-term goal due to its complexity.

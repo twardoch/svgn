@@ -1,0 +1,15 @@
+**Issue:** Missing Preset Implementation
+
+**Description:**
+The Rust plugin system (`svgn/src/plugin.rs`) does not yet have a concept of "presets" similar to SVGO's `preset-default`. In SVGO, a preset is a special plugin that groups multiple other plugins and allows for easy configuration and overriding of their parameters.
+
+**Impact:**
+1.  **Configuration Complexity:** Without presets, users have to manually list and configure every single plugin, even for common optimization scenarios, leading to verbose and complex configurations.
+2.  **Maintainability:** It's harder to manage and update default sets of optimizations.
+3.  **Compatibility:** `preset-default` is a core part of SVGO's API and behavior. Its absence makes the Rust port less compatible and user-friendly.
+
+**Proposed Solution:**
+1.  Define a `Preset` struct or enum that can encapsulate a list of `PluginConfig`s.
+2.  Modify the `Config` struct (`svgn/src/config.rs`) to allow `plugins` to include presets.
+3.  Implement logic in the `PluginRegistry` or `optimizer` to expand presets into their individual plugins and apply any overrides specified in the preset's configuration.
+4.  Create a `preset-default` implementation in Rust that mirrors the behavior and included plugins of SVGO's `preset-default`.

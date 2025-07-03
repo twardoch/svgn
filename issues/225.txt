@@ -1,0 +1,17 @@
+**Issue:** `cleanupEnableBackground` Plugin: Handling `enable-background` in `style` Attributes
+
+**Description:**
+The JavaScript `cleanupEnableBackground` plugin (`ref/svgo/plugins/cleanupEnableBackground.js`) is capable of processing and cleaning up `enable-background` declarations that appear within an element's `style` attribute. It uses the `csstree` library to parse and manipulate the CSS within these attributes.
+
+In contrast, the Rust `CleanupEnableBackgroundPlugin` (`svgn/src/plugins/cleanup_enable_background.rs`) explicitly has a `TODO` comment indicating that this functionality is not yet implemented. It only processes `enable-background` when it's a direct attribute.
+
+**Impact:**
+SVGs that use inline styles for `enable-background` will not be optimized by the Rust plugin, leading to larger file sizes and incomplete optimization compared to the JS version. This reduces the functional compatibility of the Rust port.
+
+**Proposed Solution:**
+1.  Integrate a CSS parsing and manipulation library into the Rust project (e.g., `cssparser` and potentially `lightningcss` or a custom solution).
+2.  Modify the `CleanupEnableBackgroundPlugin` to:
+    *   Check for the `style` attribute on elements.
+    *   Parse the CSS content of the `style` attribute.
+    *   Identify and apply the `enable-background` cleanup logic to declarations within the parsed CSS.
+    *   Re-serialize the modified CSS back into the `style` attribute.

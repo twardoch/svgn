@@ -1,0 +1,18 @@
+**Issue:** Missing PluginInfo Object
+
+**Description:**
+The Rust plugin system (`svgn/src/plugin.rs`) currently passes only the `Document` and optional `params` to the `apply` method of plugins. The JavaScript SVGO passes an additional `PluginInfo` object (containing `path`, `multipassCount`, etc.) to its plugin functions.
+
+**Impact:**
+Many SVGO plugins rely on the `PluginInfo` object for their functionality:
+1.  **`path`:** Used by `prefixIds` to generate unique IDs based on the input file name.
+2.  **`multipassCount`:** Used by plugins like `cleanupIds` to track optimization passes and ensure deterministic behavior across multiple passes.
+3.  **General Context:** Provides valuable context about the current optimization run that plugins might need.
+
+Without this information, porting these plugins to Rust will either require reimplementing the logic to obtain this context (if possible) or result in functional differences.
+
+**Proposed Solution:**
+1.  Define a `PluginInfo` struct in Rust (e.g., in `svgn/src/plugin.rs` or `svgn/src/optimizer.rs`) with fields like `path: Option<String>`, `multipass_count: usize`.
+2.  Modify the `Plugin` trait's `apply` method signature to include a `&PluginInfo` parameter.
+3.  Ensure that the `PluginInfo` object is correctly populated and passed down through the optimization pipeline (from `optimizer.rs` to `plugin.rs`).
+4.  Update existing plugins that might benefit from this information.
