@@ -10,13 +10,13 @@
 
 ## IMPLEMENTATION TASKS
 
-- [ ] Port remaining 10 complex plugins to reach 100% compatibility:
+- [ ] Port remaining 9 complex plugins to reach 100% compatibility:
   - [ ] convertPathData (complex path optimization using lyon)
   - [x] convertShapeToPath (shape to path conversion)
   - [ ] convertTransform (transform optimization)
   - [ ] inlineStyles (style inlining with CSS parsing)
   - [ ] mergePaths (path merging and optimization)
-  - [ ] minifyStyles (CSS minification with cssparser)
+  - [x] minifyStyles (CSS minification)
   - [ ] moveElemsAttrsToGroup (attribute grouping optimization)
   - [ ] moveGroupAttrsToElems (attribute distribution optimization)
   - [ ] removeUselessStrokeAndFill (stroke/fill optimization)

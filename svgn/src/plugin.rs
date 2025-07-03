@@ -251,6 +251,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::RemoveNonInheritableGroupAttrsPlugin);
     registry.register(crate::plugins::RemoveOffCanvasPathsPlugin);
     registry.register(crate::plugins::ConvertShapeToPathPlugin);
+    registry.register(crate::plugins::MinifyStylesPlugin);
     
     registry
 }
