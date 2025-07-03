@@ -4,13 +4,5 @@
 - Documented `svgn` compiler warnings in `svgn/TODO.md`.
 - Updated `TODO.md` and `PLAN.md` with test results and issues.
 - Re-ran tests and confirmed existing issues in `ref/svgo` and `svgn`.
-- Fixed Rust compiler warnings in svgn by removing unused imports and variables.
-- Added event attribute collections (ANIMATION_EVENT_ATTRS, DOCUMENT_EVENT_ATTRS, etc.) to collections.rs.
-- Implemented removeScripts plugin with comprehensive event attribute removal and javascript: URL handling.
-- Implemented removeUselessDefs plugin to remove unused definitions without IDs.
-- Implemented removeViewBox plugin to remove redundant viewBox attributes.
-- Progress: 30/54 plugins completed (56%), 240+ tests passing.
-- Implemented removeUnusedNS plugin to remove unused namespace declarations.
-- Implemented removeXlink plugin with SVG 2 conversion (xlink:href → href, xlink:show → target, etc.).
-- Implemented removeXMLNS plugin to remove xmlns attribute from SVG elements.
-- Progress: 33/54 plugins completed (61%), 260+ tests passing.
+- Re-ran tests again and confirmed persistent issues in `ref/svgo`.
+- Re-ran tests and confirmed persistent issues in `ref/svgo`.
