@@ -86,9 +86,9 @@ fn run_plugin_fixture_test(plugin_name: &str, fixture: &TestFixture) {
         let options = OptimizeOptions::new(config.clone());
         let result = optimize(&last_result, options)
             .expect("Optimization should succeed");
-        last_result = result.data;
         
         let output = result.data.trim();
+        last_result = result.data.clone();
         let expected = fixture.expected.trim();
         
         assert_eq!(output, expected, 
