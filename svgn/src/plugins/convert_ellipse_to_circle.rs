@@ -6,7 +6,7 @@
 //! into circle elements, which is a more compact representation.
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin to convert ellipses to circles
