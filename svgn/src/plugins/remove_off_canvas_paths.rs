@@ -29,7 +29,12 @@ impl Plugin for RemoveOffCanvasPathsPlugin {
         "removes elements that are drawn outside of the viewBox (disabled by default)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         // First, find the viewBox from the root SVG element
         if let Some(viewbox) = self.get_viewbox(&document.root) {
             self.process_element(&mut document.root, &viewbox);
@@ -70,7 +75,7 @@ impl RemoveOffCanvasPathsPlugin {
                 if self.is_outside_viewbox(child_elem, viewbox) {
                     return false; // Remove this element
                 }
-                
+
                 // Recursively process children
                 self.process_element(child_elem, viewbox);
                 true
@@ -99,10 +104,10 @@ impl RemoveOffCanvasPathsPlugin {
         let height = self.get_numeric_attr(element, "height").unwrap_or(0.0);
 
         // Check if rect is completely outside viewBox
-        x + width < viewbox.x || 
-        x > viewbox.x + viewbox.width ||
-        y + height < viewbox.y || 
-        y > viewbox.y + viewbox.height
+        x + width < viewbox.x
+            || x > viewbox.x + viewbox.width
+            || y + height < viewbox.y
+            || y > viewbox.y + viewbox.height
     }
 
     fn is_circle_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
@@ -111,10 +116,10 @@ impl RemoveOffCanvasPathsPlugin {
         let r = self.get_numeric_attr(element, "r").unwrap_or(0.0);
 
         // Check if circle is completely outside viewBox
-        cx + r < viewbox.x || 
-        cx - r > viewbox.x + viewbox.width ||
-        cy + r < viewbox.y || 
-        cy - r > viewbox.y + viewbox.height
+        cx + r < viewbox.x
+            || cx - r > viewbox.x + viewbox.width
+            || cy + r < viewbox.y
+            || cy - r > viewbox.y + viewbox.height
     }
 
     fn is_ellipse_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
@@ -124,10 +129,10 @@ impl RemoveOffCanvasPathsPlugin {
         let ry = self.get_numeric_attr(element, "ry").unwrap_or(0.0);
 
         // Check if ellipse is completely outside viewBox
-        cx + rx < viewbox.x || 
-        cx - rx > viewbox.x + viewbox.width ||
-        cy + ry < viewbox.y || 
-        cy - ry > viewbox.y + viewbox.height
+        cx + rx < viewbox.x
+            || cx - rx > viewbox.x + viewbox.width
+            || cy + ry < viewbox.y
+            || cy - ry > viewbox.y + viewbox.height
     }
 
     fn is_line_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
@@ -137,10 +142,10 @@ impl RemoveOffCanvasPathsPlugin {
         let y2 = self.get_numeric_attr(element, "y2").unwrap_or(0.0);
 
         // Check if both endpoints are outside the same edge of viewBox
-        (x1 < viewbox.x && x2 < viewbox.x) ||
-        (x1 > viewbox.x + viewbox.width && x2 > viewbox.x + viewbox.width) ||
-        (y1 < viewbox.y && y2 < viewbox.y) ||
-        (y1 > viewbox.y + viewbox.height && y2 > viewbox.y + viewbox.height)
+        (x1 < viewbox.x && x2 < viewbox.x)
+            || (x1 > viewbox.x + viewbox.width && x2 > viewbox.x + viewbox.width)
+            || (y1 < viewbox.y && y2 < viewbox.y)
+            || (y1 > viewbox.y + viewbox.height && y2 > viewbox.y + viewbox.height)
     }
 
     fn is_polygon_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
@@ -168,10 +173,10 @@ impl RemoveOffCanvasPathsPlugin {
             // This is a simplified check - a full implementation would parse the path
             let bounds = self.get_path_bounds(d);
             if let Some((min_x, min_y, max_x, max_y)) = bounds {
-                max_x < viewbox.x || 
-                min_x > viewbox.x + viewbox.width ||
-                max_y < viewbox.y || 
-                min_y > viewbox.y + viewbox.height
+                max_x < viewbox.x
+                    || min_x > viewbox.x + viewbox.width
+                    || max_y < viewbox.y
+                    || min_y > viewbox.y + viewbox.height
             } else {
                 false
             }
@@ -216,7 +221,7 @@ impl RemoveOffCanvasPathsPlugin {
 
         // Process numbers in pairs (x, y)
         for chunk in numbers.chunks(2) {
-            if chunk.len() >= 1 {
+            if !chunk.is_empty() {
                 let x = chunk[0];
                 min_x = min_x.min(x);
                 max_x = max_x.max(x);
@@ -241,13 +246,13 @@ impl RemoveOffCanvasPathsPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document_with_viewbox(viewbox: &str) -> Document {
         let mut root_attrs = IndexMap::new();
         root_attrs.insert("viewBox".to_string(), viewbox.to_string());
-        
+
         Document {
             root: Element {
                 name: "svg".to_string(),
@@ -276,22 +281,37 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveOffCanvasPathsPlugin;
         assert_eq!(plugin.name(), "removeOffCanvasPaths");
-        assert_eq!(plugin.description(), "removes elements that are drawn outside of the viewBox (disabled by default)");
+        assert_eq!(
+            plugin.description(),
+            "removes elements that are drawn outside of the viewBox (disabled by default)"
+        );
     }
 
     #[test]
     fn test_remove_rect_outside_viewbox() {
         let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
+
         document.root.children = vec![
             // Rect completely outside (left)
-            Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")],
+            )),
             // Rect completely outside (right)
-            Node::Element(create_element("rect", vec![("x", "110"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "110"), ("y", "10"), ("width", "40"), ("height", "40")],
+            )),
             // Rect inside viewBox
-            Node::Element(create_element("rect", vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")],
+            )),
             // Rect partially outside (should keep)
-            Node::Element(create_element("rect", vec![("x", "90"), ("y", "10"), ("width", "20"), ("height", "40")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "90"), ("y", "10"), ("width", "20"), ("height", "40")],
+            )),
         ];
 
         let mut plugin = RemoveOffCanvasPathsPlugin;
@@ -305,14 +325,23 @@ mod tests {
     #[test]
     fn test_remove_circle_outside_viewbox() {
         let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
+
         document.root.children = vec![
             // Circle completely outside
-            Node::Element(create_element("circle", vec![("cx", "-20"), ("cy", "50"), ("r", "10")])),
+            Node::Element(create_element(
+                "circle",
+                vec![("cx", "-20"), ("cy", "50"), ("r", "10")],
+            )),
             // Circle inside
-            Node::Element(create_element("circle", vec![("cx", "50"), ("cy", "50"), ("r", "30")])),
+            Node::Element(create_element(
+                "circle",
+                vec![("cx", "50"), ("cy", "50"), ("r", "30")],
+            )),
             // Circle touching edge (should keep)
-            Node::Element(create_element("circle", vec![("cx", "95"), ("cy", "50"), ("r", "10")])),
+            Node::Element(create_element(
+                "circle",
+                vec![("cx", "95"), ("cy", "50"), ("r", "10")],
+            )),
         ];
 
         let mut plugin = RemoveOffCanvasPathsPlugin;
@@ -325,14 +354,23 @@ mod tests {
     #[test]
     fn test_remove_line_outside_viewbox() {
         let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
+
         document.root.children = vec![
             // Line completely outside (both points left)
-            Node::Element(create_element("line", vec![("x1", "-20"), ("y1", "10"), ("x2", "-10"), ("y2", "20")])),
+            Node::Element(create_element(
+                "line",
+                vec![("x1", "-20"), ("y1", "10"), ("x2", "-10"), ("y2", "20")],
+            )),
             // Line crossing viewBox (should keep)
-            Node::Element(create_element("line", vec![("x1", "-10"), ("y1", "50"), ("x2", "110"), ("y2", "50")])),
+            Node::Element(create_element(
+                "line",
+                vec![("x1", "-10"), ("y1", "50"), ("x2", "110"), ("y2", "50")],
+            )),
             // Line inside
-            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "90"), ("y2", "90")])),
+            Node::Element(create_element(
+                "line",
+                vec![("x1", "10"), ("y1", "10"), ("x2", "90"), ("y2", "90")],
+            )),
         ];
 
         let mut plugin = RemoveOffCanvasPathsPlugin;
@@ -345,12 +383,18 @@ mod tests {
     #[test]
     fn test_remove_polygon_outside_viewbox() {
         let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
+
         document.root.children = vec![
             // Polygon completely outside
-            Node::Element(create_element("polygon", vec![("points", "110,10 120,20 115,30")])),
+            Node::Element(create_element(
+                "polygon",
+                vec![("points", "110,10 120,20 115,30")],
+            )),
             // Polygon inside
-            Node::Element(create_element("polygon", vec![("points", "10,10 50,10 30,50")])),
+            Node::Element(create_element(
+                "polygon",
+                vec![("points", "10,10 50,10 30,50")],
+            )),
         ];
 
         let mut plugin = RemoveOffCanvasPathsPlugin;
@@ -371,14 +415,20 @@ mod tests {
             },
             ..Default::default()
         };
-        
+
         document.root.children = vec![
-            Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
-            Node::Element(create_element("circle", vec![("cx", "1000"), ("cy", "1000"), ("r", "50")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")],
+            )),
+            Node::Element(create_element(
+                "circle",
+                vec![("cx", "1000"), ("cy", "1000"), ("r", "50")],
+            )),
         ];
 
         let initial_count = document.root.children.len();
-        
+
         let mut plugin = RemoveOffCanvasPathsPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), None);
         assert!(result.is_ok());
@@ -390,19 +440,25 @@ mod tests {
     #[test]
     fn test_nested_elements() {
         let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
+
         let group = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
             children: vec![
                 // Rect outside
-                Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
+                Node::Element(create_element(
+                    "rect",
+                    vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")],
+                )),
                 // Rect inside
-                Node::Element(create_element("rect", vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")])),
+                Node::Element(create_element(
+                    "rect",
+                    vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")],
+                )),
             ],
         };
-        
+
         document.root.children = vec![Node::Element(group)];
 
         let mut plugin = RemoveOffCanvasPathsPlugin;
@@ -418,12 +474,18 @@ mod tests {
     #[test]
     fn test_viewbox_with_offset() {
         let mut document = create_test_document_with_viewbox("50 50 100 100");
-        
+
         document.root.children = vec![
             // Rect outside the offset viewBox
-            Node::Element(create_element("rect", vec![("x", "0"), ("y", "0"), ("width", "40"), ("height", "40")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "0"), ("y", "0"), ("width", "40"), ("height", "40")],
+            )),
             // Rect inside the offset viewBox
-            Node::Element(create_element("rect", vec![("x", "60"), ("y", "60"), ("width", "40"), ("height", "40")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("x", "60"), ("y", "60"), ("width", "40"), ("height", "40")],
+            )),
         ];
 
         let mut plugin = RemoveOffCanvasPathsPlugin;

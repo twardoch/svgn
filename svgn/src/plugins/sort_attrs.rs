@@ -7,8 +7,8 @@
 
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
 use indexmap::IndexMap;
+use serde_json::Value;
 use std::cmp::Ordering;
 
 /// Plugin to sort element attributes
@@ -62,7 +62,7 @@ impl SortAttrsParams {
     /// Parse parameters from JSON value
     pub fn from_value(value: Option<&Value>) -> Self {
         let mut params = Self::default();
-        
+
         if let Some(Value::Object(map)) = value {
             // Parse custom order array
             if let Some(Value::Array(order_array)) = map.get("order") {
@@ -76,7 +76,7 @@ impl SortAttrsParams {
                     params.order = order;
                 }
             }
-            
+
             // Parse xmlns order preference
             if let Some(Value::String(xmlns_order)) = map.get("xmlnsOrder") {
                 match xmlns_order.as_str() {
@@ -86,7 +86,7 @@ impl SortAttrsParams {
                 }
             }
         }
-        
+
         params
     }
 }
@@ -100,7 +100,12 @@ impl Plugin for SortAttrsPlugin {
         "Sort element attributes for better compression"
     }
 
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = SortAttrsParams::from_value(params);
         visit_elements(&mut document.root, &config);
         Ok(())
@@ -110,7 +115,7 @@ impl Plugin for SortAttrsPlugin {
 /// Visit all elements in the AST and sort their attributes
 fn visit_elements(element: &mut Element, config: &SortAttrsParams) {
     sort_element_attributes(element, config);
-    
+
     for child in &mut element.children {
         if let Node::Element(child_element) = child {
             visit_elements(child_element, config);
@@ -121,19 +126,21 @@ fn visit_elements(element: &mut Element, config: &SortAttrsParams) {
 /// Sort attributes in a single element
 fn sort_element_attributes(element: &mut Element, config: &SortAttrsParams) {
     // Convert attributes to a vector of (name, value) pairs
-    let mut attrs: Vec<(String, String)> = element.attributes.iter()
+    let mut attrs: Vec<(String, String)> = element
+        .attributes
+        .iter()
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect();
-    
+
     // Sort the attributes
     attrs.sort_by(|a, b| compare_attrs(&a.0, &b.0, config));
-    
+
     // Rebuild the attributes map in sorted order
     let mut sorted_attributes = IndexMap::new();
     for (name, value) in attrs {
         sorted_attributes.insert(name, value);
     }
-    
+
     element.attributes = sorted_attributes;
 }
 
@@ -142,7 +149,7 @@ fn compare_attrs(a_name: &str, b_name: &str, config: &SortAttrsParams) -> Orderi
     // Get namespace priorities
     let a_priority = get_namespace_priority(a_name, &config.xmlns_order);
     let b_priority = get_namespace_priority(b_name, &config.xmlns_order);
-    
+
     // Sort by namespace priority first (higher priority comes first)
     match b_priority.cmp(&a_priority) {
         Ordering::Equal => {
@@ -150,16 +157,16 @@ fn compare_attrs(a_name: &str, b_name: &str, config: &SortAttrsParams) -> Orderi
         }
         other => return other,
     }
-    
+
     // Extract the first part from attributes (e.g., "fill" from "fill-opacity")
     let a_part = a_name.split('-').next().unwrap_or(a_name);
     let b_part = b_name.split('-').next().unwrap_or(b_name);
-    
+
     // If the first parts are different, apply order-based sorting
     if a_part != b_part {
         let a_in_order = config.order.iter().position(|x| x == a_part);
         let b_in_order = config.order.iter().position(|x| x == b_part);
-        
+
         match (a_in_order, b_in_order) {
             (Some(a_pos), Some(b_pos)) => {
                 // Both are in the custom order, sort by position
@@ -178,7 +185,7 @@ fn compare_attrs(a_name: &str, b_name: &str, config: &SortAttrsParams) -> Orderi
             }
         }
     }
-    
+
     // Sort alphabetically
     a_name.cmp(b_name)
 }
@@ -195,12 +202,12 @@ fn get_namespace_priority(name: &str, xmlns_order: &XmlnsOrder) -> u8 {
             return 2;
         }
     }
-    
+
     // Other namespaces after and sort them alphabetically
     if name.contains(':') {
         return 1;
     }
-    
+
     // Other attributes (lowest priority)
     0
 }
@@ -216,28 +223,50 @@ mod tests {
     fn test_sorts_by_default_order() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
+
         // Add attributes in random order
-        element.attributes.insert("stroke".to_string(), "black".to_string());
-        element.attributes.insert("id".to_string(), "rect1".to_string());
-        element.attributes.insert("height".to_string(), "100".to_string());
-        element.attributes.insert("fill".to_string(), "red".to_string());
-        element.attributes.insert("width".to_string(), "200".to_string());
-        
+        element
+            .attributes
+            .insert("stroke".to_string(), "black".to_string());
+        element
+            .attributes
+            .insert("id".to_string(), "rect1".to_string());
+        element
+            .attributes
+            .insert("height".to_string(), "100".to_string());
+        element
+            .attributes
+            .insert("fill".to_string(), "red".to_string());
+        element
+            .attributes
+            .insert("width".to_string(), "200".to_string());
+
         document.root = element;
 
         let mut plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Check that attributes are in the expected order
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
-        
+
         // id should come first, then width, height, fill, stroke
-        let expected_positions = [("id", 0), ("width", 1), ("height", 2), ("fill", 3), ("stroke", 4)];
-        
+        let expected_positions = [
+            ("id", 0),
+            ("width", 1),
+            ("height", 2),
+            ("fill", 3),
+            ("stroke", 4),
+        ];
+
         for (attr, expected_pos) in expected_positions {
             let actual_pos = attr_names.iter().position(|x| *x == attr).unwrap();
-            assert_eq!(actual_pos, expected_pos, "Attribute '{}' should be at position {}", attr, expected_pos);
+            assert_eq!(
+                actual_pos, expected_pos,
+                "Attribute '{}' should be at position {}",
+                attr, expected_pos
+            );
         }
     }
 
@@ -245,75 +274,120 @@ mod tests {
     fn test_xmlns_front_ordering() {
         let mut document = Document::new();
         let mut element = Element::new("svg");
-        
-        element.attributes.insert("width".to_string(), "100".to_string());
-        element.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
-        element.attributes.insert("id".to_string(), "svg1".to_string());
-        element.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        element.attributes.insert("height".to_string(), "100".to_string());
-        
+
+        element
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        element.attributes.insert(
+            "xmlns:xlink".to_string(),
+            "http://www.w3.org/1999/xlink".to_string(),
+        );
+        element
+            .attributes
+            .insert("id".to_string(), "svg1".to_string());
+        element.attributes.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+        element
+            .attributes
+            .insert("height".to_string(), "100".to_string());
+
         document.root = element;
 
         let mut plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
-        
+
         // xmlns should be first, xmlns:xlink second, then regular attributes
         assert_eq!(attr_names[0], "xmlns");
         assert_eq!(attr_names[1], "xmlns:xlink");
         // id should come before width and height according to default order
-        assert!(attr_names.iter().position(|x| *x == "id").unwrap() < 
-                attr_names.iter().position(|x| *x == "width").unwrap());
+        assert!(
+            attr_names.iter().position(|x| *x == "id").unwrap()
+                < attr_names.iter().position(|x| *x == "width").unwrap()
+        );
     }
 
     #[test]
     fn test_xmlns_alphabetical_ordering() {
         let mut document = Document::new();
         let mut element = Element::new("svg");
-        
-        element.attributes.insert("width".to_string(), "100".to_string());
-        element.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
-        element.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        
+
+        element
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        element.attributes.insert(
+            "xmlns:xlink".to_string(),
+            "http://www.w3.org/1999/xlink".to_string(),
+        );
+        element.attributes.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+
         document.root = element;
 
         let mut plugin = SortAttrsPlugin;
         let params = json!({"xmlnsOrder": "alphabetical"});
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
-        
+
         // With alphabetical ordering, regular attributes and xmlns should be mixed
         // width comes before xmlns alphabetically
-        assert!(attr_names.iter().position(|x| *x == "width").unwrap() < 
-                attr_names.iter().position(|x| *x == "xmlns").unwrap());
+        assert!(
+            attr_names.iter().position(|x| *x == "width").unwrap()
+                < attr_names.iter().position(|x| *x == "xmlns").unwrap()
+        );
     }
 
     #[test]
     fn test_grouped_attributes() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("fill-opacity".to_string(), "0.5".to_string());
-        element.attributes.insert("stroke-width".to_string(), "2".to_string());
-        element.attributes.insert("fill".to_string(), "red".to_string());
-        element.attributes.insert("stroke".to_string(), "black".to_string());
-        
+
+        element
+            .attributes
+            .insert("fill-opacity".to_string(), "0.5".to_string());
+        element
+            .attributes
+            .insert("stroke-width".to_string(), "2".to_string());
+        element
+            .attributes
+            .insert("fill".to_string(), "red".to_string());
+        element
+            .attributes
+            .insert("stroke".to_string(), "black".to_string());
+
         document.root = element;
 
         let mut plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
-        
+
         // fill should come before stroke (default order)
         let fill_pos = attr_names.iter().position(|x| *x == "fill").unwrap();
         let stroke_pos = attr_names.iter().position(|x| *x == "stroke").unwrap();
         assert!(fill_pos < stroke_pos);
-        
+
         // fill-opacity should come after fill (alphabetical within group)
-        let fill_opacity_pos = attr_names.iter().position(|x| *x == "fill-opacity").unwrap();
+        let fill_opacity_pos = attr_names
+            .iter()
+            .position(|x| *x == "fill-opacity")
+            .unwrap();
         assert!(fill_pos < fill_opacity_pos);
     }
 
@@ -321,19 +395,27 @@ mod tests {
     fn test_custom_order() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
+
         element.attributes.insert("y".to_string(), "10".to_string());
         element.attributes.insert("x".to_string(), "5".to_string());
-        element.attributes.insert("id".to_string(), "rect1".to_string());
-        
+        element
+            .attributes
+            .insert("id".to_string(), "rect1".to_string());
+
         document.root = element;
 
         let mut plugin = SortAttrsPlugin;
         let params = json!({"order": ["y", "x", "id"]});
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
-        
+
         // Should follow the custom order: y, x, id
         assert_eq!(attr_names[0], "y");
         assert_eq!(attr_names[1], "x");
@@ -344,19 +426,27 @@ mod tests {
     fn test_alphabetical_fallback() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
+
         // Add attributes not in the default order
-        element.attributes.insert("z-index".to_string(), "1".to_string());
-        element.attributes.insert("class".to_string(), "rect".to_string());
-        element.attributes.insert("data-test".to_string(), "value".to_string());
-        
+        element
+            .attributes
+            .insert("z-index".to_string(), "1".to_string());
+        element
+            .attributes
+            .insert("class".to_string(), "rect".to_string());
+        element
+            .attributes
+            .insert("data-test".to_string(), "value".to_string());
+
         document.root = element;
 
         let mut plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         let attr_names: Vec<&String> = document.root.attributes.keys().collect();
-        
+
         // Should be in alphabetical order: class, data-test, z-index
         assert_eq!(attr_names[0], "class");
         assert_eq!(attr_names[1], "data-test");
@@ -368,29 +458,35 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let mut child = Element::new("rect");
-        
+
         // Root element attributes
-        root.attributes.insert("height".to_string(), "100".to_string());
+        root.attributes
+            .insert("height".to_string(), "100".to_string());
         root.attributes.insert("id".to_string(), "svg1".to_string());
-        root.attributes.insert("width".to_string(), "100".to_string());
-        
+        root.attributes
+            .insert("width".to_string(), "100".to_string());
+
         // Child element attributes
         child.attributes.insert("y".to_string(), "10".to_string());
-        child.attributes.insert("fill".to_string(), "red".to_string());
+        child
+            .attributes
+            .insert("fill".to_string(), "red".to_string());
         child.attributes.insert("x".to_string(), "5".to_string());
-        
+
         root.children.push(Node::Element(child));
         document.root = root;
 
         let mut plugin = SortAttrsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Check root attributes are sorted
         let root_attr_names: Vec<&String> = document.root.attributes.keys().collect();
         assert_eq!(root_attr_names[0], "id");
         assert_eq!(root_attr_names[1], "width");
         assert_eq!(root_attr_names[2], "height");
-        
+
         // Check child attributes are sorted
         if let Node::Element(child_element) = &document.root.children[0] {
             let child_attr_names: Vec<&String> = child_element.attributes.keys().collect();
@@ -404,6 +500,9 @@ mod tests {
     fn test_plugin_name_and_description() {
         let mut plugin = SortAttrsPlugin;
         assert_eq!(plugin.name(), "sortAttrs");
-        assert_eq!(plugin.description(), "Sort element attributes for better compression");
+        assert_eq!(
+            plugin.description(),
+            "Sort element attributes for better compression"
+        );
     }
 }

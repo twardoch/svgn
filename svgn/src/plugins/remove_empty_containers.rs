@@ -16,7 +16,7 @@ use std::sync::LazyLock;
 static CONTAINER_ELEMENTS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     [
         "a",
-        "defs", 
+        "defs",
         "foreignObject",
         "g",
         "marker",
@@ -43,7 +43,12 @@ impl Plugin for RemoveEmptyContainersPlugin {
         "removes empty container elements"
     }
 
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         // Process the tree bottom-up to handle nested containers correctly
         remove_empty_containers(&mut document.root, None);
         Ok(())
@@ -58,7 +63,7 @@ fn remove_empty_containers(element: &mut Element, _parent_name: Option<&str>) {
             remove_empty_containers(child_element, Some(&element.name));
         }
     }
-    
+
     // Then remove empty container children from this element
     element.children.retain(|child| {
         if let Node::Element(child_element) = child {
@@ -75,38 +80,38 @@ fn should_remove_empty_container(element: &Element, parent_name: Option<&str>) -
     if !CONTAINER_ELEMENTS.contains(element.name.as_str()) {
         return false;
     }
-    
+
     // Must be empty (no children)
     if !element.children.is_empty() {
         return false;
     }
-    
+
     // Don't remove root SVG elements
     if element.name == "svg" {
         return false;
     }
-    
+
     // Empty patterns may contain reusable configuration
     if element.name == "pattern" && !element.attributes.is_empty() {
         return false;
     }
-    
+
     // Empty <mask> with ID hides masked element
     if element.name == "mask" && element.attributes.contains_key("id") {
         return false;
     }
-    
+
     // Don't remove elements that are direct children of <switch>
     if parent_name == Some("switch") {
         return false;
     }
-    
+
     // The <g> may not have content, but the filter may cause a rectangle
     // to be created and filled with pattern
     if element.name == "g" && element.attributes.contains_key("filter") {
         return false;
     }
-    
+
     // If we get here, it's safe to remove this empty container
     true
 }
@@ -122,12 +127,14 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let empty_defs = Element::new("defs");
-        
+
         root.children.push(Node::Element(empty_defs));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Empty defs should be removed
         assert!(document.root.children.is_empty());
@@ -138,12 +145,14 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let empty_g = Element::new("g");
-        
+
         root.children.push(Node::Element(empty_g));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Empty g should be removed
         assert!(document.root.children.is_empty());
@@ -156,7 +165,9 @@ mod tests {
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // SVG root should never be removed even if empty
         assert_eq!(document.root.name, "svg");
@@ -167,13 +178,17 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let mut pattern = Element::new("pattern");
-        pattern.attributes.insert("id".to_string(), "mypattern".to_string());
-        
+        pattern
+            .attributes
+            .insert("id".to_string(), "mypattern".to_string());
+
         root.children.push(Node::Element(pattern));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Pattern with attributes should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -187,13 +202,16 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let mut mask = Element::new("mask");
-        mask.attributes.insert("id".to_string(), "mymask".to_string());
-        
+        mask.attributes
+            .insert("id".to_string(), "mymask".to_string());
+
         root.children.push(Node::Element(mask));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Mask with ID should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -207,13 +225,16 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let mut g = Element::new("g");
-        g.attributes.insert("filter".to_string(), "url(#myfilter)".to_string());
-        
+        g.attributes
+            .insert("filter".to_string(), "url(#myfilter)".to_string());
+
         root.children.push(Node::Element(g));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Group with filter should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -228,13 +249,15 @@ mod tests {
         let mut root = Element::new("svg");
         let mut switch = Element::new("switch");
         let empty_g = Element::new("g");
-        
+
         switch.children.push(Node::Element(empty_g));
         root.children.push(Node::Element(switch));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Elements in switch should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -250,13 +273,15 @@ mod tests {
         let mut root = Element::new("svg");
         let mut outer_g = Element::new("g");
         let inner_g = Element::new("g");
-        
+
         outer_g.children.push(Node::Element(inner_g));
         root.children.push(Node::Element(outer_g));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Both nested empty containers should be removed
         assert!(document.root.children.is_empty());
@@ -268,13 +293,15 @@ mod tests {
         let mut root = Element::new("svg");
         let rect = Element::new("rect");
         let empty_g = Element::new("g");
-        
+
         root.children.push(Node::Element(rect));
         root.children.push(Node::Element(empty_g));
         document.root = root;
 
         let mut plugin = RemoveEmptyContainersPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Should keep rect and remove empty g
         assert_eq!(document.root.children.len(), 1);

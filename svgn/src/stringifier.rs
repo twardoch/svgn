@@ -86,7 +86,11 @@ impl Stringifier {
         // Add XML declaration if needed
         if let Some(version) = &document.metadata.version {
             if let Some(encoding) = &document.metadata.encoding {
-                writeln!(output, r#"<?xml version="{}" encoding="{}"?>"#, version, encoding)?;
+                writeln!(
+                    output,
+                    r#"<?xml version="{}" encoding="{}"?>"#,
+                    version, encoding
+                )?;
             } else {
                 writeln!(output, r#"<?xml version="{}"?>"#, version)?;
             }
@@ -119,7 +123,12 @@ impl Stringifier {
     }
 
     /// Stringify an element
-    fn stringify_element(&self, element: &Element, output: &mut String, depth: usize) -> StringifyResult<()> {
+    fn stringify_element(
+        &self,
+        element: &Element,
+        output: &mut String,
+        depth: usize,
+    ) -> StringifyResult<()> {
         // Add indentation if pretty-printing
         if self.pretty && depth > 0 {
             self.write_indent(output, depth);
@@ -132,16 +141,16 @@ impl Stringifier {
         self.write_attributes(element, output)?;
 
         // Handle empty elements or elements with only whitespace
-        let is_effectively_empty = element.children.is_empty() || 
-            (self.pretty && element.is_whitespace_only());
-            
+        let is_effectively_empty =
+            element.children.is_empty() || (self.pretty && element.is_whitespace_only());
+
         if is_effectively_empty {
             if self.self_closing {
                 write!(output, "/>")?;
             } else {
                 write!(output, "></{}>", element.name)?;
             }
-            
+
             if self.pretty {
                 writeln!(output)?;
             }
@@ -233,7 +242,12 @@ impl Stringifier {
     }
 
     /// Stringify a node (for use with prologue/epilogue)
-    fn stringify_node(&self, node: &Node, output: &mut String, _depth: usize) -> StringifyResult<()> {
+    fn stringify_node(
+        &self,
+        node: &Node,
+        output: &mut String,
+        _depth: usize,
+    ) -> StringifyResult<()> {
         match node {
             Node::Comment(comment) => {
                 write!(output, "<!--{}-->", comment)?;
@@ -262,7 +276,7 @@ impl Stringifier {
         attrs.sort_by(|(a_idx, (a_name, _)), (b_idx, (b_name, _))| {
             let a_priority = get_attribute_priority(a_name);
             let b_priority = get_attribute_priority(b_name);
-            
+
             // First sort by priority, then by original index to preserve insertion order
             match a_priority.cmp(&b_priority) {
                 std::cmp::Ordering::Equal => a_idx.cmp(b_idx),
@@ -270,12 +284,18 @@ impl Stringifier {
             }
         });
 
-        for (name, value) in attrs {
+        for (_idx, (name, value)) in attrs {
             write!(output, " {}", name)?;
-            
+
             if !value.is_empty() {
                 let quote_char = self.choose_quote_char(value);
-                write!(output, "={}{}{}", quote_char, self.escape_attr_value(value, quote_char), quote_char)?;
+                write!(
+                    output,
+                    "={}{}{}",
+                    quote_char,
+                    self.escape_attr_value(value, quote_char),
+                    quote_char
+                )?;
             }
         }
 
@@ -288,16 +308,23 @@ impl Stringifier {
             QuoteAttrsStyle::Always => '"',
             QuoteAttrsStyle::Never => {
                 // Only use quotes if necessary
-                if value.contains(' ') || value.contains('\t') || value.contains('\n') || 
-                   value.contains('\r') || value.contains('"') || value.contains('\'') ||
-                   value.contains('<') || value.contains('>') || value.contains('&') {
+                if value.contains(' ')
+                    || value.contains('\t')
+                    || value.contains('\n')
+                    || value.contains('\r')
+                    || value.contains('"')
+                    || value.contains('\'')
+                    || value.contains('<')
+                    || value.contains('>')
+                    || value.contains('&')
+                {
                     if value.contains('"') && !value.contains('\'') {
                         '\''
                     } else {
                         '"'
                     }
                 } else {
-                    return '\0'; // No quotes needed
+                    '\0' // No quotes needed
                 }
             }
             QuoteAttrsStyle::Auto => {
@@ -313,7 +340,7 @@ impl Stringifier {
     /// Escape attribute value based on quote character
     fn escape_attr_value(&self, value: &str, quote_char: char) -> String {
         let mut result = String::with_capacity(value.len());
-        
+
         for ch in value.chars() {
             match ch {
                 '&' => result.push_str("&amp;"),
@@ -323,14 +350,14 @@ impl Stringifier {
                 _ => result.push(ch),
             }
         }
-        
+
         result
     }
 
     /// Escape text content
     fn escape_text(&self, text: &str) -> String {
         let mut result = String::with_capacity(text.len());
-        
+
         for ch in text.chars() {
             match ch {
                 '&' => result.push_str("&amp;"),
@@ -339,7 +366,7 @@ impl Stringifier {
                 _ => result.push(ch),
             }
         }
-        
+
         result
     }
 
@@ -422,7 +449,7 @@ mod tests {
     fn test_stringify_pretty() {
         let mut element = Element::new("svg");
         element.add_child(Node::Element(create_test_element()));
-        
+
         let mut document = Document::new();
         document.root = element;
 
@@ -435,7 +462,7 @@ mod tests {
     fn test_stringify_with_text() {
         let mut element = Element::new("text");
         element.add_child(Node::Text("Hello & World".to_string()));
-        
+
         let mut document = Document::new();
         document.root = element;
 
@@ -447,7 +474,7 @@ mod tests {
     fn test_stringify_with_comment() {
         let mut element = Element::new("svg");
         element.add_child(Node::Comment(" This is a comment ".to_string()));
-        
+
         let mut document = Document::new();
         document.root = element;
 
@@ -458,13 +485,16 @@ mod tests {
     #[test]
     fn test_attribute_escaping() {
         let mut element = Element::new("test");
-        element.set_attr("attr".to_string(), "value with \"quotes\" & <tags>".to_string());
-        
+        element.set_attr(
+            "attr".to_string(),
+            "value with \"quotes\" & <tags>".to_string(),
+        );
+
         let mut document = Document::new();
         document.root = element;
 
         let result = stringify(&document).unwrap();
-        assert!(result.contains("attr='value with \"quotes\" &amp; &lt;tags>'")); 
+        assert!(result.contains("attr='value with \"quotes\" &amp; &lt;tags>'"));
     }
 
     #[test]
@@ -486,8 +516,11 @@ mod tests {
     fn test_quote_styles() {
         let mut element = Element::new("test");
         element.set_attr("simple".to_string(), "value".to_string());
-        element.set_attr("with_quotes".to_string(), "value with \"quotes\"".to_string());
-        
+        element.set_attr(
+            "with_quotes".to_string(),
+            "value with \"quotes\"".to_string(),
+        );
+
         let mut document = Document::new();
         document.root = element;
 

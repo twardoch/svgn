@@ -37,7 +37,7 @@ impl RemoveEmptyTextParams {
     /// Parse parameters from JSON value
     pub fn from_value(value: Option<&Value>) -> Self {
         let mut params = Self::default();
-        
+
         if let Some(Value::Object(map)) = value {
             if let Some(Value::Bool(text)) = map.get("text") {
                 params.text = *text;
@@ -49,7 +49,7 @@ impl RemoveEmptyTextParams {
                 params.tref = *tref;
             }
         }
-        
+
         params
     }
 }
@@ -63,7 +63,12 @@ impl Plugin for RemoveEmptyTextPlugin {
         "removes empty <text> elements"
     }
 
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = RemoveEmptyTextParams::from_value(params);
         remove_empty_text(&mut document.root, &config);
         Ok(())
@@ -78,7 +83,7 @@ fn remove_empty_text(element: &mut Element, config: &RemoveEmptyTextParams) {
             remove_empty_text(child_element, config);
         }
     }
-    
+
     // Then remove empty text elements from this element's children
     element.children.retain(|child| {
         if let Node::Element(child_element) = child {
@@ -120,12 +125,14 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let empty_text = Element::new("text");
-        
+
         root.children.push(Node::Element(empty_text));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Empty text should be removed
         assert!(document.root.children.is_empty());
@@ -136,12 +143,14 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let empty_tspan = Element::new("tspan");
-        
+
         root.children.push(Node::Element(empty_tspan));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Empty tspan should be removed
         assert!(document.root.children.is_empty());
@@ -152,12 +161,14 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let tref = Element::new("tref");
-        
+
         root.children.push(Node::Element(tref));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // tref without xlink:href should be removed
         assert!(document.root.children.is_empty());
@@ -168,13 +179,16 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let mut tref = Element::new("tref");
-        tref.attributes.insert("xlink:href".to_string(), "#someref".to_string());
-        
+        tref.attributes
+            .insert("xlink:href".to_string(), "#someref".to_string());
+
         root.children.push(Node::Element(tref));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // tref with xlink:href should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -189,12 +203,14 @@ mod tests {
         let mut root = Element::new("svg");
         let mut text = Element::new("text");
         text.children.push(Node::Text("Hello".to_string()));
-        
+
         root.children.push(Node::Element(text));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Text with content should be preserved
         assert_eq!(document.root.children.len(), 1);
@@ -209,13 +225,19 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let empty_text = Element::new("text");
-        
+
         root.children.push(Node::Element(empty_text));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
         let params = json!({"text": false});
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
 
         // Empty text should be preserved when text=false
         assert_eq!(document.root.children.len(), 1);
@@ -226,13 +248,19 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let empty_tspan = Element::new("tspan");
-        
+
         root.children.push(Node::Element(empty_tspan));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
         let params = json!({"tspan": false});
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
 
         // Empty tspan should be preserved when tspan=false
         assert_eq!(document.root.children.len(), 1);
@@ -243,13 +271,19 @@ mod tests {
         let mut document = Document::new();
         let mut root = Element::new("svg");
         let tref = Element::new("tref");
-        
+
         root.children.push(Node::Element(tref));
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
         let params = json!({"tref": false});
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
 
         // tref without href should be preserved when tref=false
         assert_eq!(document.root.children.len(), 1);
@@ -259,33 +293,39 @@ mod tests {
     fn test_mixed_text_elements() {
         let mut document = Document::new();
         let mut root = Element::new("svg");
-        
+
         // Empty text (should be removed)
         let empty_text = Element::new("text");
         root.children.push(Node::Element(empty_text));
-        
+
         // Non-empty tspan (should be preserved)
         let mut tspan_with_content = Element::new("tspan");
-        tspan_with_content.children.push(Node::Text("Content".to_string()));
+        tspan_with_content
+            .children
+            .push(Node::Text("Content".to_string()));
         root.children.push(Node::Element(tspan_with_content));
-        
+
         // tref without href (should be removed)
         let tref_no_href = Element::new("tref");
         root.children.push(Node::Element(tref_no_href));
-        
+
         // tref with href (should be preserved)
         let mut tref_with_href = Element::new("tref");
-        tref_with_href.attributes.insert("xlink:href".to_string(), "#ref".to_string());
+        tref_with_href
+            .attributes
+            .insert("xlink:href".to_string(), "#ref".to_string());
         root.children.push(Node::Element(tref_with_href));
-        
+
         document.root = root;
 
         let mut plugin = RemoveEmptyTextPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         // Should have 2 elements remaining: tspan with content and tref with href
         assert_eq!(document.root.children.len(), 2);
-        
+
         if let Node::Element(child1) = &document.root.children[0] {
             assert_eq!(child1.name, "tspan");
         }

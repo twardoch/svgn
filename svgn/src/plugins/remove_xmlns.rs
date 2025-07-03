@@ -21,13 +21,19 @@ impl Plugin for RemoveXMLNSPlugin {
         "removes xmlns attribute (for inline svg, disabled by default)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
 }
 
 impl RemoveXMLNSPlugin {
+    #[allow(clippy::only_used_in_recursion)]
     fn process_element(&self, element: &mut Element) {
         // Remove xmlns attribute from SVG elements
         if element.name == "svg" {
@@ -48,8 +54,8 @@ impl RemoveXMLNSPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -67,15 +73,24 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveXMLNSPlugin;
         assert_eq!(plugin.name(), "removeXMLNS");
-        assert_eq!(plugin.description(), "removes xmlns attribute (for inline svg, disabled by default)");
+        assert_eq!(
+            plugin.description(),
+            "removes xmlns attribute (for inline svg, disabled by default)"
+        );
     }
 
     #[test]
     fn test_remove_xmlns_from_svg() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 100".to_string());
+
+        document.root.attributes.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 100 100".to_string());
 
         let mut plugin = RemoveXMLNSPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -90,12 +105,15 @@ mod tests {
     #[test]
     fn test_remove_xmlns_from_nested_svg() {
         let mut document = create_test_document();
-        
+
         // Add nested SVG element with xmlns
         let mut nested_svg_attrs = IndexMap::new();
-        nested_svg_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        nested_svg_attrs.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
         nested_svg_attrs.insert("width".to_string(), "50".to_string());
-        
+
         let nested_svg = Element {
             name: "svg".to_string(),
             attributes: nested_svg_attrs,
@@ -123,10 +141,19 @@ mod tests {
     #[test]
     fn test_preserve_other_xmlns_attributes() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        document.root.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
-        document.root.attributes.insert("xmlns:custom".to_string(), "http://example.com/custom".to_string());
+
+        document.root.attributes.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:xlink".to_string(),
+            "http://www.w3.org/1999/xlink".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:custom".to_string(),
+            "http://example.com/custom".to_string(),
+        );
 
         let mut plugin = RemoveXMLNSPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -141,12 +168,15 @@ mod tests {
     #[test]
     fn test_ignore_non_svg_elements() {
         let mut document = create_test_document();
-        
+
         // Add a non-SVG element with xmlns (shouldn't happen but test anyway)
         let mut rect_attrs = IndexMap::new();
-        rect_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        rect_attrs.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
         rect_attrs.insert("width".to_string(), "100".to_string());
-        
+
         let rect_element = Element {
             name: "rect".to_string(),
             attributes: rect_attrs,
@@ -173,9 +203,15 @@ mod tests {
     #[test]
     fn test_no_xmlns_attribute() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 100".to_string());
-        document.root.attributes.insert("width".to_string(), "100".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 100 100".to_string());
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
 
         let mut plugin = RemoveXMLNSPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -190,15 +226,21 @@ mod tests {
     #[test]
     fn test_complex_nested_structure() {
         let mut document = create_test_document();
-        
+
         // Root SVG with xmlns
-        document.root.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        
+        document.root.attributes.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+
         // Nested structure: svg -> g -> svg
         let mut inner_svg_attrs = IndexMap::new();
-        inner_svg_attrs.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
+        inner_svg_attrs.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
         inner_svg_attrs.insert("x".to_string(), "10".to_string());
-        
+
         let inner_svg = Element {
             name: "svg".to_string(),
             attributes: inner_svg_attrs,
@@ -221,7 +263,7 @@ mod tests {
 
         // Both root and nested SVG should have xmlns removed
         assert!(!document.root.attributes.contains_key("xmlns"));
-        
+
         if let Node::Element(ref g) = document.root.children[0] {
             if let Node::Element(ref inner_svg) = g.children[0] {
                 assert_eq!(inner_svg.name, "svg");

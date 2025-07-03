@@ -6,6 +6,12 @@ use serde_json::Value;
 
 pub struct RemoveDimensionsPlugin;
 
+impl Default for RemoveDimensionsPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RemoveDimensionsPlugin {
     pub fn new() -> Self {
         Self
@@ -27,7 +33,9 @@ impl RemoveDimensionsPlugin {
 
             if let (Some(width_str), Some(height_str)) = (width_str, height_str) {
                 // Try to parse width and height as numbers
-                if let (Ok(width), Ok(height)) = (width_str.parse::<f64>(), height_str.parse::<f64>()) {
+                if let (Ok(width), Ok(height)) =
+                    (width_str.parse::<f64>(), height_str.parse::<f64>())
+                {
                     // Only proceed if both are valid numbers (not NaN)
                     if !width.is_nan() && !height.is_nan() {
                         // Create viewBox and remove width/height
@@ -63,7 +71,12 @@ impl Plugin for RemoveDimensionsPlugin {
         "removes width and height in presence of viewBox (opposite to removeViewBox)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
@@ -100,82 +113,115 @@ mod tests {
     fn test_plugin_creation() {
         let plugin = RemoveDimensionsPlugin::new();
         assert_eq!(plugin.name(), "removeDimensions");
-        assert_eq!(plugin.description(), "removes width and height in presence of viewBox (opposite to removeViewBox)");
+        assert_eq!(
+            plugin.description(),
+            "removes width and height in presence of viewBox (opposite to removeViewBox)"
+        );
     }
 
     #[test]
     fn test_remove_dimensions_with_existing_viewbox() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up SVG with width, height, and viewBox
-        doc.root.attributes.insert("width".to_string(), "100".to_string());
-        doc.root.attributes.insert("height".to_string(), "50".to_string());
-        doc.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        doc.root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+        doc.root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 200 100".to_string());
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Width and height should be removed, viewBox should remain unchanged
         assert!(!doc.root.attributes.contains_key("width"));
         assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
+        assert_eq!(
+            doc.root.attributes.get("viewBox"),
+            Some(&"0 0 200 100".to_string())
+        );
     }
 
     #[test]
     fn test_create_viewbox_from_dimensions() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up SVG with only width and height
-        doc.root.attributes.insert("width".to_string(), "100".to_string());
-        doc.root.attributes.insert("height".to_string(), "50".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        doc.root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Width and height should be removed, viewBox should be created
         assert!(!doc.root.attributes.contains_key("width"));
         assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
+        assert_eq!(
+            doc.root.attributes.get("viewBox"),
+            Some(&"0 0 100 50".to_string())
+        );
     }
 
     #[test]
     fn test_decimal_dimensions() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up SVG with decimal dimensions
-        doc.root.attributes.insert("width".to_string(), "100.5".to_string());
-        doc.root.attributes.insert("height".to_string(), "50.25".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "100.5".to_string());
+        doc.root
+            .attributes
+            .insert("height".to_string(), "50.25".to_string());
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Width and height should be removed, viewBox should be created with decimals
         assert!(!doc.root.attributes.contains_key("width"));
         assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 100.5 50.25".to_string()));
+        assert_eq!(
+            doc.root.attributes.get("viewBox"),
+            Some(&"0 0 100.5 50.25".to_string())
+        );
     }
 
     #[test]
     fn test_invalid_dimensions_ignored() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up SVG with invalid dimensions
-        doc.root.attributes.insert("width".to_string(), "invalid".to_string());
-        doc.root.attributes.insert("height".to_string(), "50".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "invalid".to_string());
+        doc.root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Width and height should remain since they're not both valid numbers
-        assert_eq!(doc.root.attributes.get("width"), Some(&"invalid".to_string()));
+        assert_eq!(
+            doc.root.attributes.get("width"),
+            Some(&"invalid".to_string())
+        );
         assert_eq!(doc.root.attributes.get("height"), Some(&"50".to_string()));
         assert!(!doc.root.attributes.contains_key("viewBox"));
     }
@@ -184,14 +230,16 @@ mod tests {
     fn test_missing_dimension_ignored() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up SVG with only width
-        doc.root.attributes.insert("width".to_string(), "100".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Width should remain since height is missing
         assert_eq!(doc.root.attributes.get("width"), Some(&"100".to_string()));
         assert!(!doc.root.attributes.contains_key("viewBox"));
@@ -201,25 +249,25 @@ mod tests {
     fn test_only_processes_svg_elements() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Add a rect element with width and height (should not be processed)
         let mut rect_attrs = IndexMap::new();
         rect_attrs.insert("width".to_string(), "100".to_string());
         rect_attrs.insert("height".to_string(), "50".to_string());
         rect_attrs.insert("x".to_string(), "10".to_string());
         rect_attrs.insert("y".to_string(), "10".to_string());
-        
+
         doc.root.children.push(Node::Element(Element {
             name: "rect".to_string(),
             attributes: rect_attrs,
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Rect dimensions should remain unchanged
         if let Node::Element(rect) = &doc.root.children[0] {
             assert_eq!(rect.attributes.get("width"), Some(&"100".to_string()));
@@ -234,37 +282,47 @@ mod tests {
     fn test_nested_svg_elements() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up root SVG
-        doc.root.attributes.insert("width".to_string(), "200".to_string());
-        doc.root.attributes.insert("height".to_string(), "100".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "200".to_string());
+        doc.root
+            .attributes
+            .insert("height".to_string(), "100".to_string());
+
         // Add nested SVG element
         let mut nested_svg_attrs = IndexMap::new();
         nested_svg_attrs.insert("width".to_string(), "100".to_string());
         nested_svg_attrs.insert("height".to_string(), "50".to_string());
-        
+
         doc.root.children.push(Node::Element(Element {
             name: "svg".to_string(),
             attributes: nested_svg_attrs,
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Root SVG should have viewBox and no dimensions
         assert!(!doc.root.attributes.contains_key("width"));
         assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 200 100".to_string()));
-        
+        assert_eq!(
+            doc.root.attributes.get("viewBox"),
+            Some(&"0 0 200 100".to_string())
+        );
+
         // Nested SVG should also be processed
         if let Node::Element(nested_svg) = &doc.root.children[0] {
             assert!(!nested_svg.attributes.contains_key("width"));
             assert!(!nested_svg.attributes.contains_key("height"));
-            assert_eq!(nested_svg.attributes.get("viewBox"), Some(&"0 0 100 50".to_string()));
+            assert_eq!(
+                nested_svg.attributes.get("viewBox"),
+                Some(&"0 0 100 50".to_string())
+            );
         } else {
             panic!("Expected nested SVG element");
         }
@@ -274,33 +332,40 @@ mod tests {
     fn test_zero_dimensions() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Set up SVG with zero dimensions
-        doc.root.attributes.insert("width".to_string(), "0".to_string());
-        doc.root.attributes.insert("height".to_string(), "0".to_string());
-        
+        doc.root
+            .attributes
+            .insert("width".to_string(), "0".to_string());
+        doc.root
+            .attributes
+            .insert("height".to_string(), "0".to_string());
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Should still create viewBox even with zero dimensions
         assert!(!doc.root.attributes.contains_key("width"));
         assert!(!doc.root.attributes.contains_key("height"));
-        assert_eq!(doc.root.attributes.get("viewBox"), Some(&"0 0 0 0".to_string()));
+        assert_eq!(
+            doc.root.attributes.get("viewBox"),
+            Some(&"0 0 0 0".to_string())
+        );
     }
 
     #[test]
     fn test_no_dimensions_no_change() {
         let mut plugin = RemoveDimensionsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // SVG with no width, height, or viewBox
         let original_count = doc.root.attributes.len();
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Should not add any attributes
         assert_eq!(doc.root.attributes.len(), original_count);
         assert!(!doc.root.attributes.contains_key("width"));

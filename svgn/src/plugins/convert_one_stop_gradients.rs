@@ -8,11 +8,18 @@ use std::collections::{HashMap, HashSet};
 
 pub struct ConvertOneStopGradientsPlugin;
 
+impl Default for ConvertOneStopGradientsPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConvertOneStopGradientsPlugin {
     pub fn new() -> Self {
         Self
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn process_element(
         &self,
         element: &mut Element,
@@ -62,7 +69,7 @@ impl ConvertOneStopGradientsPlugin {
                 // Only process gradients with exactly one stop
                 if stops.len() == 1 {
                     let stop = stops[0];
-                    
+
                     // Get the stop color
                     let stop_color = stop
                         .attributes
@@ -148,6 +155,7 @@ impl ConvertOneStopGradientsPlugin {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn remove_gradients(
         &self,
         element: &mut Element,
@@ -173,6 +181,7 @@ impl ConvertOneStopGradientsPlugin {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn remove_empty_defs(&self, element: &mut Element) {
         // Remove empty defs elements
         element.children.retain(|child| {
@@ -198,7 +207,7 @@ impl ConvertOneStopGradientsPlugin {
             if element.attributes.contains_key("xlink:href") {
                 return true;
             }
-            
+
             for child in &element.children {
                 if let Node::Element(ref elem) = child {
                     if check_xlink(elem) {
@@ -228,12 +237,22 @@ impl Plugin for ConvertOneStopGradientsPlugin {
         "converts one-stop (single color) gradients to a plain color"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         let mut gradients_to_remove = HashMap::new();
         let mut affected_defs = HashSet::new();
 
         // First pass: identify gradients with only one stop
-        self.process_element(&mut document.root, &mut gradients_to_remove, false, &mut affected_defs);
+        self.process_element(
+            &mut document.root,
+            &mut gradients_to_remove,
+            false,
+            &mut affected_defs,
+        );
 
         // Second pass: replace gradient references with solid colors
         if !gradients_to_remove.is_empty() {
@@ -284,17 +303,26 @@ mod tests {
     fn test_plugin_creation() {
         let plugin = ConvertOneStopGradientsPlugin::new();
         assert_eq!(plugin.name(), "convertOneStopGradients");
-        assert_eq!(plugin.description(), "converts one-stop (single color) gradients to a plain color");
+        assert_eq!(
+            plugin.description(),
+            "converts one-stop (single color) gradients to a plain color"
+        );
     }
 
     #[test]
     fn test_extract_gradient_id() {
         let plugin = ConvertOneStopGradientsPlugin::new();
-        
+
         // Test valid gradient ID extraction
-        assert_eq!(plugin.extract_gradient_id("url(#myGradient)"), Some("myGradient".to_string()));
-        assert_eq!(plugin.extract_gradient_id("url(#grad1)"), Some("grad1".to_string()));
-        
+        assert_eq!(
+            plugin.extract_gradient_id("url(#myGradient)"),
+            Some("myGradient".to_string())
+        );
+        assert_eq!(
+            plugin.extract_gradient_id("url(#grad1)"),
+            Some("grad1".to_string())
+        );
+
         // Test invalid formats
         assert_eq!(plugin.extract_gradient_id("red"), None);
         assert_eq!(plugin.extract_gradient_id("url(myGradient)"), None);
@@ -306,7 +334,7 @@ mod tests {
         let mut plugin = ConvertOneStopGradientsPlugin::new();
         let mut doc = create_test_document();
         let info = PluginInfo::default();
-        
+
         // Should not panic with empty document
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
@@ -316,24 +344,24 @@ mod tests {
     fn test_apply_with_no_gradients() {
         let mut plugin = ConvertOneStopGradientsPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Add a simple rect element
         let mut rect_attrs = IndexMap::new();
         rect_attrs.insert("fill".to_string(), "red".to_string());
         rect_attrs.insert("width".to_string(), "100".to_string());
         rect_attrs.insert("height".to_string(), "100".to_string());
-        
+
         doc.root.children.push(Node::Element(Element {
             name: "rect".to_string(),
             attributes: rect_attrs,
             namespaces: std::collections::HashMap::new(),
             children: vec![],
         }));
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Document should remain unchanged
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(rect) = &doc.root.children[0] {

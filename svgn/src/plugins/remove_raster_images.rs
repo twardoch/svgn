@@ -7,14 +7,13 @@
 
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-use regex::Regex;
 use once_cell::sync::Lazy;
+use regex::Regex;
+use serde_json::Value;
 
 /// Regex to detect raster image references
-static RASTER_IMAGE_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(\.|image/)(jpe?g|png|gif)").unwrap()
-});
+static RASTER_IMAGE_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(\.|image/)(jpe?g|png|gif)").unwrap());
 
 /// Plugin to remove raster image references (disabled by default)
 pub struct RemoveRasterImagesPlugin;
@@ -28,7 +27,12 @@ impl Plugin for RemoveRasterImagesPlugin {
         "removes raster images (disabled by default)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
@@ -76,8 +80,8 @@ impl RemoveRasterImagesPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -96,7 +100,7 @@ mod tests {
         attributes.insert(href_attr.to_string(), href_value.to_string());
         attributes.insert("width".to_string(), "100".to_string());
         attributes.insert("height".to_string(), "100".to_string());
-        
+
         Element {
             name: "image".to_string(),
             attributes,
@@ -109,13 +113,16 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveRasterImagesPlugin;
         assert_eq!(plugin.name(), "removeRasterImages");
-        assert_eq!(plugin.description(), "removes raster images (disabled by default)");
+        assert_eq!(
+            plugin.description(),
+            "removes raster images (disabled by default)"
+        );
     }
 
     #[test]
     fn test_remove_jpeg_image() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_image_element("xlink:href", "photo.jpg")),
             Node::Element(create_image_element("xlink:href", "image.jpeg")),
@@ -132,7 +139,7 @@ mod tests {
     #[test]
     fn test_remove_png_image() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_image_element("xlink:href", "icon.png")),
             Node::Element(create_image_element("href", "logo.png")),
@@ -149,10 +156,11 @@ mod tests {
     #[test]
     fn test_remove_gif_image() {
         let mut document = create_test_document();
-        
-        document.root.children = vec![
-            Node::Element(create_image_element("xlink:href", "animation.gif")),
-        ];
+
+        document.root.children = vec![Node::Element(create_image_element(
+            "xlink:href",
+            "animation.gif",
+        ))];
 
         let mut plugin = RemoveRasterImagesPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -165,10 +173,16 @@ mod tests {
     #[test]
     fn test_remove_data_uri_images() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_image_element("xlink:href", "data:image/jpeg;base64,/9j/4AAQ...")),
-            Node::Element(create_image_element("href", "data:image/png;base64,iVBORw0KGgo...")),
+            Node::Element(create_image_element(
+                "xlink:href",
+                "data:image/jpeg;base64,/9j/4AAQ...",
+            )),
+            Node::Element(create_image_element(
+                "href",
+                "data:image/png;base64,iVBORw0KGgo...",
+            )),
         ];
 
         let mut plugin = RemoveRasterImagesPlugin;
@@ -182,7 +196,7 @@ mod tests {
     #[test]
     fn test_preserve_svg_images() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_image_element("xlink:href", "icon.svg")),
             Node::Element(create_image_element("href", "#symbol1")),
@@ -200,10 +214,10 @@ mod tests {
     #[test]
     fn test_preserve_non_image_elements() {
         let mut document = create_test_document();
-        
+
         let mut rect_attrs = IndexMap::new();
         rect_attrs.insert("xlink:href".to_string(), "photo.jpg".to_string());
-        
+
         let rect_element = Element {
             name: "rect".to_string(),
             attributes: rect_attrs,
@@ -227,7 +241,7 @@ mod tests {
     #[test]
     fn test_case_sensitivity() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_image_element("xlink:href", "photo.JPG")),
             Node::Element(create_image_element("xlink:href", "image.JPEG")),
@@ -246,7 +260,7 @@ mod tests {
     #[test]
     fn test_nested_images() {
         let mut document = create_test_document();
-        
+
         let g_element = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
@@ -280,10 +294,13 @@ mod tests {
     #[test]
     fn test_url_with_path() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_image_element("xlink:href", "/images/photo.jpg")),
-            Node::Element(create_image_element("href", "https://example.com/image.png")),
+            Node::Element(create_image_element(
+                "href",
+                "https://example.com/image.png",
+            )),
             Node::Element(create_image_element("xlink:href", "../assets/banner.gif")),
         ];
 

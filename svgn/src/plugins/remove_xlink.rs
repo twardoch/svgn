@@ -14,27 +14,13 @@ use std::collections::HashMap;
 const XLINK_NAMESPACE: &str = "http://www.w3.org/1999/xlink";
 
 /// Elements that use xlink:href but were deprecated in SVG 2
-const LEGACY_ELEMENTS: &[&str] = &[
-    "cursor",
-    "filter", 
-    "font-face-uri",
-    "glyphRef",
-    "tref",
-];
+const LEGACY_ELEMENTS: &[&str] = &["cursor", "filter", "font-face-uri", "glyphRef", "tref"];
 
 /// Configuration for the removeXlink plugin
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RemoveXlinkConfig {
     /// Include legacy elements that don't support SVG 2 href
     pub include_legacy: bool,
-}
-
-impl Default for RemoveXlinkConfig {
-    fn default() -> Self {
-        Self {
-            include_legacy: false,
-        }
-    }
 }
 
 /// Plugin to remove xlink namespace and convert to SVG 2 equivalents
@@ -49,10 +35,15 @@ impl Plugin for RemoveXlinkPlugin {
         "remove xlink namespace and replaces attributes with the SVG 2 equivalent where applicable"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = self.parse_config(params)?;
         let mut context = XlinkContext::new(config);
-        
+
         self.process_element(&mut document.root, &mut context);
         Ok(())
     }
@@ -77,7 +68,7 @@ impl XlinkContext {
 impl RemoveXlinkPlugin {
     fn parse_config(&self, params: Option<&Value>) -> PluginResult<RemoveXlinkConfig> {
         let mut config = RemoveXlinkConfig::default();
-        
+
         if let Some(params_obj) = params {
             if let Some(include_legacy) = params_obj.get("includeLegacy") {
                 if let Some(val) = include_legacy.as_bool() {
@@ -85,14 +76,14 @@ impl RemoveXlinkPlugin {
                 }
             }
         }
-        
+
         Ok(config)
     }
 
     fn process_element(&self, element: &mut Element, context: &mut XlinkContext) {
         // Collect xlink namespace prefixes
         let mut current_xlink_prefixes = Vec::new();
-        
+
         for (key, value) in &element.attributes {
             if key.starts_with("xmlns:") && value == XLINK_NAMESPACE {
                 let prefix = key.strip_prefix("xmlns:").unwrap();
@@ -103,13 +94,16 @@ impl RemoveXlinkPlugin {
 
         // Handle xlink:href conversion
         let is_legacy = LEGACY_ELEMENTS.contains(&element.name.as_str());
-        
+
         if is_legacy && !context.config.include_legacy {
             // Mark prefixes as used in legacy elements - check for any xlink attributes
             let has_xlink_attrs = element.attributes.keys().any(|key| {
-                context.xlink_prefixes.iter().any(|prefix| key.starts_with(&format!("{}:", prefix)))
+                context
+                    .xlink_prefixes
+                    .iter()
+                    .any(|prefix| key.starts_with(&format!("{}:", prefix)))
             });
-            
+
             if has_xlink_attrs {
                 for prefix in &context.xlink_prefixes {
                     if !context.used_in_legacy.contains(prefix) {
@@ -131,7 +125,11 @@ impl RemoveXlinkPlugin {
             self.convert_title_attributes(element, &context.xlink_prefixes);
 
             // Remove unused xlink attributes
-            self.remove_unused_xlink_attributes(element, &context.xlink_prefixes, &context.used_in_legacy);
+            self.remove_unused_xlink_attributes(
+                element,
+                &context.xlink_prefixes,
+                &context.used_in_legacy,
+            );
         }
 
         // Process children recursively
@@ -157,9 +155,13 @@ impl RemoveXlinkPlugin {
 
     fn convert_href_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
         // Find xlink:href attributes
-        let href_attrs: Vec<String> = element.attributes.keys()
+        let href_attrs: Vec<String> = element
+            .attributes
+            .keys()
             .filter(|key| {
-                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:href", prefix))
+                xlink_prefixes
+                    .iter()
+                    .any(|prefix| *key == &format!("{}:href", prefix))
             })
             .cloned()
             .collect();
@@ -177,9 +179,13 @@ impl RemoveXlinkPlugin {
 
     fn convert_show_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
         // Find xlink:show attributes
-        let show_attrs: Vec<String> = element.attributes.keys()
+        let show_attrs: Vec<String> = element
+            .attributes
+            .keys()
             .filter(|key| {
-                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:show", prefix))
+                xlink_prefixes
+                    .iter()
+                    .any(|prefix| *key == &format!("{}:show", prefix))
             })
             .cloned()
             .collect();
@@ -190,14 +196,16 @@ impl RemoveXlinkPlugin {
                 if !element.attributes.contains_key("target") {
                     let target_value = match show_value.as_str() {
                         "new" => "_blank",
-                        "replace" => "_self", 
+                        "replace" => "_self",
                         _ => {
                             // Remove unknown values
                             element.attributes.shift_remove(&show_attr);
                             continue;
                         }
                     };
-                    element.attributes.insert("target".to_string(), target_value.to_string());
+                    element
+                        .attributes
+                        .insert("target".to_string(), target_value.to_string());
                 }
                 element.attributes.shift_remove(&show_attr);
             }
@@ -206,9 +214,13 @@ impl RemoveXlinkPlugin {
 
     fn convert_title_attributes(&self, element: &mut Element, xlink_prefixes: &[String]) {
         // Find xlink:title attributes
-        let title_attrs: Vec<String> = element.attributes.keys()
+        let title_attrs: Vec<String> = element
+            .attributes
+            .keys()
             .filter(|key| {
-                xlink_prefixes.iter().any(|prefix| *key == &format!("{}:title", prefix))
+                xlink_prefixes
+                    .iter()
+                    .any(|prefix| *key == &format!("{}:title", prefix))
             })
             .cloned()
             .collect();
@@ -216,9 +228,10 @@ impl RemoveXlinkPlugin {
         for title_attr in title_attrs {
             if let Some(title_value) = element.attributes.get(&title_attr).cloned() {
                 // Check if element already has a title child
-                let has_title_child = element.children.iter().any(|child| {
-                    matches!(child, Node::Element(elem) if elem.name == "title")
-                });
+                let has_title_child = element
+                    .children
+                    .iter()
+                    .any(|child| matches!(child, Node::Element(elem) if elem.name == "title"));
 
                 if !has_title_child {
                     // Create title element
@@ -235,14 +248,21 @@ impl RemoveXlinkPlugin {
         }
     }
 
-    fn remove_unused_xlink_attributes(&self, element: &mut Element, xlink_prefixes: &[String], used_in_legacy: &[String]) {
+    fn remove_unused_xlink_attributes(
+        &self,
+        element: &mut Element,
+        xlink_prefixes: &[String],
+        used_in_legacy: &[String],
+    ) {
         // Remove any remaining xlink attributes that weren't converted
-        let attrs_to_remove: Vec<String> = element.attributes.keys()
+        let attrs_to_remove: Vec<String> = element
+            .attributes
+            .keys()
             .filter(|key| {
                 if let Some(colon_pos) = key.find(':') {
                     let prefix = &key[..colon_pos];
-                    xlink_prefixes.contains(&prefix.to_string()) && 
-                    !used_in_legacy.contains(&prefix.to_string())
+                    xlink_prefixes.contains(&prefix.to_string())
+                        && !used_in_legacy.contains(&prefix.to_string())
                 } else {
                     false
                 }
@@ -261,8 +281,8 @@ impl RemoveXlinkPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -286,14 +306,17 @@ mod tests {
     #[test]
     fn test_convert_xlink_href_to_href() {
         let mut document = create_test_document();
-        
+
         // Add xlink namespace
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
+        document
+            .root
+            .attributes
+            .insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+
         // Add element with xlink:href
         let mut use_attrs = IndexMap::new();
         use_attrs.insert("xlink:href".to_string(), "#symbol1".to_string());
-        
+
         let use_element = Element {
             name: "use".to_string(),
             attributes: use_attrs,
@@ -310,7 +333,10 @@ mod tests {
         // xlink:href should be converted to href
         if let Node::Element(ref use_elem) = document.root.children[0] {
             assert!(!use_elem.attributes.contains_key("xlink:href"));
-            assert_eq!(use_elem.attributes.get("href"), Some(&"#symbol1".to_string()));
+            assert_eq!(
+                use_elem.attributes.get("href"),
+                Some(&"#symbol1".to_string())
+            );
         } else {
             panic!("Expected use element");
         }
@@ -322,13 +348,16 @@ mod tests {
     #[test]
     fn test_preserve_existing_href() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
+
+        document
+            .root
+            .attributes
+            .insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+
         let mut element_attrs = IndexMap::new();
         element_attrs.insert("href".to_string(), "#existing".to_string());
         element_attrs.insert("xlink:href".to_string(), "#xlink".to_string());
-        
+
         let element = Element {
             name: "a".to_string(),
             attributes: element_attrs,
@@ -354,12 +383,15 @@ mod tests {
     #[test]
     fn test_convert_xlink_show_to_target() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
+
+        document
+            .root
+            .attributes
+            .insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+
         let mut element_attrs = IndexMap::new();
         element_attrs.insert("xlink:show".to_string(), "new".to_string());
-        
+
         let element = Element {
             name: "a".to_string(),
             attributes: element_attrs,
@@ -385,12 +417,15 @@ mod tests {
     #[test]
     fn test_convert_xlink_title_to_title_element() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
+
+        document
+            .root
+            .attributes
+            .insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+
         let mut element_attrs = IndexMap::new();
         element_attrs.insert("xlink:title".to_string(), "Element title".to_string());
-        
+
         let element = Element {
             name: "rect".to_string(),
             attributes: element_attrs,
@@ -408,7 +443,7 @@ mod tests {
         if let Node::Element(ref elem) = document.root.children[0] {
             assert!(!elem.attributes.contains_key("xlink:title"));
             assert_eq!(elem.children.len(), 1);
-            
+
             if let Node::Element(ref title) = elem.children[0] {
                 assert_eq!(title.name, "title");
                 assert_eq!(title.children.len(), 1);
@@ -428,12 +463,15 @@ mod tests {
     #[test]
     fn test_preserve_legacy_elements() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
+
+        document
+            .root
+            .attributes
+            .insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+
         let mut filter_attrs = IndexMap::new();
         filter_attrs.insert("xlink:href".to_string(), "#filter1".to_string());
-        
+
         let filter_element = Element {
             name: "filter".to_string(),
             attributes: filter_attrs,
@@ -462,12 +500,15 @@ mod tests {
     #[test]
     fn test_include_legacy_option() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
-        
+
+        document
+            .root
+            .attributes
+            .insert("xmlns:xlink".to_string(), XLINK_NAMESPACE.to_string());
+
         let mut filter_attrs = IndexMap::new();
         filter_attrs.insert("xlink:href".to_string(), "#filter1".to_string());
-        
+
         let filter_element = Element {
             name: "filter".to_string(),
             attributes: filter_attrs,

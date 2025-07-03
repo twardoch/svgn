@@ -1,6 +1,6 @@
 // this_file: svgn/src/plugins/remove_useless_transforms.rs
 //! Plugin to remove identity/no-op transforms from SVG elements
-use crate::ast::{Element, Document, Node};
+use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
@@ -16,7 +16,12 @@ impl Plugin for RemoveUselessTransformsPlugin {
         "Removes transform attributes that are no-op: translate(0,0), scale(1), rotate(0)"
     }
 
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         remove_useless_transforms_element(&mut document.root);
         Ok(())
     }
@@ -40,15 +45,23 @@ fn remove_useless_transforms_element(elem: &mut Element) {
 /// Returns true if the transform string matches a no-op transform
 fn is_useless_transform(s: &str) -> bool {
     let t = s.trim();
-    
+
     // Check for various no-op transforms with different syntaxes
     matches!(
         t,
-        "translate(0,0)" | "translate(0, 0)" | "translate(0 0)" | 
-        "rotate(0)" | 
-        "scale(1)" | "scale(1,1)" | "scale(1, 1)" | "scale(1 1)" |
-        "skewX(0)" | "skewY(0)" | 
-        "matrix(1,0,0,1,0,0)" | "matrix(1, 0, 0, 1, 0, 0)" | "matrix(1 0 0 1 0 0)"
+        "translate(0,0)"
+            | "translate(0, 0)"
+            | "translate(0 0)"
+            | "rotate(0)"
+            | "scale(1)"
+            | "scale(1,1)"
+            | "scale(1, 1)"
+            | "scale(1 1)"
+            | "skewX(0)"
+            | "skewY(0)"
+            | "matrix(1,0,0,1,0,0)"
+            | "matrix(1, 0, 0, 1, 0, 0)"
+            | "matrix(1 0 0 1 0 0)"
     )
 }
 
@@ -62,7 +75,8 @@ mod tests {
     fn test_remove_identity_translate() {
         let mut doc = Document::new();
         let mut g = Element::new("g");
-        g.attributes.insert("transform".to_string(), "translate(0,0)".to_string());
+        g.attributes
+            .insert("transform".to_string(), "translate(0,0)".to_string());
         doc.root.children.push(Node::Element(g));
 
         let mut plugin = RemoveUselessTransformsPlugin;
@@ -80,7 +94,8 @@ mod tests {
     fn test_remove_identity_scale() {
         let mut doc = Document::new();
         let mut g = Element::new("g");
-        g.attributes.insert("transform".to_string(), "scale(1)".to_string());
+        g.attributes
+            .insert("transform".to_string(), "scale(1)".to_string());
         doc.root.children.push(Node::Element(g));
 
         let mut plugin = RemoveUselessTransformsPlugin;
@@ -98,7 +113,8 @@ mod tests {
     fn test_preserve_non_identity_transform() {
         let mut doc = Document::new();
         let mut g = Element::new("g");
-        g.attributes.insert("transform".to_string(), "translate(10,20)".to_string());
+        g.attributes
+            .insert("transform".to_string(), "translate(10,20)".to_string());
         doc.root.children.push(Node::Element(g));
 
         let mut plugin = RemoveUselessTransformsPlugin;
@@ -109,7 +125,10 @@ mod tests {
             Node::Element(e) => e,
             _ => panic!("Expected element"),
         };
-        assert_eq!(g.attributes.get("transform"), Some(&"translate(10,20)".to_string()));
+        assert_eq!(
+            g.attributes.get("transform"),
+            Some(&"translate(10,20)".to_string())
+        );
     }
 
     #[test]
@@ -125,7 +144,7 @@ mod tests {
         assert!(is_useless_transform("skewY(0)"));
         assert!(is_useless_transform("matrix(1 0 0 1 0 0)"));
         assert!(is_useless_transform(" translate(0,0) "));
-        
+
         assert!(!is_useless_transform("translate(10,0)"));
         assert!(!is_useless_transform("translate(0,10)"));
         assert!(!is_useless_transform("rotate(45)"));

@@ -7,19 +7,19 @@
 //! performance improvements.
 
 pub mod ast;
-pub mod plugin;
-pub mod plugins;
-pub mod parser;
-pub mod stringifier;
+pub mod collections;
 pub mod config;
 pub mod optimizer;
-pub mod collections;
+pub mod parser;
+pub mod plugin;
+pub mod plugins;
+pub mod stringifier;
 
 // Re-export main types
 pub use ast::{Document, Element, Node};
 pub use config::Config;
-pub use optimizer::{optimize, optimize_with_config, OptimizeOptions, OptimizationResult};
+pub use optimizer::{optimize, optimize_with_config, OptimizationResult, OptimizeOptions};
 pub use plugin::{Plugin, PluginConfig, PluginRegistry};
 
-/// Library version
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Library version (from git tag or Cargo.toml)
+pub const VERSION: &str = env!("SVGN_VERSION");

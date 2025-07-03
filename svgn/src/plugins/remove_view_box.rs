@@ -3,7 +3,7 @@
 //! Plugin to remove viewBox attribute when possible
 //!
 //! This plugin removes the viewBox attribute when it coincides with width/height box.
-//! For example, `<svg width="100" height="50" viewBox="0 0 100 50">` becomes 
+//! For example, `<svg width="100" height="50" viewBox="0 0 100 50">` becomes
 //! `<svg width="100" height="50">`.
 
 use crate::ast::{Document, Element, Node};
@@ -25,7 +25,12 @@ impl Plugin for RemoveViewBoxPlugin {
         "removes viewBox attribute when possible"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root, true);
         Ok(())
     }
@@ -66,8 +71,11 @@ impl RemoveViewBoxPlugin {
 
     fn can_remove_viewbox(&self, view_box: &str, width: &str, height: &str) -> bool {
         // Parse viewBox values (format: "min-x min-y width height")
-        let view_box_parts: Vec<&str> = view_box.split(&[' ', ','][..]).filter(|s| !s.is_empty()).collect();
-        
+        let view_box_parts: Vec<&str> = view_box
+            .split(&[' ', ','][..])
+            .filter(|s| !s.is_empty())
+            .collect();
+
         if view_box_parts.len() != 4 {
             return false;
         }
@@ -91,8 +99,8 @@ impl RemoveViewBoxPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -110,16 +118,28 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveViewBoxPlugin;
         assert_eq!(plugin.name(), "removeViewBox");
-        assert_eq!(plugin.description(), "removes viewBox attribute when possible");
+        assert_eq!(
+            plugin.description(),
+            "removes viewBox attribute when possible"
+        );
     }
 
     #[test]
     fn test_remove_redundant_viewbox() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 100 50".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -134,10 +154,19 @@ mod tests {
     #[test]
     fn test_keep_viewbox_with_px_units() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100px".to_string());
-        document.root.attributes.insert("height".to_string(), "50px".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100px".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "50px".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 100 50".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -150,10 +179,19 @@ mod tests {
     #[test]
     fn test_keep_viewbox_different_origin() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "10 10 100 50".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "10 10 100 50".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -167,10 +205,19 @@ mod tests {
     #[test]
     fn test_keep_viewbox_different_dimensions() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0 0 200 100".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 200 100".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -184,10 +231,16 @@ mod tests {
     #[test]
     fn test_keep_viewbox_missing_width_or_height() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
         // Missing height
-        document.root.attributes.insert("viewBox".to_string(), "0 0 100 50".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0 0 100 50".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -200,10 +253,19 @@ mod tests {
     #[test]
     fn test_comma_separated_viewbox() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0,0,100,50".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0,0,100,50".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -216,10 +278,19 @@ mod tests {
     #[test]
     fn test_mixed_separator_viewbox() {
         let mut document = create_test_document();
-        
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "50".to_string());
-        document.root.attributes.insert("viewBox".to_string(), "0, 0 100,50".to_string());
+
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+        document
+            .root
+            .attributes
+            .insert("viewBox".to_string(), "0, 0 100,50".to_string());
 
         let mut plugin = RemoveViewBoxPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -232,7 +303,7 @@ mod tests {
     #[test]
     fn test_pattern_element() {
         let mut document = create_test_document();
-        
+
         let mut pattern_attrs = IndexMap::new();
         pattern_attrs.insert("width".to_string(), "20".to_string());
         pattern_attrs.insert("height".to_string(), "30".to_string());
@@ -265,7 +336,7 @@ mod tests {
     #[test]
     fn test_nested_svg_preserved() {
         let mut document = create_test_document();
-        
+
         let mut nested_svg_attrs = IndexMap::new();
         nested_svg_attrs.insert("width".to_string(), "50".to_string());
         nested_svg_attrs.insert("height".to_string(), "25".to_string());

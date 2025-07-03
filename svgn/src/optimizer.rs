@@ -6,8 +6,8 @@
 //! parsing, plugin application, and output generation.
 
 use crate::config::Config;
-use crate::parser::{Parser, ParseError};
-use crate::plugin::{PluginRegistry, PluginError};
+use crate::parser::{ParseError, Parser};
+use crate::plugin::{PluginError, PluginRegistry};
 use crate::stringifier::{Stringifier, StringifyError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -88,7 +88,12 @@ impl Default for OptimizeOptions {
 
 impl OptimizationInfo {
     /// Create new optimization info
-    pub fn new(original_size: usize, optimized_size: usize, plugins_applied: usize, passes: usize) -> Self {
+    pub fn new(
+        original_size: usize,
+        optimized_size: usize,
+        plugins_applied: usize,
+        passes: usize,
+    ) -> Self {
         let compression_ratio = if original_size > 0 {
             1.0 - (optimized_size as f64 / original_size as f64)
         } else {
@@ -123,7 +128,7 @@ impl OptimizationInfo {
 pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<OptimizationResult> {
     let original_size = input.len();
     let config = options.config;
-    
+
     // Set up parser
     let parser = Parser::new()
         .preserve_whitespace(config.parser.preserve_whitespace)
@@ -138,9 +143,9 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
     }
 
     // Get or create plugin registry
-    let mut registry = options.registry.unwrap_or_else(|| {
-        crate::plugin::create_default_registry()
-    });
+    let mut registry = options
+        .registry
+        .unwrap_or_else(|| crate::plugin::create_default_registry());
 
     // Apply optimization passes
     let mut passes = 0;
@@ -149,7 +154,7 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
 
     loop {
         passes += 1;
-        
+
         // Apply plugins
         let _initial_plugin_count = plugins_applied;
         let plugin_info = crate::plugin::PluginInfo {
@@ -157,7 +162,7 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
             multipass_count: passes - 1,
         };
         registry.apply_plugins(&mut document, &config.plugins, &plugin_info)?;
-        
+
         // For now, assume all enabled plugins were applied
         // In a real implementation, we'd track this more precisely
         plugins_applied += config.plugins.iter().filter(|p| p.enabled).count();
@@ -179,7 +184,8 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
             };
 
             let optimized_size = final_output.len();
-            let info = OptimizationInfo::new(original_size, optimized_size, plugins_applied, passes);
+            let info =
+                OptimizationInfo::new(original_size, optimized_size, plugins_applied, passes);
 
             return Ok(OptimizationResult {
                 data: final_output,
@@ -196,7 +202,7 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
 /// Apply data URI encoding to the SVG output
 fn apply_datauri_encoding(svg: &str, format: &crate::config::DataUriFormat) -> String {
     use crate::config::DataUriFormat;
-    
+
     match format {
         DataUriFormat::Base64 => {
             // For now, just return the SVG as-is
@@ -222,7 +228,8 @@ fn base64_encode(input: &str) -> String {
 
 fn url_encode(input: &str) -> String {
     // This is a placeholder - use proper URL encoding in real implementation
-    input.replace(' ', "%20")
+    input
+        .replace(' ', "%20")
         .replace('<', "%3C")
         .replace('>', "%3E")
         .replace('"', "%22")
@@ -254,10 +261,12 @@ mod tests {
 
         // Create config with removeComments plugin
         let mut config = Config::new();
-        config.plugins.push(PluginConfig::new("removeComments".to_string()));
+        config
+            .plugins
+            .push(PluginConfig::new("removeComments".to_string()));
 
         let result = optimize_with_config(svg, config).unwrap();
-        
+
         assert!(!result.data.is_empty());
         assert!(result.info.original_size > 0);
         assert!(result.info.optimized_size > 0);
@@ -280,7 +289,7 @@ mod tests {
     #[test]
     fn test_optimization_info() {
         let info = OptimizationInfo::new(1000, 800, 5, 2);
-        
+
         assert_eq!(info.original_size, 1000);
         assert_eq!(info.optimized_size, 800);
         assert_eq!(info.size_reduction(), 200);
@@ -292,15 +301,15 @@ mod tests {
     #[test]
     fn test_datauri_encoding() {
         use crate::config::DataUriFormat;
-        
+
         let svg = "<svg></svg>";
-        
+
         let base64_result = apply_datauri_encoding(svg, &DataUriFormat::Base64);
         assert!(base64_result.starts_with("data:image/svg+xml;base64,"));
-        
+
         let enc_result = apply_datauri_encoding(svg, &DataUriFormat::Enc);
         assert!(enc_result.starts_with("data:image/svg+xml,"));
-        
+
         let unenc_result = apply_datauri_encoding(svg, &DataUriFormat::Unenc);
         assert!(unenc_result.starts_with("data:image/svg+xml,"));
     }

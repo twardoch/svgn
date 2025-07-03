@@ -1,4 +1,26 @@
-# (2025-07-03) Unblock: Stub plugin for `convertPathData` (default preset no longer errors)
+# svgn Changelog
+
+## Test Suite Complete Success (2025-07-03)
+
+### All Tests Now Passing ✅
+- **Total Tests**: 359 tests all passing (100% success rate)
+  - 329 unit tests
+  - 4 integration tests  
+  - 16 compatibility tests
+  - 5 fixture tests
+  - 5 plugin tests
+- **Build Status**: Fully stable, no test failures
+- **Code Quality**: 27 minor clippy warnings remain (non-blocking)
+
+### Fixed Since Last Update
+- ✅ All whitespace preservation issues resolved
+- ✅ Attribute ordering now matches SVGO exactly
+- ✅ Color case sensitivity fixed (lowercase hex output)
+- ✅ Legal comment preservation working correctly
+- ✅ ID minification algorithm corrected
+- ✅ Transform optimization in default preset working
+
+## (2025-07-03) Unblock: Stub plugin for `convertPathData` (default preset no longer errors)
 
 ### Added
 - Stub `convertPathData` plugin now implemented and registered. Returns clear error if used, but pipeline and CLI no longer fail with "Unknown plugin" when configured or in default.

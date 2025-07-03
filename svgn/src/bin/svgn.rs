@@ -20,72 +20,72 @@ fn main() {
                 .help("Input file or directory")
                 .short('i')
                 .long("input")
-                .value_name("FILE/DIR")
+                .value_name("FILE/DIR"),
         )
         .arg(
             Arg::new("output")
                 .help("Output file or directory")
                 .short('o')
                 .long("output")
-                .value_name("FILE/DIR")
+                .value_name("FILE/DIR"),
         )
         .arg(
             Arg::new("folder")
                 .help("Input folder, optimize and rewrite all *.svg files")
                 .short('f')
                 .long("folder")
-                .value_name("DIR")
+                .value_name("DIR"),
         )
         .arg(
             Arg::new("pretty")
                 .help("Make SVG pretty printed")
                 .short('p')
                 .long("pretty")
-                .action(ArgAction::SetTrue)
+                .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("config")
                 .help("Custom config file")
                 .long("config")
-                .value_name("FILE")
+                .value_name("FILE"),
         )
         .arg(
             Arg::new("disable")
                 .help("Disable a plugin by name")
                 .long("disable")
                 .value_name("PLUGIN")
-                .action(ArgAction::Append)
+                .action(ArgAction::Append),
         )
         .arg(
             Arg::new("enable")
                 .help("Enable a plugin by name")
                 .long("enable")
                 .value_name("PLUGIN")
-                .action(ArgAction::Append)
+                .action(ArgAction::Append),
         )
         .arg(
             Arg::new("datauri")
                 .help("Output as Data URI string (base64, enc, unenc)")
                 .long("datauri")
-                .value_name("FORMAT")
+                .value_name("FORMAT"),
         )
         .arg(
             Arg::new("multipass")
                 .help("Optimize SVG multiple times")
                 .long("multipass")
-                .action(ArgAction::SetTrue)
+                .action(ArgAction::SetTrue),
         )
         .arg(
             Arg::new("quiet")
                 .help("Only output error messages")
                 .short('q')
                 .long("quiet")
-                .action(ArgAction::SetTrue)
+                .action(ArgAction::SetTrue),
         )
         .get_matches();
 
     let result = run_cli(matches);
-    
+
     if let Err(e) = result {
         eprintln!("Error: {}", e);
         std::process::exit(1);
@@ -100,7 +100,7 @@ fn run_cli(matches: clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
         Config::from_file(config_path)?
     } else {
         // Try to load from current directory
-        svgn::config::load_config_from_directory(".")?.unwrap_or_else(|| Config::with_default_preset())
+        svgn::config::load_config_from_directory(".")?.unwrap_or_else(Config::with_default_preset)
     };
 
     // Apply CLI overrides
@@ -170,10 +170,12 @@ fn run_cli(matches: clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     if let Some(output_file) = output_path {
         fs::write(output_file, &result.data)?;
         if !quiet {
-            eprintln!("Optimized: {} → {} ({:.1}% reduction)", 
-                     format_bytes(result.info.original_size),
-                     format_bytes(result.info.optimized_size),
-                     result.info.compression_percentage());
+            eprintln!(
+                "Optimized: {} → {} ({:.1}% reduction)",
+                format_bytes(result.info.original_size),
+                format_bytes(result.info.optimized_size),
+                result.info.compression_percentage()
+            );
         }
     } else {
         // Write to stdout
@@ -183,15 +185,19 @@ fn run_cli(matches: clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-fn process_folder(folder_path: &str, config: &Config, quiet: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn process_folder(
+    folder_path: &str,
+    config: &Config,
+    quiet: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let folder = PathBuf::from(folder_path);
-    
+
     if !folder.is_dir() {
         return Err(format!("{} is not a directory", folder_path).into());
     }
 
     let svg_files = find_svg_files(&folder)?;
-    
+
     if svg_files.is_empty() {
         if !quiet {
             eprintln!("No SVG files found in {}", folder_path);
@@ -205,22 +211,24 @@ fn process_folder(folder_path: &str, config: &Config, quiet: bool) -> Result<(),
 
     for svg_file in svg_files {
         let input_content = fs::read_to_string(&svg_file)?;
-        
+
         let mut file_config = config.clone();
         file_config.path = Some(svg_file.to_string_lossy().to_string());
 
         match optimize_with_config(&input_content, file_config) {
             Ok(result) => {
                 fs::write(&svg_file, &result.data)?;
-                
+
                 total_original += result.info.original_size;
                 total_optimized += result.info.optimized_size;
                 processed_count += 1;
 
                 if !quiet {
-                    println!("Optimized: {} ({:.1}% reduction)",
-                            svg_file.display(),
-                            result.info.compression_percentage());
+                    println!(
+                        "Optimized: {} ({:.1}% reduction)",
+                        svg_file.display(),
+                        result.info.compression_percentage()
+                    );
                 }
             }
             Err(e) => {
@@ -237,10 +245,12 @@ fn process_folder(folder_path: &str, config: &Config, quiet: bool) -> Result<(),
         };
 
         eprintln!("\nTotal: {} files processed", processed_count);
-        eprintln!("Size: {} → {} ({:.1}% reduction)",
-                 format_bytes(total_original),
-                 format_bytes(total_optimized),
-                 total_reduction);
+        eprintln!(
+            "Size: {} → {} ({:.1}% reduction)",
+            format_bytes(total_original),
+            format_bytes(total_optimized),
+            total_reduction
+        );
     }
 
     Ok(())
@@ -248,11 +258,11 @@ fn process_folder(folder_path: &str, config: &Config, quiet: bool) -> Result<(),
 
 fn find_svg_files(dir: &PathBuf) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let mut svg_files = Vec::new();
-    
+
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.is_file() {
             if let Some(extension) = path.extension() {
                 if extension.to_string_lossy().to_lowercase() == "svg" {
@@ -261,24 +271,24 @@ fn find_svg_files(dir: &PathBuf) -> Result<Vec<PathBuf>, Box<dyn std::error::Err
             }
         }
     }
-    
+
     svg_files.sort();
     Ok(svg_files)
 }
 
 fn format_bytes(bytes: usize) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB"];
-    
+
     if bytes == 0 {
         return "0 B".to_string();
     }
-    
+
     let bytes_f = bytes as f64;
     let i = (bytes_f.log10() / 3.0).floor() as usize;
     let i = i.min(UNITS.len() - 1);
-    
+
     let size = bytes_f / (1000.0_f64.powi(i as i32));
-    
+
     if i == 0 {
         format!("{} {}", bytes, UNITS[i])
     } else {

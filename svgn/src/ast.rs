@@ -1,13 +1,13 @@
 // this_file: svgn/src/ast.rs
 
 //! Abstract Syntax Tree (AST) for SVG documents
-//! 
+//!
 //! This module defines the core data structures for representing SVG documents
 //! in memory. The AST is designed for efficient traversal and mutation during
 //! optimization passes.
 
-use std::collections::HashMap;
 use indexmap::IndexMap;
+use std::collections::HashMap;
 
 /// A complete SVG document
 #[derive(Debug, Clone, PartialEq)]
@@ -56,10 +56,7 @@ pub enum Node {
     /// XML comment
     Comment(String),
     /// Processing instruction
-    ProcessingInstruction {
-        target: String,
-        data: String,
-    },
+    ProcessingInstruction { target: String, data: String },
     /// CDATA section
     CData(String),
     /// DOCTYPE declaration
@@ -158,12 +155,10 @@ impl Element {
 
     /// Check if element has only whitespace text content
     pub fn is_whitespace_only(&self) -> bool {
-        self.children.iter().all(|child| {
-            match child {
-                Node::Text(text) => text.trim().is_empty(),
-                Node::Comment(_) => true,
-                _ => false,
-            }
+        self.children.iter().all(|child| match child {
+            Node::Text(text) => text.trim().is_empty(),
+            Node::Comment(_) => true,
+            _ => false,
         })
     }
 }
@@ -183,7 +178,7 @@ impl Node {
     pub fn is_comment(&self) -> bool {
         matches!(self, Node::Comment(_))
     }
-    
+
     /// Check if this node is a DOCTYPE
     pub fn is_doctype(&self) -> bool {
         matches!(self, Node::DocType(_))
@@ -238,11 +233,11 @@ mod tests {
     #[test]
     fn test_attribute_operations() {
         let mut element = Element::new("rect");
-        
+
         element.set_attr("x".to_string(), "10".to_string());
         assert_eq!(element.attr("x"), Some(&"10".to_string()));
         assert!(element.has_attr("x"));
-        
+
         let removed = element.remove_attr("x");
         assert_eq!(removed, Some("10".to_string()));
         assert!(!element.has_attr("x"));
@@ -252,11 +247,11 @@ mod tests {
     fn test_child_operations() {
         let mut parent = Element::new("g");
         let child = Element::new("rect");
-        
+
         parent.add_child(Node::Element(child));
         parent.add_child(Node::Text("test".to_string()));
         parent.add_child(Node::Comment("comment".to_string()));
-        
+
         assert_eq!(parent.children.len(), 3);
         assert_eq!(parent.child_elements().count(), 1);
         assert!(!parent.is_empty());
@@ -267,9 +262,9 @@ mod tests {
         let mut element = Element::new("g");
         element.add_child(Node::Text("   \n  ".to_string()));
         element.add_child(Node::Comment("comment".to_string()));
-        
+
         assert!(element.is_whitespace_only());
-        
+
         element.add_child(Node::Text("content".to_string()));
         assert!(!element.is_whitespace_only());
     }

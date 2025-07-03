@@ -5,8 +5,8 @@
 //! This plugin removes all `<style>` elements from the SVG document.
 //! It's useful when you want to completely strip CSS styling from SVGs.
 
-use crate::ast::{Document, Node, Element};
-use crate::plugin::{Plugin, PluginResult, PluginInfo};
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin that removes all `<style>` elements from the SVG
@@ -16,15 +16,20 @@ impl Plugin for RemoveStyleElement {
     fn name(&self) -> &'static str {
         "removeStyleElement"
     }
-    
+
     fn description(&self) -> &'static str {
         "Remove all <style> elements from SVG document"
     }
-    
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         // Remove style elements from the main document tree
         remove_style_elements(&mut document.root);
-        
+
         Ok(())
     }
 }
@@ -39,7 +44,7 @@ fn remove_style_elements(element: &mut Element) {
             true
         }
     });
-    
+
     // Recursively process child elements
     for child in &mut element.children {
         if let Node::Element(ref mut elem) = child {
@@ -53,7 +58,7 @@ fn remove_style_elements(element: &mut Element) {
 mod tests {
     use super::*;
     use crate::parser::Parser;
-    
+
     #[test]
     fn test_remove_style_elements() {
         let svg = r#"<svg>
@@ -64,18 +69,21 @@ mod tests {
                 <circle class="cls-2" r="5"/>
             </g>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveStyleElement;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
-        
+
         // Check that style elements are removed
         assert!(!contains_style_element(&document.root));
     }
-    
+
     #[test]
     fn test_remove_multiple_style_elements() {
         let svg = r#"<svg>
@@ -84,18 +92,21 @@ mod tests {
             <rect/>
             <style>/* Third style */</style>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveStyleElement;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
-        
+
         // Check that all style elements are removed
         assert!(!contains_style_element(&document.root));
     }
-    
+
     fn contains_style_element(element: &Element) -> bool {
         for child in &element.children {
             match child {

@@ -17,18 +17,23 @@ impl Plugin for RemoveXMLProcInstPlugin {
     fn name(&self) -> &'static str {
         "removeXMLProcInst"
     }
-    
+
     fn description(&self) -> &'static str {
         "Remove XML processing instructions"
     }
-    
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         // Remove the XML declaration by clearing metadata
         // In SVGO, the XML declaration is treated as a processing instruction,
         // but in our parser it's stored as metadata
         document.metadata.version = None;
         document.metadata.encoding = None;
-        
+
         // Also remove any actual XML processing instructions from prologue
         document.prologue.retain(|node| {
             match node {
@@ -39,17 +44,13 @@ impl Plugin for RemoveXMLProcInstPlugin {
                 _ => true,
             }
         });
-        
+
         // Remove XML processing instructions from epilogue (shouldn't be there, but check anyway)
-        document.epilogue.retain(|node| {
-            match node {
-                Node::ProcessingInstruction { target, .. } => {
-                    target != "xml"
-                }
-                _ => true,
-            }
+        document.epilogue.retain(|node| match node {
+            Node::ProcessingInstruction { target, .. } => target != "xml",
+            _ => true,
         });
-        
+
         Ok(())
     }
 }
@@ -59,29 +60,31 @@ impl Plugin for RemoveXMLProcInstPlugin {
 mod tests {
     use super::*;
     use crate::parser::Parser;
-    
+
     #[test]
     fn test_remove_xml_declaration() {
         let svg = r#"<?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
     <rect x="10" y="10" width="80" height="80"/>
 </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         // Verify XML declaration metadata is present
         assert!(document.metadata.version.is_some());
         assert!(document.metadata.encoding.is_some());
-        
+
         let mut plugin = RemoveXMLProcInstPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
-        
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
+
         // Verify XML declaration metadata is removed
         assert!(document.metadata.version.is_none());
         assert!(document.metadata.encoding.is_none());
     }
-    
+
     #[test]
     fn test_preserve_other_pi() {
         let svg = r#"<?xml version="1.0" encoding="utf-8"?>
@@ -89,19 +92,22 @@ mod tests {
 <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
     <rect x="10" y="10" width="80" height="80"/>
 </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveXMLProcInstPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
-        
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
+
         // Verify XML declaration is removed but other PIs are kept
-        let has_xml_pi = document.prologue.iter().any(|n| {
-            matches!(n, Node::ProcessingInstruction { target, .. } if target == "xml")
-        });
+        let has_xml_pi = document
+            .prologue
+            .iter()
+            .any(|n| matches!(n, Node::ProcessingInstruction { target, .. } if target == "xml"));
         assert!(!has_xml_pi);
-        
+
         let has_stylesheet_pi = document.prologue.iter().any(|n| {
             matches!(n, Node::ProcessingInstruction { target, .. } if target == "xml-stylesheet")
         });

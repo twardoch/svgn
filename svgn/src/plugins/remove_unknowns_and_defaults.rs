@@ -54,7 +54,7 @@ impl RemoveUnknownsAndDefaultsParams {
     /// Parse parameters from JSON value
     pub fn from_value(value: Option<&Value>) -> Self {
         let mut params = Self::default();
-        
+
         if let Some(Value::Object(map)) = value {
             if let Some(Value::Bool(val)) = map.get("unknownContent") {
                 params.unknown_content = *val;
@@ -81,7 +81,7 @@ impl RemoveUnknownsAndDefaultsParams {
                 params.keep_role_attr = *val;
             }
         }
-        
+
         params
     }
 }
@@ -92,97 +92,222 @@ static KNOWN_ELEMENTS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         // Root
         "svg",
         // Structural
-        "defs", "g", "symbol", "use",
+        "defs",
+        "g",
+        "symbol",
+        "use",
         // Shape elements
-        "circle", "ellipse", "line", "path", "polygon", "polyline", "rect",
+        "circle",
+        "ellipse",
+        "line",
+        "path",
+        "polygon",
+        "polyline",
+        "rect",
         // Text elements
-        "text", "tspan", "tref", "textPath",
+        "text",
+        "tspan",
+        "tref",
+        "textPath",
         // Paint server elements
-        "linearGradient", "radialGradient", "pattern",
+        "linearGradient",
+        "radialGradient",
+        "pattern",
         // Container elements
-        "a", "marker", "mask", "clipPath", "foreignObject", "switch",
+        "a",
+        "marker",
+        "mask",
+        "clipPath",
+        "foreignObject",
+        "switch",
         // Filter elements
-        "filter", "feBlend", "feColorMatrix", "feComponentTransfer", "feComposite",
-        "feConvolveMatrix", "feDiffuseLighting", "feDisplacementMap", "feFlood",
-        "feGaussianBlur", "feImage", "feMerge", "feMergeNode", "feMorphology",
-        "feOffset", "feSpecularLighting", "feTile", "feTurbulence",
+        "filter",
+        "feBlend",
+        "feColorMatrix",
+        "feComponentTransfer",
+        "feComposite",
+        "feConvolveMatrix",
+        "feDiffuseLighting",
+        "feDisplacementMap",
+        "feFlood",
+        "feGaussianBlur",
+        "feImage",
+        "feMerge",
+        "feMergeNode",
+        "feMorphology",
+        "feOffset",
+        "feSpecularLighting",
+        "feTile",
+        "feTurbulence",
         // Animation elements
-        "animate", "animateTransform", "animateMotion", "set",
+        "animate",
+        "animateTransform",
+        "animateMotion",
+        "set",
         // Descriptive elements
-        "desc", "title", "metadata",
+        "desc",
+        "title",
+        "metadata",
         // Other elements
-        "image", "stop", "script", "style",
-    ].into_iter().collect()
+        "image",
+        "stop",
+        "script",
+        "style",
+    ]
+    .into_iter()
+    .collect()
 });
 
 // Common SVG attributes (simplified list)
 static KNOWN_ATTRIBUTES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     [
         // Core attributes
-        "id", "class", "style", "lang", "tabindex",
+        "id",
+        "class",
+        "style",
+        "lang",
+        "tabindex",
         // Geometry attributes
-        "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry",
-        "width", "height", "viewBox", "d", "points", "pathLength",
+        "x",
+        "y",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "cx",
+        "cy",
+        "r",
+        "rx",
+        "ry",
+        "width",
+        "height",
+        "viewBox",
+        "d",
+        "points",
+        "pathLength",
         // Presentation attributes
-        "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
-        "stroke-dasharray", "stroke-dashoffset", "stroke-opacity", "fill-opacity",
-        "opacity", "color", "font-family", "font-size", "font-weight", "text-anchor",
-        "visibility", "display", "overflow", "clip", "clip-path", "clip-rule",
-        "mask", "filter", "transform", "transform-origin",
+        "fill",
+        "stroke",
+        "stroke-width",
+        "stroke-linecap",
+        "stroke-linejoin",
+        "stroke-dasharray",
+        "stroke-dashoffset",
+        "stroke-opacity",
+        "fill-opacity",
+        "opacity",
+        "color",
+        "font-family",
+        "font-size",
+        "font-weight",
+        "text-anchor",
+        "visibility",
+        "display",
+        "overflow",
+        "clip",
+        "clip-path",
+        "clip-rule",
+        "mask",
+        "filter",
+        "transform",
+        "transform-origin",
         // Animation attributes
-        "begin", "dur", "end", "repeatCount", "repeatDur", "from", "to", "by", "values",
-        "attributeName", "attributeType", "calcMode", "keyTimes", "keySplines",
+        "begin",
+        "dur",
+        "end",
+        "repeatCount",
+        "repeatDur",
+        "from",
+        "to",
+        "by",
+        "values",
+        "attributeName",
+        "attributeType",
+        "calcMode",
+        "keyTimes",
+        "keySplines",
         // Link attributes
-        "href", "target",
+        "href",
+        "target",
         // Gradient attributes
-        "gradientUnits", "gradientTransform", "x1", "y1", "x2", "y2", "fx", "fy",
-        "spreadMethod", "stop-color", "stop-opacity", "offset",
+        "gradientUnits",
+        "gradientTransform",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "fx",
+        "fy",
+        "spreadMethod",
+        "stop-color",
+        "stop-opacity",
+        "offset",
         // Pattern attributes
-        "patternUnits", "patternContentUnits", "patternTransform",
+        "patternUnits",
+        "patternContentUnits",
+        "patternTransform",
         // Filter attributes
-        "filterUnits", "primitiveUnits", "result", "in", "in2",
+        "filterUnits",
+        "primitiveUnits",
+        "result",
+        "in",
+        "in2",
         // Text attributes
-        "text-rendering", "font-style", "font-variant", "text-decoration",
-        "writing-mode", "glyph-orientation-vertical", "glyph-orientation-horizontal",
+        "text-rendering",
+        "font-style",
+        "font-variant",
+        "text-decoration",
+        "writing-mode",
+        "glyph-orientation-vertical",
+        "glyph-orientation-horizontal",
         // Other common attributes
-        "preserveAspectRatio", "version", "xmlns", "xmlns:xlink", "xml:space",
-    ].into_iter().collect()
+        "preserveAspectRatio",
+        "version",
+        "xmlns",
+        "xmlns:xlink",
+        "xml:space",
+    ]
+    .into_iter()
+    .collect()
 });
 
 // Default attribute values (simplified list)
-static DEFAULT_ATTRIBUTE_VALUES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
-    [
-        ("x", "0"),
-        ("y", "0"),
-        ("fill", "#000000"),
-        ("fill", "black"),
-        ("stroke", "none"),
-        ("stroke-width", "1"),
-        ("stroke-linecap", "butt"),
-        ("stroke-linejoin", "miter"),
-        ("stroke-dasharray", "none"),
-        ("stroke-dashoffset", "0"),
-        ("stroke-opacity", "1"),
-        ("fill-opacity", "1"),
-        ("opacity", "1"),
-        ("visibility", "visible"),
-        ("display", "inline"),
-        ("overflow", "visible"),
-        ("clip-rule", "nonzero"),
-        ("font-size", "medium"),
-        ("font-weight", "normal"),
-        ("font-style", "normal"),
-        ("text-anchor", "start"),
-        ("text-decoration", "none"),
-        ("preserveAspectRatio", "xMidYMid meet"),
-        ("gradientUnits", "objectBoundingBox"),
-        ("spreadMethod", "pad"),
-        ("patternUnits", "objectBoundingBox"),
-        ("patternContentUnits", "userSpaceOnUse"),
-        ("filterUnits", "objectBoundingBox"),
-        ("primitiveUnits", "userSpaceOnUse"),
-    ].into_iter().collect()
-});
+static DEFAULT_ATTRIBUTE_VALUES: LazyLock<HashMap<&'static str, &'static str>> =
+    LazyLock::new(|| {
+        [
+            ("x", "0"),
+            ("y", "0"),
+            ("fill", "#000000"),
+            ("fill", "black"),
+            ("stroke", "none"),
+            ("stroke-width", "1"),
+            ("stroke-linecap", "butt"),
+            ("stroke-linejoin", "miter"),
+            ("stroke-dasharray", "none"),
+            ("stroke-dashoffset", "0"),
+            ("stroke-opacity", "1"),
+            ("fill-opacity", "1"),
+            ("opacity", "1"),
+            ("visibility", "visible"),
+            ("display", "inline"),
+            ("overflow", "visible"),
+            ("clip-rule", "nonzero"),
+            ("font-size", "medium"),
+            ("font-weight", "normal"),
+            ("font-style", "normal"),
+            ("text-anchor", "start"),
+            ("text-decoration", "none"),
+            ("preserveAspectRatio", "xMidYMid meet"),
+            ("gradientUnits", "objectBoundingBox"),
+            ("spreadMethod", "pad"),
+            ("patternUnits", "objectBoundingBox"),
+            ("patternContentUnits", "userSpaceOnUse"),
+            ("filterUnits", "objectBoundingBox"),
+            ("primitiveUnits", "userSpaceOnUse"),
+        ]
+        .into_iter()
+        .collect()
+    });
 
 impl Plugin for RemoveUnknownsAndDefaultsPlugin {
     fn name(&self) -> &'static str {
@@ -193,14 +318,19 @@ impl Plugin for RemoveUnknownsAndDefaultsPlugin {
         "removes unknown elements content and attributes, removes attrs with default values"
     }
 
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = RemoveUnknownsAndDefaultsParams::from_value(params);
-        
+
         // Process XML declaration if needed
         if config.default_markup_declarations {
             process_xml_declaration(&mut document.metadata);
         }
-        
+
         visit_elements(&mut document.root, &config, None);
         Ok(())
     }
@@ -210,7 +340,9 @@ impl Plugin for RemoveUnknownsAndDefaultsPlugin {
 fn process_xml_declaration(metadata: &mut crate::ast::DocumentMetadata) {
     // Remove standalone="no" from version string if present
     if let Some(version) = &metadata.version {
-        let cleaned = version.replace(" standalone=\"no\"", "").replace(" standalone='no'", "");
+        let cleaned = version
+            .replace(" standalone=\"no\"", "")
+            .replace(" standalone='no'", "");
         if cleaned != *version {
             metadata.version = Some(cleaned);
         }
@@ -219,16 +351,16 @@ fn process_xml_declaration(metadata: &mut crate::ast::DocumentMetadata) {
 
 /// Visit all elements in the AST and remove unknowns and defaults
 fn visit_elements(
-    element: &mut Element, 
-    config: &RemoveUnknownsAndDefaultsParams, 
-    parent_element: Option<&Element>
+    element: &mut Element,
+    config: &RemoveUnknownsAndDefaultsParams,
+    parent_element: Option<&Element>,
 ) {
     remove_unknown_and_default_attributes(element, config, parent_element);
-    
+
     // First, collect indices of children to remove and process remaining children
     let mut children_to_remove = Vec::new();
     let mut child_elements_to_process = Vec::new();
-    
+
     for (index, child) in element.children.iter().enumerate() {
         if let Node::Element(child_element) = child {
             // Check if this element should be removed
@@ -240,23 +372,23 @@ fn visit_elements(
             }
         }
     }
-    
+
     // Remove unknown elements (in reverse order to maintain indices)
     for &index in children_to_remove.iter().rev() {
         element.children.remove(index);
     }
-    
+
     // Now process the remaining child elements
     for &index in &child_elements_to_process {
         if let Some(Node::Element(child_element)) = element.children.get_mut(index) {
             // We need to collect parent attributes first to avoid borrowing issues
             let parent_attrs = element.attributes.clone();
             let parent_name = element.name.clone();
-            
+
             // Create a temporary parent element for reference
             let mut temp_parent = Element::new(&parent_name);
             temp_parent.attributes = parent_attrs;
-            
+
             visit_elements(child_element, config, Some(&temp_parent));
         }
     }
@@ -268,7 +400,7 @@ fn should_remove_unknown_element(element: &Element) -> bool {
     if element.name.contains(':') {
         return false;
     }
-    
+
     // Check if it's a known SVG element
     !KNOWN_ELEMENTS.contains(element.name.as_str())
 }
@@ -277,24 +409,19 @@ fn should_remove_unknown_element(element: &Element) -> bool {
 fn remove_unknown_and_default_attributes(
     element: &mut Element,
     config: &RemoveUnknownsAndDefaultsParams,
-    parent_element: Option<&Element>
+    parent_element: Option<&Element>,
 ) {
     let mut attrs_to_remove = Vec::new();
-    
+
     for (attr_name, attr_value) in &element.attributes {
-        let should_remove = should_remove_attribute(
-            attr_name,
-            attr_value,
-            element,
-            config,
-            parent_element
-        );
-        
+        let should_remove =
+            should_remove_attribute(attr_name, attr_value, element, config, parent_element);
+
         if should_remove {
             attrs_to_remove.push(attr_name.clone());
         }
     }
-    
+
     // Remove the attributes
     for attr_name in attrs_to_remove {
         element.attributes.shift_remove(&attr_name);
@@ -307,28 +434,28 @@ fn should_remove_attribute(
     attr_value: &str,
     element: &Element,
     config: &RemoveUnknownsAndDefaultsParams,
-    parent_element: Option<&Element>
+    parent_element: Option<&Element>,
 ) -> bool {
     // Keep data-* attributes if configured
     if config.keep_data_attrs && attr_name.starts_with("data-") {
         return false;
     }
-    
+
     // Keep aria-* attributes if configured
     if config.keep_aria_attrs && attr_name.starts_with("aria-") {
         return false;
     }
-    
+
     // Keep role attribute if configured
     if config.keep_role_attr && attr_name == "role" {
         return false;
     }
-    
+
     // Always keep xmlns
     if attr_name == "xmlns" {
         return false;
     }
-    
+
     // Keep namespaced attributes (xml:*, xlink:*)
     if attr_name.contains(':') {
         let prefix = attr_name.split(':').next().unwrap_or("");
@@ -336,19 +463,17 @@ fn should_remove_attribute(
             return false;
         }
     }
-    
+
     // Check for unknown attributes
     if config.unknown_attrs && !is_known_attribute(attr_name) {
         return true;
     }
-    
+
     // Check for default values (only if element doesn't have id)
-    if config.default_attrs && !element.has_attr("id") {
-        if is_default_value(attr_name, attr_value) {
-            return true;
-        }
+    if config.default_attrs && !element.has_attr("id") && is_default_value(attr_name, attr_value) {
+        return true;
     }
-    
+
     // Check for useless overrides (simplified - only if element doesn't have id)
     if config.useless_overrides && !element.has_attr("id") {
         if let Some(parent) = parent_element {
@@ -359,7 +484,7 @@ fn should_remove_attribute(
             }
         }
     }
-    
+
     false
 }
 
@@ -388,15 +513,23 @@ mod tests {
     fn test_removes_unknown_attributes() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("width".to_string(), "100".to_string());
-        element.attributes.insert("unknown-attr".to_string(), "value".to_string());
-        element.attributes.insert("height".to_string(), "50".to_string());
-        
+
+        element
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        element
+            .attributes
+            .insert("unknown-attr".to_string(), "value".to_string());
+        element
+            .attributes
+            .insert("height".to_string(), "50".to_string());
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert!(document.root.has_attr("width"));
         assert!(document.root.has_attr("height"));
@@ -407,16 +540,22 @@ mod tests {
     fn test_removes_default_values() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
+
         element.attributes.insert("x".to_string(), "0".to_string());
         element.attributes.insert("y".to_string(), "0".to_string());
-        element.attributes.insert("width".to_string(), "100".to_string());
-        element.attributes.insert("fill".to_string(), "black".to_string());
-        
+        element
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        element
+            .attributes
+            .insert("fill".to_string(), "black".to_string());
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert!(!document.root.has_attr("x")); // default value removed
         assert!(!document.root.has_attr("y")); // default value removed
@@ -428,14 +567,20 @@ mod tests {
     fn test_preserves_data_attributes() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("data-test".to_string(), "value".to_string());
-        element.attributes.insert("unknown-attr".to_string(), "value".to_string());
-        
+
+        element
+            .attributes
+            .insert("data-test".to_string(), "value".to_string());
+        element
+            .attributes
+            .insert("unknown-attr".to_string(), "value".to_string());
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert!(document.root.has_attr("data-test")); // preserved
         assert!(!document.root.has_attr("unknown-attr")); // removed
@@ -445,14 +590,20 @@ mod tests {
     fn test_preserves_aria_attributes() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("aria-label".to_string(), "test".to_string());
-        element.attributes.insert("unknown-attr".to_string(), "value".to_string());
-        
+
+        element
+            .attributes
+            .insert("aria-label".to_string(), "test".to_string());
+        element
+            .attributes
+            .insert("unknown-attr".to_string(), "value".to_string());
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert!(document.root.has_attr("aria-label")); // preserved
         assert!(!document.root.has_attr("unknown-attr")); // removed
@@ -462,24 +613,36 @@ mod tests {
     fn test_role_attribute_handling() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("role".to_string(), "button".to_string());
-        
+
+        element
+            .attributes
+            .insert("role".to_string(), "button".to_string());
+
         document.root = element;
 
         // Test with keepRoleAttr = false (default)
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
         assert!(!document.root.has_attr("role")); // removed
 
         // Test with keepRoleAttr = true
         let mut document2 = Document::new();
         let mut element2 = Element::new("rect");
-        element2.attributes.insert("role".to_string(), "button".to_string());
+        element2
+            .attributes
+            .insert("role".to_string(), "button".to_string());
         document2.root = element2;
 
         let params = json!({"keepRoleAttr": true});
-        plugin.apply(&mut document2, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document2,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
         assert!(document2.root.has_attr("role")); // preserved
     }
 
@@ -487,16 +650,27 @@ mod tests {
     fn test_preserves_namespaced_attributes() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("xml:space".to_string(), "preserve".to_string());
-        element.attributes.insert("xlink:href".to_string(), "#test".to_string());
-        element.attributes.insert("xmlns".to_string(), "http://www.w3.org/2000/svg".to_string());
-        element.attributes.insert("unknown-attr".to_string(), "value".to_string());
-        
+
+        element
+            .attributes
+            .insert("xml:space".to_string(), "preserve".to_string());
+        element
+            .attributes
+            .insert("xlink:href".to_string(), "#test".to_string());
+        element.attributes.insert(
+            "xmlns".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+        element
+            .attributes
+            .insert("unknown-attr".to_string(), "value".to_string());
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert!(document.root.has_attr("xml:space")); // preserved
         assert!(document.root.has_attr("xlink:href")); // preserved
@@ -509,12 +683,14 @@ mod tests {
         let mut document = Document::new();
         let known_child = Element::new("rect");
         let unknown_child = Element::new("unknown-element");
-        
+
         document.root.children.push(Node::Element(known_child));
         document.root.children.push(Node::Element(unknown_child));
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert_eq!(document.root.children.len(), 1);
         if let Node::Element(remaining_child) = &document.root.children[0] {
@@ -526,15 +702,21 @@ mod tests {
     fn test_preserves_id_elements_from_default_removal() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("id".to_string(), "test".to_string());
+
+        element
+            .attributes
+            .insert("id".to_string(), "test".to_string());
         element.attributes.insert("x".to_string(), "0".to_string()); // default value
-        element.attributes.insert("fill".to_string(), "black".to_string()); // default value
-        
+        element
+            .attributes
+            .insert("fill".to_string(), "black".to_string()); // default value
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
 
         assert!(document.root.has_attr("id"));
         assert!(document.root.has_attr("x")); // preserved because element has id
@@ -545,10 +727,12 @@ mod tests {
     fn test_configuration_options() {
         let mut document = Document::new();
         let mut element = Element::new("rect");
-        
-        element.attributes.insert("unknown-attr".to_string(), "value".to_string());
+
+        element
+            .attributes
+            .insert("unknown-attr".to_string(), "value".to_string());
         element.attributes.insert("x".to_string(), "0".to_string());
-        
+
         document.root = element;
 
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
@@ -556,7 +740,13 @@ mod tests {
             "unknownAttrs": false,
             "defaultAttrs": false
         });
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
 
         // Both should be preserved due to config
         assert!(document.root.has_attr("unknown-attr"));
@@ -567,6 +757,9 @@ mod tests {
     fn test_plugin_name_and_description() {
         let mut plugin = RemoveUnknownsAndDefaultsPlugin;
         assert_eq!(plugin.name(), "removeUnknownsAndDefaults");
-        assert_eq!(plugin.description(), "removes unknown elements content and attributes, removes attrs with default values");
+        assert_eq!(
+            plugin.description(),
+            "removes unknown elements content and attributes, removes attrs with default values"
+        );
     }
 }

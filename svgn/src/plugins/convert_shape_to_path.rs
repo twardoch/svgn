@@ -5,15 +5,14 @@
 //! This plugin converts rect, line, polyline, polygon, circle and ellipse elements
 //! to path elements for better optimization potential.
 
-use crate::ast::{Document, Node, Element};
+use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use regex::Regex;
 use serde_json::Value;
 use std::sync::LazyLock;
 
-static NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?").unwrap()
-});
+static NUMBER_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?").unwrap());
 
 /// Plugin that converts basic shapes to path elements
 pub struct ConvertShapeToPathPlugin;
@@ -22,39 +21,48 @@ impl Plugin for ConvertShapeToPathPlugin {
     fn name(&self) -> &'static str {
         "convertShapeToPath"
     }
-    
+
     fn description(&self) -> &'static str {
         "Converts basic shapes to more compact path form"
     }
-    
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         // Parse parameters
         let convert_arcs = params
             .and_then(|v| v.get("convertArcs"))
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        
+
         let float_precision = params
             .and_then(|v| v.get("floatPrecision"))
             .and_then(|v| v.as_u64())
             .map(|p| p as u8);
-        
+
         // Process root element
         convert_shapes_in_element(&mut document.root, convert_arcs, float_precision);
-        
+
         Ok(())
     }
 }
 
 /// Recursively convert shapes in an element and its children
-fn convert_shapes_in_element(element: &mut Element, convert_arcs: bool, float_precision: Option<u8>) {
+fn convert_shapes_in_element(
+    element: &mut Element,
+    convert_arcs: bool,
+    float_precision: Option<u8>,
+) {
     // Process child elements
     for child in &mut element.children {
         if let Node::Element(child_element) = child {
             convert_shapes_in_element(child_element, convert_arcs, float_precision);
         }
     }
-    
+
     // Convert current element if it's a shape
     convert_shape_element(element, convert_arcs, float_precision);
 }
@@ -97,7 +105,7 @@ fn convert_rect(element: &mut Element, float_precision: Option<u8>) {
         Some(h) => h,
         None => return,
     };
-    
+
     let x = match parse_coord(element.attr("x").map_or("0", |v| v)) {
         Some(x) => x,
         None => return,
@@ -187,7 +195,7 @@ fn convert_poly(element: &mut Element, is_polygon: bool, float_precision: Option
         Some(p) => p,
         None => return,
     };
-    
+
     // Extract all numbers from the points string
     let coords: Vec<f64> = NUMBER_REGEX
         .find_iter(points_str)
@@ -205,7 +213,7 @@ fn convert_poly(element: &mut Element, is_polygon: bool, float_precision: Option
 
     // Build path data
     let mut path_data = String::new();
-    
+
     for (i, chunk) in coords.chunks(2).enumerate() {
         if chunk.len() == 2 {
             if i == 0 {
@@ -352,7 +360,7 @@ mod tests {
         for (key, value) in attrs {
             attributes.insert(key.to_string(), value.to_string());
         }
-        
+
         Element {
             name: name.to_string(),
             attributes,
@@ -363,10 +371,7 @@ mod tests {
 
     #[test]
     fn test_convert_rect_basic() {
-        let mut element = create_element("rect", vec![
-            ("width", "32"),
-            ("height", "32"),
-        ]);
+        let mut element = create_element("rect", vec![("width", "32"), ("height", "32")]);
 
         convert_rect(&mut element, None);
 
@@ -378,12 +383,10 @@ mod tests {
 
     #[test]
     fn test_convert_rect_with_position() {
-        let mut element = create_element("rect", vec![
-            ("x", "20"),
-            ("y", "10"),
-            ("width", "50"),
-            ("height", "40"),
-        ]);
+        let mut element = create_element(
+            "rect",
+            vec![("x", "20"), ("y", "10"), ("width", "50"), ("height", "40")],
+        );
 
         convert_rect(&mut element, None);
 
@@ -393,13 +396,16 @@ mod tests {
 
     #[test]
     fn test_rect_with_rounded_corners_not_converted() {
-        let mut element = create_element("rect", vec![
-            ("x", "10"),
-            ("y", "10"),
-            ("width", "50"),
-            ("height", "50"),
-            ("rx", "4"),
-        ]);
+        let mut element = create_element(
+            "rect",
+            vec![
+                ("x", "10"),
+                ("y", "10"),
+                ("width", "50"),
+                ("height", "50"),
+                ("rx", "4"),
+            ],
+        );
 
         convert_rect(&mut element, None);
 
@@ -410,12 +416,10 @@ mod tests {
 
     #[test]
     fn test_convert_line() {
-        let mut element = create_element("line", vec![
-            ("x1", "10"),
-            ("y1", "10"),
-            ("x2", "50"),
-            ("y2", "20"),
-        ]);
+        let mut element = create_element(
+            "line",
+            vec![("x1", "10"), ("y1", "10"), ("x2", "50"), ("y2", "20")],
+        );
 
         convert_line(&mut element, None);
 
@@ -429,9 +433,7 @@ mod tests {
 
     #[test]
     fn test_convert_polyline() {
-        let mut element = create_element("polyline", vec![
-            ("points", "10,80 20,50 50,20 80,10"),
-        ]);
+        let mut element = create_element("polyline", vec![("points", "10,80 20,50 50,20 80,10")]);
 
         convert_polyline(&mut element, None);
 
@@ -442,9 +444,7 @@ mod tests {
 
     #[test]
     fn test_convert_polygon() {
-        let mut element = create_element("polygon", vec![
-            ("points", "20 10 50 40 30 20"),
-        ]);
+        let mut element = create_element("polygon", vec![("points", "20 10 50 40 30 20")]);
 
         convert_polygon(&mut element, None);
 
@@ -455,16 +455,15 @@ mod tests {
 
     #[test]
     fn test_convert_circle() {
-        let mut element = create_element("circle", vec![
-            ("cx", "50"),
-            ("cy", "50"),
-            ("r", "25"),
-        ]);
+        let mut element = create_element("circle", vec![("cx", "50"), ("cy", "50"), ("r", "25")]);
 
         convert_circle(&mut element, None);
 
         assert_eq!(element.name, "path");
-        assert_eq!(element.attr("d").unwrap(), "M50 25A25 25 0 1 0 50 75A25 25 0 1 0 50 25z");
+        assert_eq!(
+            element.attr("d").unwrap(),
+            "M50 25A25 25 0 1 0 50 75A25 25 0 1 0 50 25z"
+        );
         assert!(!element.has_attr("cx"));
         assert!(!element.has_attr("cy"));
         assert!(!element.has_attr("r"));

@@ -1,8 +1,8 @@
 // this_file: svgn/src/plugins/collapse_groups.rs
 
 use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
 use crate::collections::{ANIMATION_ELEMS, INHERITABLE_ATTRS};
+use crate::plugin::{Plugin, PluginError, PluginInfo, PluginResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,7 +24,7 @@ impl CollapseGroupsPlugin {
                         }
                     }
                 }
-                
+
                 // Check children recursively
                 for child in &element.children {
                     if Self::has_animated_attr(child, attr_name) {
@@ -54,15 +54,15 @@ impl CollapseGroupsPlugin {
             if let Node::Element(first_child) = &mut element.children[0] {
                 // TODO: Add style computation for filter check when style support is implemented
                 let node_has_filter = element.attributes.contains_key("filter");
-                
+
                 // Check conditions for moving attributes
                 if first_child.attributes.get("id").is_none()
                     && !node_has_filter
-                    && (element.attributes.get("class").is_none() 
+                    && (element.attributes.get("class").is_none()
                         || first_child.attributes.get("class").is_none())
-                    && ((element.attributes.get("clip-path").is_none() 
+                    && ((element.attributes.get("clip-path").is_none()
                         && element.attributes.get("mask").is_none())
-                        || (first_child.name == "g" 
+                        || (first_child.name == "g"
                             && element.attributes.get("transform").is_none()
                             && first_child.attributes.get("transform").is_none()))
                 {
@@ -87,8 +87,9 @@ impl CollapseGroupsPlugin {
                                 } else if existing_value == "inherit" {
                                     // Replace inherit with actual value
                                     first_child.attributes.insert(name, value);
-                                } else if !INHERITABLE_ATTRS.contains(name.as_str()) 
-                                    && existing_value != &value {
+                                } else if !INHERITABLE_ATTRS.contains(name.as_str())
+                                    && existing_value != &value
+                                {
                                     // Non-inheritable attributes must match
                                     return false;
                                 }
@@ -149,9 +150,15 @@ impl Plugin for CollapseGroupsPlugin {
         "collapses useless groups"
     }
 
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&serde_json::Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&serde_json::Value>,
+    ) -> PluginResult<()> {
         let _config: CollapseGroupsConfig = if let Some(p) = params {
-            serde_json::from_value(p.clone()).map_err(|e| PluginError::InvalidConfig(e.to_string()))?
+            serde_json::from_value(p.clone())
+                .map_err(|e| PluginError::InvalidConfig(e.to_string()))?
         } else {
             CollapseGroupsConfig {}
         };
@@ -170,7 +177,9 @@ impl Plugin for CollapseGroupsPlugin {
         if params.is_none() || params.unwrap().is_object() {
             Ok(())
         } else {
-            Err(PluginError::InvalidConfig("Configuration must be an object or null".to_string()))
+            Err(PluginError::InvalidConfig(
+                "Configuration must be an object or null".to_string(),
+            ))
         }
     }
 }
@@ -184,15 +193,15 @@ mod tests {
     #[test]
     fn test_collapse_empty_group() {
         let input = r#"<svg><g><rect width="10" height="10"/></g></svg>"#;
-        
+
         let parser = Parser::new();
         let mut doc = parser.parse(input).unwrap();
         let mut plugin = CollapseGroupsPlugin;
         let config = serde_json::json!({});
         let info = PluginInfo::default();
-        
+
         plugin.apply(&mut doc, &info, Some(&config)).unwrap();
-        
+
         // Check that the group was collapsed
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(rect) = &doc.root.children[0] {
@@ -207,15 +216,15 @@ mod tests {
     #[test]
     fn test_move_attributes_to_single_child() {
         let input = r#"<svg><g fill="red"><rect width="10" height="10"/></g></svg>"#;
-        
+
         let parser = Parser::new();
         let mut doc = parser.parse(input).unwrap();
         let mut plugin = CollapseGroupsPlugin;
         let config = serde_json::json!({});
         let info = PluginInfo::default();
-        
+
         plugin.apply(&mut doc, &info, Some(&config)).unwrap();
-        
+
         // Check that the group was collapsed and attributes moved
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(rect) = &doc.root.children[0] {
@@ -231,15 +240,15 @@ mod tests {
     #[test]
     fn test_preserve_group_with_multiple_children() {
         let input = r#"<svg><g fill="red"><rect width="10" height="10"/><circle r="5"/></g></svg>"#;
-        
+
         let parser = Parser::new();
         let mut doc = parser.parse(input).unwrap();
         let mut plugin = CollapseGroupsPlugin;
         let config = serde_json::json!({});
         let info = PluginInfo::default();
-        
+
         plugin.apply(&mut doc, &info, Some(&config)).unwrap();
-        
+
         // Group should be preserved because it has multiple children
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(group) = &doc.root.children[0] {
@@ -254,20 +263,23 @@ mod tests {
     #[test]
     fn test_concatenate_transforms() {
         let input = r#"<svg><g transform="translate(10,10)"><rect transform="scale(2)" width="10" height="10"/></g></svg>"#;
-        
+
         let parser = Parser::new();
         let mut doc = parser.parse(input).unwrap();
         let mut plugin = CollapseGroupsPlugin;
         let config = serde_json::json!({});
         let info = PluginInfo::default();
-        
+
         plugin.apply(&mut doc, &info, Some(&config)).unwrap();
-        
+
         // Check that transforms were concatenated
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(rect) = &doc.root.children[0] {
             assert_eq!(rect.name, "rect");
-            assert_eq!(rect.attributes.get("transform"), Some(&"translate(10,10) scale(2)".to_string()));
+            assert_eq!(
+                rect.attributes.get("transform"),
+                Some(&"translate(10,10) scale(2)".to_string())
+            );
             assert_eq!(rect.attributes.get("width"), Some(&"10".to_string()));
             assert_eq!(rect.attributes.get("height"), Some(&"10".to_string()));
         } else {
@@ -278,15 +290,15 @@ mod tests {
     #[test]
     fn test_nested_groups() {
         let input = r#"<svg><g><g><rect width="10" height="10"/></g></g></svg>"#;
-        
+
         let parser = Parser::new();
         let mut doc = parser.parse(input).unwrap();
         let mut plugin = CollapseGroupsPlugin;
         let config = serde_json::json!({});
         let info = PluginInfo::default();
-        
+
         plugin.apply(&mut doc, &info, Some(&config)).unwrap();
-        
+
         // Both groups should be collapsed
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(rect) = &doc.root.children[0] {
@@ -301,15 +313,15 @@ mod tests {
     #[test]
     fn test_preserve_group_with_id() {
         let input = r#"<svg><g id="mygroup"><rect id="myrect" width="10" height="10"/></g></svg>"#;
-        
+
         let parser = Parser::new();
         let mut doc = parser.parse(input).unwrap();
         let mut plugin = CollapseGroupsPlugin;
         let config = serde_json::json!({});
         let info = PluginInfo::default();
-        
+
         plugin.apply(&mut doc, &info, Some(&config)).unwrap();
-        
+
         // Group should NOT be preserved just because child has id
         // The group itself has id, so it can't move attributes to child
         assert_eq!(doc.root.children.len(), 1);

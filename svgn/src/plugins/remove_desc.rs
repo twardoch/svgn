@@ -18,29 +18,33 @@ use std::sync::LazyLock;
 pub struct RemoveDescPlugin;
 
 // Regex pattern for standard editor descriptions
-static STANDARD_DESCS: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(Created with|Created using)").unwrap()
-});
+static STANDARD_DESCS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(Created with|Created using)").unwrap());
 
 impl Plugin for RemoveDescPlugin {
     fn name(&self) -> &'static str {
         "removeDesc"
     }
-    
+
     fn description(&self) -> &'static str {
         "Remove <desc> elements"
     }
-    
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         // Parse parameters
         let remove_any = params
             .and_then(|v| v.get("removeAny"))
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        
+
         // Process the document
         remove_desc_from_element(&mut document.root, remove_any);
-        
+
         Ok(())
     }
 }
@@ -57,7 +61,7 @@ fn remove_desc_from_element(element: &mut Element, remove_any: bool) {
             _ => true,
         }
     });
-    
+
     // Process remaining child elements
     for child in &mut element.children {
         if let Node::Element(child_element) = child {
@@ -71,12 +75,12 @@ fn should_remove_desc(desc_element: &Element, remove_any: bool) -> bool {
     if remove_any {
         return true;
     }
-    
+
     // Remove if empty
     if desc_element.children.is_empty() {
         return true;
     }
-    
+
     // Check if it contains only standard editor text
     if desc_element.children.len() == 1 {
         if let Some(Node::Text(text)) = desc_element.children.first() {
@@ -85,7 +89,7 @@ fn should_remove_desc(desc_element: &Element, remove_any: bool) -> bool {
             }
         }
     }
-    
+
     false
 }
 
@@ -95,76 +99,88 @@ mod tests {
     use super::*;
     use crate::parser::Parser;
     use serde_json::json;
-    
+
     #[test]
     fn test_remove_empty_desc() {
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg">
             <desc></desc>
             <rect width="100" height="100"/>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveDescPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
-        
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
+
         // Check that empty desc is removed
         assert!(!has_desc_element(&document.root));
     }
-    
+
     #[test]
     fn test_remove_standard_desc() {
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg">
             <desc>Created with Sketch.</desc>
             <rect width="100" height="100"/>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveDescPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
-        
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
+
         // Check that standard desc is removed
         assert!(!has_desc_element(&document.root));
     }
-    
+
     #[test]
     fn test_preserve_custom_desc() {
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg">
             <desc>This is a custom description for accessibility</desc>
             <rect width="100" height="100"/>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveDescPlugin;
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
-        
+        plugin
+            .apply(&mut document, &crate::plugin::PluginInfo::default(), None)
+            .unwrap();
+
         // Check that custom desc is preserved
         assert!(has_desc_element(&document.root));
     }
-    
+
     #[test]
     fn test_remove_any() {
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg">
             <desc>This is a custom description for accessibility</desc>
             <rect width="100" height="100"/>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = RemoveDescPlugin;
         let params = json!({"removeAny": true});
-        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
-        
+        plugin
+            .apply(
+                &mut document,
+                &crate::plugin::PluginInfo::default(),
+                Some(&params),
+            )
+            .unwrap();
+
         // Check that all desc elements are removed
         assert!(!has_desc_element(&document.root));
     }
-    
+
     fn has_desc_element(element: &Element) -> bool {
         for child in &element.children {
             if let Node::Element(child_element) = child {

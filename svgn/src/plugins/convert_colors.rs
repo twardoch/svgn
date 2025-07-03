@@ -21,17 +21,22 @@ impl Plugin for ConvertColorsPlugin {
     fn name(&self) -> &'static str {
         "convertColors"
     }
-    
+
     fn description(&self) -> &'static str {
         "converts colors: rgb() to #rrggbb and #rrggbb to #rgb"
     }
-    
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = ConvertColorsConfig::from_params(params);
         let mut mask_counter = 0;
-        
+
         convert_colors_in_element(&mut document.root, &config, &mut mask_counter);
-        
+
         Ok(())
     }
 }
@@ -49,67 +54,79 @@ struct ConvertColorsConfig {
 impl ConvertColorsConfig {
     fn from_params(params: Option<&Value>) -> Self {
         let params = params.unwrap_or(&Value::Null);
-        
+
         Self {
-            current_color: params.get("currentColor")
+            current_color: params
+                .get("currentColor")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            names2hex: params.get("names2hex")
+            names2hex: params
+                .get("names2hex")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true),
-            rgb2hex: params.get("rgb2hex")
+            rgb2hex: params
+                .get("rgb2hex")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true),
-            convert_case: params.get("convertCase")
+            convert_case: params
+                .get("convertCase")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
-            shorthex: params.get("shorthex")
+            shorthex: params
+                .get("shorthex")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true),
-            shortname: params.get("shortname")
+            shortname: params
+                .get("shortname")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true),
         }
     }
 }
 
-fn convert_colors_in_element(element: &mut Element, config: &ConvertColorsConfig, mask_counter: &mut usize) {
+fn convert_colors_in_element(
+    element: &mut Element,
+    config: &ConvertColorsConfig,
+    mask_counter: &mut usize,
+) {
     // Track mask elements
     if element.name == "mask" {
         *mask_counter += 1;
     }
-    
+
     convert_colors_in_element_attrs(element, config, *mask_counter);
-    
+
     // Process children
     for child in &mut element.children {
         if let Node::Element(child_element) = child {
             convert_colors_in_element(child_element, config, mask_counter);
         }
     }
-    
+
     // Untrack mask elements
     if element.name == "mask" {
         *mask_counter -= 1;
     }
 }
 
-fn convert_colors_in_element_attrs(element: &mut Element, config: &ConvertColorsConfig, mask_counter: usize) {
+fn convert_colors_in_element_attrs(
+    element: &mut Element,
+    config: &ConvertColorsConfig,
+    mask_counter: usize,
+) {
     let color_props = get_color_properties();
-    
+
     for (name, value) in element.attributes.iter_mut() {
         if color_props.contains(name.as_str()) {
             let mut val = value.clone();
-            
+
             // Convert colors to currentColor
             if let Some(ref current_color_pattern) = config.current_color {
-                if mask_counter == 0 {
-                    if val == *current_color_pattern || val != "none" {
-                        val = "currentColor".to_string();
-                    }
+                if mask_counter == 0 && (val == *current_color_pattern || val != "none") {
+                    val = "currentColor".to_string();
                 }
             }
-            
+
             // Convert color names to hex
             if config.names2hex {
                 let color_name = val.to_lowercase();
@@ -117,14 +134,14 @@ fn convert_colors_in_element_attrs(element: &mut Element, config: &ConvertColors
                     val = hex_value.clone();
                 }
             }
-            
+
             // Convert rgb() to hex
             if config.rgb2hex {
                 if let Some(hex_color) = convert_rgb_to_hex(&val) {
                     val = hex_color;
                 }
             }
-            
+
             // Apply case conversion
             if let Some(ref case) = config.convert_case {
                 if !includes_url_reference(&val) && val != "currentColor" {
@@ -135,14 +152,14 @@ fn convert_colors_in_element_attrs(element: &mut Element, config: &ConvertColors
                     }
                 }
             }
-            
+
             // Convert long hex to short hex
             if config.shorthex {
                 if let Some(short_hex) = convert_to_short_hex(&val) {
                     val = short_hex;
                 }
             }
-            
+
             // Convert hex to short name (but not when we just converted from RGB)
             if config.shortname {
                 let color_name = val.to_lowercase();
@@ -150,7 +167,7 @@ fn convert_colors_in_element_attrs(element: &mut Element, config: &ConvertColors
                     val = short_name.clone();
                 }
             }
-            
+
             *value = val;
         }
     }
@@ -169,7 +186,7 @@ fn get_color_properties() -> HashSet<&'static str> {
 
 fn get_color_names() -> HashMap<String, String> {
     let mut colors = HashMap::new();
-    
+
     // Basic color names (subset from SVG spec)
     colors.insert("aliceblue".to_string(), "#f0f8ff".to_string());
     colors.insert("antiquewhite".to_string(), "#faebd7".to_string());
@@ -318,13 +335,13 @@ fn get_color_names() -> HashMap<String, String> {
     colors.insert("whitesmoke".to_string(), "#f5f5f5".to_string());
     colors.insert("yellow".to_string(), "#ff0".to_string());
     colors.insert("yellowgreen".to_string(), "#9acd32".to_string());
-    
+
     colors
 }
 
 fn get_color_short_names() -> HashMap<String, String> {
     let mut colors = HashMap::new();
-    
+
     // Hex to short names (reverse mapping)
     colors.insert("#000080".to_string(), "navy".to_string());
     colors.insert("#008000".to_string(), "green".to_string());
@@ -342,16 +359,16 @@ fn get_color_short_names() -> HashMap<String, String> {
     colors.insert("#ff00ff".to_string(), "magenta".to_string());
     colors.insert("#ffffff".to_string(), "white".to_string());
     colors.insert("#000000".to_string(), "black".to_string());
-    
+
     colors
 }
 
 fn convert_rgb_to_hex(value: &str) -> Option<String> {
     let re = Regex::new(r"^rgb\(\s*([+-]?(?:\d*\.\d+|\d+\.?)%?)\s*[,\s]+\s*([+-]?(?:\d*\.\d+|\d+\.?)%?)\s*[,\s]+\s*([+-]?(?:\d*\.\d+|\d+\.?)%?)\s*\)$").ok()?;
-    
+
     let caps = re.captures(value)?;
     let mut nums = Vec::new();
-    
+
     for i in 1..=3 {
         let m = caps.get(i)?.as_str();
         let n = if m.contains('%') {
@@ -359,9 +376,9 @@ fn convert_rgb_to_hex(value: &str) -> Option<String> {
         } else {
             m.parse::<f64>().ok()? as i32
         };
-        nums.push(n.max(0).min(255) as u8);
+        nums.push(n.clamp(0, 255) as u8);
     }
-    
+
     Some(format!("#{:02x}{:02x}{:02x}", nums[0], nums[1], nums[2]))
 }
 
@@ -385,18 +402,18 @@ fn includes_url_reference(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element};
-    use serde_json::json;
     use indexmap::IndexMap;
+    use serde_json::json;
 
     fn create_test_document_with_colors() -> Document {
         let mut doc = Document::new();
         let mut element = Element::new("rect");
-        
+
         let mut attrs = IndexMap::new();
         attrs.insert("fill".to_string(), "red".to_string());
         attrs.insert("stroke".to_string(), "rgb(255, 0, 255)".to_string());
         element.attributes = attrs;
-        
+
         doc.root = element;
         doc
     }
@@ -404,36 +421,59 @@ mod tests {
     #[test]
     fn test_color_name_to_hex() {
         let mut plugin = ConvertColorsPlugin;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         let mut document = create_test_document_with_colors();
-        
+
         plugin.apply(&mut document, &plugin_info, None).unwrap();
-        
-        assert_eq!(document.root.attributes.get("fill"), Some(&"#f00".to_string()));
+
+        assert_eq!(
+            document.root.attributes.get("fill"),
+            Some(&"#f00".to_string())
+        );
     }
 
     #[test]
     fn test_rgb_to_hex() {
         let mut plugin = ConvertColorsPlugin;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         let mut document = create_test_document_with_colors();
-        
+
         // Disable shortname and shorthex conversion to keep long hex format
         let params = json!({
             "shortname": false,
             "shorthex": false
         });
-        
-        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
-        
-        assert_eq!(document.root.attributes.get("stroke"), Some(&"#ff00ff".to_string()));
+
+        plugin
+            .apply(&mut document, &plugin_info, Some(&params))
+            .unwrap();
+
+        assert_eq!(
+            document.root.attributes.get("stroke"),
+            Some(&"#ff00ff".to_string())
+        );
     }
 
     #[test]
     fn test_convert_rgb_to_hex_function() {
-        assert_eq!(convert_rgb_to_hex("rgb(255, 0, 255)"), Some("#ff00ff".to_string()));
-        assert_eq!(convert_rgb_to_hex("rgb(100%, 0%, 100%)"), Some("#ff00ff".to_string()));
-        assert_eq!(convert_rgb_to_hex("rgb(50%, 100, 100%)"), Some("#7f64ff".to_string()));
+        assert_eq!(
+            convert_rgb_to_hex("rgb(255, 0, 255)"),
+            Some("#ff00ff".to_string())
+        );
+        assert_eq!(
+            convert_rgb_to_hex("rgb(100%, 0%, 100%)"),
+            Some("#ff00ff".to_string())
+        );
+        assert_eq!(
+            convert_rgb_to_hex("rgb(50%, 100, 100%)"),
+            Some("#7f64ff".to_string())
+        );
         assert_eq!(convert_rgb_to_hex("invalid"), None);
     }
 
@@ -448,21 +488,32 @@ mod tests {
     #[test]
     fn test_color_params() {
         let mut plugin = ConvertColorsPlugin;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         let mut document = create_test_document_with_colors();
-        
+
         let params = json!({
             "names2hex": false,
             "rgb2hex": true,
             "shortname": false,
             "shorthex": false
         });
-        
-        plugin.apply(&mut document, &plugin_info, Some(&params)).unwrap();
-        
+
+        plugin
+            .apply(&mut document, &plugin_info, Some(&params))
+            .unwrap();
+
         // names2hex is disabled, so "red" should stay as "red"
-        assert_eq!(document.root.attributes.get("fill"), Some(&"red".to_string()));
+        assert_eq!(
+            document.root.attributes.get("fill"),
+            Some(&"red".to_string())
+        );
         // rgb2hex is enabled, so RGB should convert to hex
-        assert_eq!(document.root.attributes.get("stroke"), Some(&"#ff00ff".to_string()));
+        assert_eq!(
+            document.root.attributes.get("stroke"),
+            Some(&"#ff00ff".to_string())
+        );
     }
 }

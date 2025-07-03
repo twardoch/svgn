@@ -51,8 +51,8 @@ cargo build --release --target aarch64-apple-darwin
 # Create universal binary
 echo -e "${YELLOW}Creating universal binary...${NC}"
 lipo -create \
-    target/x86_64-apple-darwin/release/svgn \
-    target/aarch64-apple-darwin/release/svgn \
+    "$PROJECT_ROOT/target/x86_64-apple-darwin/release/svgn" \
+    "$PROJECT_ROOT/target/aarch64-apple-darwin/release/svgn" \
     -output "$DIST_DIR/svgn"
 
 # Make it executable
@@ -77,8 +77,8 @@ if [[ "$ARCHS" != *"x86_64"* ]] || [[ "$ARCHS" != *"arm64"* ]]; then
     exit 1
 fi
 
-# Get version from Cargo.toml
-VERSION=$(grep '^version' "$CARGO_DIR/Cargo.toml" | head -1 | cut -d '"' -f 2)
+# Get version from git tag or binary
+VERSION=$("$DIST_DIR/svgn" --version | cut -d ' ' -f 2)
 echo -e "${GREEN}Building version: $VERSION${NC}"
 
 # Create tar.gz archive

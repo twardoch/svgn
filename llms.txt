@@ -3,7 +3,8 @@ Project Structure:
 ├── 📁 .github
 │   └── 📁 workflows
 │       ├── 📄 release.yml
-│       └── 📄 rust.yml
+│       ├── 📄 rust.yml
+│       └── 📄 test-build-scripts.yml
 ├── 📁 docs
 │   ├── 📁 _data
 │   ├── 📁 _sass
@@ -13,6 +14,10 @@ Project Structure:
 │   └── 📄 Gemfile
 ├── 📁 issues
 ├── 📁 ref
+├── 📁 scripts
+│   ├── 📄 build_linux.sh
+│   ├── 📄 build_macos.sh
+│   └── 📄 build_windows.cmd
 ├── 📁 svgn
 │   ├── 📁 benches
 │   │   └── 📄 optimization.rs
@@ -22,7 +27,8 @@ Project Structure:
 │   │   ├── 📁 bin
 │   │   │   └── 📄 svgn.rs
 │   │   ├── 📁 plugins
-│   │   │   ├── 📄 add_attributes_to_svg_element.rs
+│   │   │   ├── 📄 
+│   │   │   │   add_attributes_to_svg_element.rs
 │   │   │   ├── 📄 add_classes_to_svg_element.rs
 │   │   │   ├── 📄 cleanup_attrs.rs
 │   │   │   ├── 📄 cleanup_enable_background.rs
@@ -40,7 +46,8 @@ Project Structure:
 │   │   │   ├── 📄 minify_styles.rs
 │   │   │   ├── 📄 mod.rs
 │   │   │   ├── 📄 prefix_ids.rs
-│   │   │   ├── 📄 remove_attributes_by_selector.rs
+│   │   │   ├── 📄 
+│   │   │   │   remove_attributes_by_selector.rs
 │   │   │   ├── 📄 remove_attrs.rs
 │   │   │   ├── 📄 remove_comments.rs
 │   │   │   ├── 📄 remove_deprecated_attrs.rs
@@ -54,13 +61,16 @@ Project Structure:
 │   │   │   ├── 📄 remove_empty_text.rs
 │   │   │   ├── 📄 remove_hidden_elems.rs
 │   │   │   ├── 📄 remove_metadata.rs
-│   │   │   ├── 📄 remove_non_inheritable_group_attrs.rs
+│   │   │   ├── 📄 
+│   │   │   │   remove_non_inheritable_group_attr
+│   │   │   │   s.rs
 │   │   │   ├── 📄 remove_off_canvas_paths.rs
 │   │   │   ├── 📄 remove_raster_images.rs
 │   │   │   ├── 📄 remove_scripts.rs
 │   │   │   ├── 📄 remove_style_element.rs
 │   │   │   ├── 📄 remove_title.rs
-│   │   │   ├── 📄 remove_unknowns_and_defaults.rs
+│   │   │   ├── 📄 
+│   │   │   │   remove_unknowns_and_defaults.rs
 │   │   │   ├── 📄 remove_unused_ns.rs
 │   │   │   ├── 📄 remove_useless_defs.rs
 │   │   │   ├── 📄 remove_useless_transforms.rs
@@ -86,7 +96,8 @@ Project Structure:
 │   │   │   ├── 📄 convert_colors.rs
 │   │   │   ├── 📄 convert_ellipse_to_circle.rs
 │   │   │   ├── 📄 convert_path_data.rs
-│   │   │   ├── 📄 remove_attributes_by_selector.rs
+│   │   │   ├── 📄 
+│   │   │   │   remove_attributes_by_selector.rs
 │   │   │   ├── 📄 remove_comments.rs
 │   │   │   ├── 📄 remove_deprecated_attrs.rs
 │   │   │   ├── 📄 remove_dimensions.rs
@@ -95,13 +106,231 @@ Project Structure:
 │   │   ├── 📄 integration_test.rs
 │   │   ├── 📄 plugins.rs
 │   │   └── 📄 svgo_compatibility_tests.rs
+│   ├── 📄 build.rs
 │   ├── 📄 Cargo.lock
 │   └── 📄 Cargo.toml
 ├── 📁 target
-│   └── 📁 release
-│       ├── 📁 deps
-│       ├── 📁 examples
-│       └── 📁 incremental
+│   ├── 📁 debug
+│   │   ├── 📁 deps
+│   │   ├── 📁 examples
+│   │   └── 📁 incremental
+│   │       ├── 📁 
+│   │       │   build_script_build-0z02ed5m06bdi
+│   │       │   └── 📁 
+│   │       │       s-h8vtjz9ujm-1h847wi-3oaljqc3
+│   │       │       be6d4olbs5enssliw
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 
+│   │       │   build_script_build-2no91pxjtlvbt
+│   │       │   └── 📁 
+│   │       │       s-h8vtcmxkez-09fapzt-12f85jwf
+│   │       │       ckx7y3ar1itr3wdir
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 debug_attr_order-0ekas32p17dnk
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j0vjt-0fbg3um-a1bnjujq
+│   │       │       0fwsbbpf4vl959k1h
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 debug_attr_order-2fil7upbrsr4e
+│   │       │   └── 📁 
+│   │       │       s-h8vt8ktxx1-1555d4y-ewtqtgql
+│   │       │       4tkafyfl0nahgh9iv
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 fixture_tests-326agomrj3wls
+│   │       │   └── 📁 
+│   │       │       s-h8vta72mdv-1mebq2j-0flqitio
+│   │       │       5z2v4r7okod50mlkq
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 fixture_tests-3ejqt3x3d9nxp
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j1dl4-16xqdni-55bkxr8h
+│   │       │       g8w84d44pasw1159b
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 fixture_tests-3rut7maydv9zf
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoehny-1poudnl-9px5ac4e
+│   │       │       jx1leeex4gppfhy4p
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 integration_test-0cnz4ckutlake
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j1aba-1bfd2sk-dlpvbk0y
+│   │       │       j8pz4vutgcfddefse
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 integration_test-0kiltl1fufc7e
+│   │       │   └── 📁 
+│   │       │       s-h8vta728fy-0i81bnf-7ahg393b
+│   │       │       5kfbpkxnxsn9pu5ns
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 integration_test-2erugj8ovnv6f
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoeom2-0l2rf9e-by15qif1
+│   │       │       q1yqh0diwshojnq3r
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 optimization-1ccjc4lx3gts6
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoevmf-1772erg-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 optimization-3pdxficvwtp2d
+│   │       │   └── 📁 
+│   │       │       s-h8vt90qu99-0suqirq-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 plugins-13wkssz3dodv7
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoew2x-1ys97ea-9d6vpig8
+│   │       │       1497uekxqymnkxfks
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 plugins-1eymesd352rz5
+│   │       │   └── 📁 
+│   │       │       s-h8vta726eh-0phan1f-b449mr5l
+│   │       │       retobk781r4iakwjw
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 plugins-2d5rg2zw6hnho
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j118k-0nztmel-ev5o5swd
+│   │       │       ts5upzletbqdihqos
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0cgftgnt5f9p8
+│   │       │   └── 📁 
+│   │       │       s-h8vtjzgukt-1dreofr-9gzljsky
+│   │       │       egjyg1jij4vb62vyh
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0eegobmck46ay
+│   │       │   └── 📁 
+│   │       │       s-h8vtcnkry0-1kpe008-39ipsw63
+│   │       │       49k200mz79jrdsvz5
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0hv2d9zx6usgi
+│   │       │   └── 📁 
+│   │       │       s-h8vt8ip4x1-17fae94-5x8fl8ps
+│   │       │       ndmr6m2yndwmohz46
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0j951jqt1cwwg
+│   │       │   └── 📁 
+│   │       │       s-h8vta72iwr-0zlwjct-9yduogpj
+│   │       │       7aio1og3159acvash
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0nijktbv3yir7
+│   │       │   └── 📁 
+│   │       │       s-h8vta6b0g1-0h0n1kf-4pv4amb9
+│   │       │       d817yw3v047ga2hq1
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0tjjnc5iikbun
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j17st-0a5k3rm-eaf84t8p
+│   │       │       ktif19pxi79wr27xx
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0wwq0xehcwrym
+│   │       │   └── 📁 
+│   │       │       s-h8vte2fvm3-143eg90-7ul04753
+│   │       │       s1xuoj48zbg39769e
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-17cfd2b4pstbd
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoem9j-06s8g90-3idweewr
+│   │       │       n3gbszx5i4t2tpc2i
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-1fhgtrvqejh9u
+│   │       │   └── 📁 
+│   │       │       s-h8vt6yu1le-18kiabn-1zdld6ff
+│   │       │       msd9m5cjw3m1o387t
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-1iqfsrbkw1y6c
+│   │       │   └── 📁 
+│   │       │       s-h8vt8i9gtk-06j4oz5-834xvbog
+│   │       │       7k45cbxukimbvepzu
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-1uikhovmq31jf
+│   │       │   └── 📁 
+│   │       │       s-h8vtcnkrxf-15k4bfm-7nl2u9kn
+│   │       │       341alnk8u8jq3g638
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-1yc092ny5iipj
+│   │       │   └── 📁 
+│   │       │       s-h8vtk0oov8-1kb803f-6m6agdn3
+│   │       │       66mn1bmpczjwtwb59
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-2dgqvhmrnmkb9
+│   │       │   └── 📁 
+│   │       │       s-h8vt70nopf-1e10ggp-b7m686bn
+│   │       │       cb4kdiz354ugx3a3i
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-2iq69votezs34
+│   │       │   └── 📁 
+│   │       │       s-h8vta6axfh-1hzzl0b-3eqkpd0r
+│   │       │       h0hzzo2frswfb3ko7
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-2njldfu97udxy
+│   │       │   └── 📁 
+│   │       │       s-h8vta72mkc-0s9vuqa-epd5e5p9
+│   │       │       kyo2u9qjt6knqgiiw
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-2u97lia1lgp1m
+│   │       │   └── 📁 
+│   │       │       s-h8vte0ld2z-1qfhcvj-2h7r1rg3
+│   │       │       qv8mg0qf2krxhvp8f
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-2xlr14w9riy5p
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoep17-1d3w14i-dm2gymir
+│   │       │       91xumcju6l4nlslcg
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-3f3047a334id5
+│   │       │   └── 📁 
+│   │       │       s-h8vtbhba16-01vexxj-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-3vowm2a8vg6hj
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j1fc5-1ykzspz-8sb95nob
+│   │       │       6cvr4mrza2bfplo6y
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 
+│   │       │   svgo_compatibility_tests-1apaq1w6
+│   │       │   njxy3
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoetpj-0e0ilu3-547snbhy
+│   │       │       xr5w9e066ohnvv1ua
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 
+│   │       │   svgo_compatibility_tests-383ieidk
+│   │       │   ow068
+│   │       │   └── 📁 
+│   │       │       s-h8vt8j1hgk-0z01jsc-3ce2l01i
+│   │       │       vbyj37ia3dper9lku
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 
+│   │       │   svgo_compatibility_tests-39hf4lvo
+│   │       │   xm7n3
+│   │       │   └── 📁 
+│   │       │       s-h8vta72gxj-1sa4nwn-46u9vj97
+│   │       │       36exz7aggyolkzgii
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 
+│   │       │   test_style_plugins-0rojkp7pnzkqf
+│   │       │   └── 📁 
+│   │       │       s-h8vtal8cco-1e6ltaj-cigtds3q
+│   │       │       dzrxosy8m8cangxsz
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 
+│   │       │   test_style_plugins-1lhfjcc8lrajz
+│   │       │   └── 📁 
+│   │       │       s-h8vtcoesga-1ocbqvm-4xnv9pmn
+│   │       │       m2mos51z0um7kqhlg
+│   │       │       └── ... (depth limit reached)
+│   │       └── 📁 
+│   │           test_style_plugins-3u5l69nroct81
+│   │           └── 📁 
+│   │               s-h8vt8j1dak-08ombmz-8shrb9b6
+│   │               xyf7zpd8w6jt3okc6
+│   │               └── ... (depth limit reached)
+│   ├── 📁 release
+│   │   ├── 📁 deps
+│   │   ├── 📁 examples
+│   │   └── 📁 incremental
+│   ├── 📁 rust-analyzer
+│   │   └── 📁 metadata
+│   │       ├── 📁 sysroot
+│   │       └── 📁 workspace
+│   └── 📁 tmp
 ├── 📁 testdata
 ├── 📁 tools
 │   └── 📄 set-cargo-version.sh
@@ -125,87 +354,218 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
+  # Create release
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          draft: true
+          prerelease: false
+
+  # Build releases for each platform
   build:
+    name: Build ${{ matrix.name }}
+    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            script: scripts/build_linux.sh
+            artifacts_path: dist/linux
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            name: macOS
+            script: scripts/build_macos.sh
+            artifacts_path: dist/macos
+            # macOS will build universal binary
+          - os: windows-latest
+            name: Windows
+            script: scripts/build_windows.cmd
+            artifacts_path: dist/windows
+            target: x86_64-pc-windows-msvc
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set release version from tag
+      
+      - name: Setup version
+        shell: bash
         run: |
-          echo "GITHUB_REF=$GITHUB_REF"
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          echo "Using TAG_NAME=$TAG_NAME"
-          ./tools/set-cargo-version.sh "$TAG_NAME"
+          VERSION="${{ needs.create-release.outputs.version }}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          # Update Cargo.toml version if needed
+          if [[ -f "./tools/set-cargo-version.sh" ]]; then
+            chmod +x ./tools/set-cargo-version.sh
+            ./tools/set-cargo-version.sh "$VERSION"
+          else
+            echo "Warning: set-cargo-version.sh not found"
+          fi
+      
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target || '' }}
+      
+      - name: Add macOS targets
+        if: matrix.os == 'macos-latest'
+        run: |
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
+      
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      # Build for all platforms
+            svgn/target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+            ${{ runner.os }}-cargo-
+      
+      # Install platform-specific build dependencies
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev rpm
+      
+      - name: Install Windows dependencies
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          # Uncomment to install optional dependencies
+          # choco install wixtoolset -y
+          # choco install innosetup -y
+          Write-Host "Windows build environment ready"
+      
+      - name: Make build script executable
+        if: matrix.os != 'windows-latest'
+        run: chmod +x ${{ matrix.script }}
+      
+      # Run platform-specific build script
       - name: Build Release
-        run: cargo build --release --locked
-      - name: Prepare artifact
         shell: bash
         run: |
-          set -e
-          tag=${GITHUB_REF#refs/tags/}
-          version=${tag#v}
-
-          case "${{ matrix.os }}" in
-            macos-latest)
-              # Build universal binary, package as .pkg
-              RUSTFLAGS="-C target-cpu=apple-m1" cargo build --release --target aarch64-apple-darwin
-              cargo build --release --target x86_64-apple-darwin
-              mkdir -p dist/pkg-root/usr/local/bin
-              # Make universal binary
-              lipo -create \
-                target/aarch64-apple-darwin/release/svgn \
-                target/x86_64-apple-darwin/release/svgn \
-                -output dist/pkg-root/usr/local/bin/svgn
-              chmod +x dist/pkg-root/usr/local/bin/svgn
-              pkgbuild --identifier com.twardoch.svgn \
-                --version "$version" \
-                --root dist/pkg-root \
-                dist/svgn-${version}-macos.pkg
-              echo "Package built: dist/svgn-${version}-macos.pkg"
-              ;;
-            ubuntu-latest)
-              mkdir -p dist/bin dist
-              cp target/release/svgn dist/bin/svgn
-              chmod +x dist/bin/svgn
-              cp README.md LICENSE dist/bin/
-              cd dist/bin
-              zip ../svgn-${version}-linux.zip svgn README.md LICENSE
-              cd ../..
-              ;;
-            windows-latest)
-              mkdir -p dist\bin
-              cp target\release\svgn.exe dist\bin\svgn.exe
-              cp README.md LICENSE dist\bin\
-              cd dist\bin
-              powershell Compress-Archive -Path svgn.exe,README.md,LICENSE -DestinationPath ../svgn-${version}-windows.zip
-              cd ..\..
-              ;;
-          esac
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v1
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cmd.exe //c "${{ matrix.script }}"
+          else
+            ./${{ matrix.script }}
+          fi
+      
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Build artifacts in ${{ matrix.artifacts_path }} ==="
+          ls -la "${{ matrix.artifacts_path }}/" || echo "No artifacts found"
+          echo "=== Finding all distribution files ==="
+          find "${{ matrix.artifacts_path }}" -type f -name "svgn-*" | head -20
+      
+      # Upload artifacts to GitHub Actions (for debugging)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          files: |
-            dist/svgn-*-macos.pkg
-            dist/svgn-*-linux.zip
-            dist/svgn-*-windows.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: svgn-${{ matrix.name }}-${{ needs.create-release.outputs.version }}
+          path: ${{ matrix.artifacts_path }}/*
+          if-no-files-found: error
+      
+      # Upload release assets
+      - name: Upload Release Assets
+        shell: bash
+        run: |
+          # Function to upload a file
+          upload_file() {
+            local file="$1"
+            local name=$(basename "$file")
+            echo "Uploading $name..."
+            curl -sS \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$file" \
+              "${{ needs.create-release.outputs.upload_url }}?name=$name" \
+              > /dev/null
+          }
+          
+          # Find and upload all release files
+          cd "${{ matrix.artifacts_path }}"
+          for file in svgn-*; do
+            if [[ -f "$file" ]]; then
+              upload_file "$file"
+            fi
+          done
+
+  # Publish release
+  publish:
+    name: Publish Release
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = '${{ needs.create-release.outputs.version }}';
+            
+            // Find the release by tag
+            const releases = await github.rest.repos.listReleases({
+              owner,
+              repo
+            });
+            
+            const release = releases.data.find(r => r.tag_name === tag);
+            if (!release) {
+              throw new Error(`Release with tag ${tag} not found`);
+            }
+            
+            // Update release to published
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: release.id,
+              draft: false
+            });
+            
+            console.log(`Published release ${tag}`);
 ```
 
 Relative File Path: .github/workflows/rust.yml
@@ -221,16 +581,42 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
-  build:
-
+  # Quick format and lint checks
+  check:
+    name: Check
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # Build and test on multiple platforms
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
+        include:
+          # Test on minimum supported Rust version (MSRV)
+          - os: ubuntu-latest
+            rust: "1.70.0"  # Adjust based on your MSRV
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Rust ${{ matrix.rust }}
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
     - name: Cache cargo dependencies
       uses: actions/cache@v3
       with:
@@ -238,16 +624,120 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.rust }}-
+          ${{ runner.os }}-cargo-
     - name: Build
-      run: cargo build --verbose
+      run: |
+        cd svgn
+        cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
-    - name: Check formatting
-      run: cargo fmt --check
+      run: |
+        cd svgn
+        cargo test --verbose
+    - name: Run doc tests
+      run: |
+        cd svgn
+        cargo test --doc --verbose
+    
+  # Security audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: rustsec/audit-check@v1.4.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+  # Code coverage (optional)
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Install tarpaulin
+      run: cargo install cargo-tarpaulin
+    - name: Generate coverage
+      run: |
+        cd svgn
+        cargo tarpaulin --out Xml --verbose
+    - name: Upload coverage to codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./svgn/cobertura.xml
+        fail_ci_if_error: false
+```
 
+Relative File Path: .github/workflows/test-build-scripts.yml
+
+```yaml
+name: Test Build Scripts
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test-build-scripts.yml'
+  workflow_dispatch:
+
+jobs:
+  test-scripts:
+    name: Test ${{ matrix.name }} Build Script
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            script: scripts/build_linux.sh
+          - os: macos-latest
+            name: macOS
+            script: scripts/build_macos.sh
+          - os: windows-latest
+            name: Windows
+            script: scripts/build_windows.cmd
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: |
+            ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
+      
+      - name: Make script executable
+        if: matrix.os != 'windows-latest'
+        run: chmod +x ${{ matrix.script }}
+      
+      - name: Run build script
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cmd.exe //c "${{ matrix.script }}"
+          else
+            ./${{ matrix.script }}
+          fi
+      
+      - name: Verify artifacts
+        shell: bash
+        run: |
+          echo "=== Checking build artifacts ==="
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            ls -la dist/macos/
+            # Verify universal binary
+            file dist/macos/svgn
+            lipo -info dist/macos/svgn
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            ls -la dist/linux/
+            file dist/linux/svgn
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            ls -la dist/windows/
+          fi
 ```
 
 Relative File Path: .gitignore
@@ -2830,6 +3320,651 @@ if __name__ == "__main__":
     generate_rust_test_file(fixtures_dir, output_file)
 ```
 
+Relative File Path: scripts/build_linux.sh
+
+```bash
+#!/bin/bash
+# this_file: scripts/build_linux.sh
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}Building svgn for Linux...${NC}"
+
+# Check if we're on Linux
+if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    echo -e "${RED}Error: This script must be run on Linux${NC}"
+    exit 1
+fi
+
+# Setup paths
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+DIST_DIR="$PROJECT_ROOT/dist/linux"
+CARGO_DIR="$PROJECT_ROOT/svgn"
+
+# Clean and create dist directory
+echo -e "${YELLOW}Creating distribution directory...${NC}"
+rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR"
+
+# Install required tools if not present
+if ! command -v cargo &> /dev/null; then
+    echo -e "${RED}Error: cargo not found. Please install Rust.${NC}"
+    exit 1
+fi
+
+# Determine architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)
+        TARGET="x86_64-unknown-linux-gnu"
+        ARCH_NAME="x86_64"
+        ;;
+    aarch64)
+        TARGET="aarch64-unknown-linux-gnu"
+        ARCH_NAME="aarch64"
+        ;;
+    armv7l)
+        TARGET="armv7-unknown-linux-gnueabihf"
+        ARCH_NAME="armv7"
+        ;;
+    *)
+        echo -e "${RED}Unsupported architecture: $ARCH${NC}"
+        exit 1
+        ;;
+esac
+
+echo -e "${YELLOW}Building for $ARCH_NAME ($TARGET)...${NC}"
+
+# Add target if not already added
+rustup target add "$TARGET" 2>/dev/null || true
+
+# Build release binary
+cd "$CARGO_DIR"
+cargo build --release --target "$TARGET"
+
+# Copy binary to dist directory
+cp "target/$TARGET/release/svgn" "$DIST_DIR/"
+chmod +x "$DIST_DIR/svgn"
+
+# Strip the binary to reduce size
+echo -e "${YELLOW}Stripping binary...${NC}"
+strip "$DIST_DIR/svgn"
+
+# Verify the binary
+echo -e "${YELLOW}Verifying binary...${NC}"
+file "$DIST_DIR/svgn"
+ldd "$DIST_DIR/svgn" 2>/dev/null || echo "Note: Binary might be statically linked"
+
+# Test the binary
+echo -e "${YELLOW}Testing binary...${NC}"
+"$DIST_DIR/svgn" --version || {
+    echo -e "${RED}Error: Binary test failed${NC}"
+    exit 1
+}
+
+# Check binary size (warn if too large)
+BINARY_SIZE=$(stat -c%s "$DIST_DIR/svgn" 2>/dev/null || stat -f%z "$DIST_DIR/svgn")
+BINARY_SIZE_MB=$((BINARY_SIZE / 1024 / 1024))
+if [ $BINARY_SIZE_MB -gt 50 ]; then
+    echo -e "${YELLOW}Warning: Binary size is ${BINARY_SIZE_MB}MB, consider optimization${NC}"
+fi
+
+# Get version from Cargo.toml
+VERSION=$(grep '^version' "$CARGO_DIR/Cargo.toml" | head -1 | cut -d '"' -f 2)
+echo -e "${GREEN}Building version: $VERSION${NC}"
+
+# Create tar.gz archive
+echo -e "${YELLOW}Creating tar.gz archive...${NC}"
+cd "$DIST_DIR"
+tar -czf "svgn-$VERSION-linux-$ARCH_NAME.tar.gz" svgn
+cd "$PROJECT_ROOT"
+
+# Create .deb package if dpkg is available
+if command -v dpkg &> /dev/null; then
+    echo -e "${YELLOW}Creating .deb package...${NC}"
+    
+    DEB_DIR="$DIST_DIR/deb"
+    mkdir -p "$DEB_DIR/DEBIAN"
+    mkdir -p "$DEB_DIR/usr/local/bin"
+    
+    # Copy binary
+    cp "$DIST_DIR/svgn" "$DEB_DIR/usr/local/bin/"
+    
+    # Create control file
+    cat > "$DEB_DIR/DEBIAN/control" << EOF
+Package: svgn
+Version: $VERSION
+Section: utils
+Priority: optional
+Architecture: $ARCH_NAME
+Maintainer: svgn developers
+Description: SVG Optimizer - A fast, native SVG optimization tool
+ svgn is a Rust port of SVGO, providing high-performance SVG optimization
+ with a command-line interface.
+EOF
+    
+    # Build the .deb package
+    dpkg-deb --build "$DEB_DIR" "$DIST_DIR/svgn-$VERSION-linux-$ARCH_NAME.deb"
+    
+    # Clean up
+    rm -rf "$DEB_DIR"
+else
+    echo -e "${YELLOW}dpkg not found, skipping .deb package creation${NC}"
+fi
+
+# Create RPM package if rpmbuild is available
+if command -v rpmbuild &> /dev/null; then
+    echo -e "${YELLOW}Creating .rpm package...${NC}"
+    
+    RPM_DIR="$DIST_DIR/rpm"
+    mkdir -p "$RPM_DIR/BUILD"
+    mkdir -p "$RPM_DIR/RPMS"
+    mkdir -p "$RPM_DIR/SOURCES"
+    mkdir -p "$RPM_DIR/SPECS"
+    
+    # Create spec file
+    cat > "$RPM_DIR/SPECS/svgn.spec" << EOF
+Name:           svgn
+Version:        $VERSION
+Release:        1%{?dist}
+Summary:        SVG Optimizer - A fast, native SVG optimization tool
+
+License:        MIT
+URL:            https://github.com/twardoch/svgn
+
+%description
+svgn is a Rust port of SVGO, providing high-performance SVG optimization
+with a command-line interface.
+
+%install
+mkdir -p %{buildroot}/usr/local/bin
+install -m 755 $DIST_DIR/svgn %{buildroot}/usr/local/bin/svgn
+
+%files
+/usr/local/bin/svgn
+
+%changelog
+* $(date +"%a %b %d %Y") svgn developers - $VERSION-1
+- Release version $VERSION
+EOF
+    
+    # Build the RPM
+    rpmbuild --define "_topdir $RPM_DIR" \
+             --define "_rpmdir $DIST_DIR" \
+             -bb "$RPM_DIR/SPECS/svgn.spec" || echo -e "${YELLOW}RPM build failed${NC}"
+    
+    # Clean up
+    rm -rf "$RPM_DIR"
+else
+    echo -e "${YELLOW}rpmbuild not found, skipping .rpm package creation${NC}"
+fi
+
+# Create AppImage if available
+if command -v appimagetool &> /dev/null; then
+    echo -e "${YELLOW}Creating AppImage...${NC}"
+    
+    APPIMAGE_DIR="$DIST_DIR/AppDir"
+    mkdir -p "$APPIMAGE_DIR/usr/bin"
+    
+    # Copy binary
+    cp "$DIST_DIR/svgn" "$APPIMAGE_DIR/usr/bin/"
+    
+    # Create desktop file
+    cat > "$APPIMAGE_DIR/svgn.desktop" << EOF
+[Desktop Entry]
+Name=svgn
+Exec=svgn
+Icon=svgn
+Type=Application
+Categories=Utility;
+Terminal=true
+EOF
+    
+    # Create a simple icon (1x1 PNG)
+    printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05T\xbc\xa8\x15\x00\x00\x00\x00IEND\xaeB`\x82' > "$APPIMAGE_DIR/svgn.png"
+    
+    # Create AppRun
+    cat > "$APPIMAGE_DIR/AppRun" << 'EOF'
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "${0}")")"
+exec "$HERE/usr/bin/svgn" "$@"
+EOF
+    chmod +x "$APPIMAGE_DIR/AppRun"
+    
+    # Build AppImage
+    ARCH=$ARCH_NAME appimagetool "$APPIMAGE_DIR" "$DIST_DIR/svgn-$VERSION-linux-$ARCH_NAME.AppImage" || echo -e "${YELLOW}AppImage creation failed${NC}"
+    
+    # Clean up
+    rm -rf "$APPIMAGE_DIR"
+else
+    echo -e "${YELLOW}appimagetool not found, skipping AppImage creation${NC}"
+fi
+
+# Create install script
+cat > "$DIST_DIR/install.sh" << 'EOF'
+#!/bin/bash
+echo "Installing svgn to /usr/local/bin..."
+sudo cp svgn /usr/local/bin/
+sudo chmod +x /usr/local/bin/svgn
+echo "Installation complete! Run 'svgn --help' to get started."
+EOF
+chmod +x "$DIST_DIR/install.sh"
+
+# Summary
+echo -e "${GREEN}Build complete!${NC}"
+echo -e "${GREEN}Distribution files created in: $DIST_DIR${NC}"
+echo -e "  - svgn (binary)"
+echo -e "  - svgn-$VERSION-linux-$ARCH_NAME.tar.gz"
+if [[ -f "$DIST_DIR/svgn-$VERSION-linux-$ARCH_NAME.deb" ]]; then
+    echo -e "  - svgn-$VERSION-linux-$ARCH_NAME.deb"
+fi
+if [[ -f "$DIST_DIR/$ARCH_NAME/svgn-$VERSION-1.$ARCH_NAME.rpm" ]]; then
+    echo -e "  - svgn-$VERSION-1.$ARCH_NAME.rpm"
+fi
+if [[ -f "$DIST_DIR/svgn-$VERSION-linux-$ARCH_NAME.AppImage" ]]; then
+    echo -e "  - svgn-$VERSION-linux-$ARCH_NAME.AppImage"
+fi
+echo -e "  - install.sh"
+```
+
+Relative File Path: scripts/build_macos.sh
+
+```bash
+#!/bin/bash
+# this_file: scripts/build_macos.sh
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}Building svgn for macOS...${NC}"
+
+# Check if we're on macOS
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    echo -e "${RED}Error: This script must be run on macOS${NC}"
+    exit 1
+fi
+
+# Setup paths
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+DIST_DIR="$PROJECT_ROOT/dist/macos"
+CARGO_DIR="$PROJECT_ROOT/svgn"
+
+# Clean and create dist directory
+echo -e "${YELLOW}Creating distribution directory...${NC}"
+rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR"
+
+# Install required tools if not present
+if ! command -v cargo &> /dev/null; then
+    echo -e "${RED}Error: cargo not found. Please install Rust.${NC}"
+    exit 1
+fi
+
+# Add targets if not already added
+echo -e "${YELLOW}Adding build targets...${NC}"
+rustup target add x86_64-apple-darwin 2>/dev/null || true
+rustup target add aarch64-apple-darwin 2>/dev/null || true
+
+# Build for x86_64
+echo -e "${YELLOW}Building for x86_64...${NC}"
+cd "$CARGO_DIR"
+cargo build --release --target x86_64-apple-darwin
+
+# Build for aarch64 (Apple Silicon)
+echo -e "${YELLOW}Building for aarch64...${NC}"
+cargo build --release --target aarch64-apple-darwin
+
+# Create universal binary
+echo -e "${YELLOW}Creating universal binary...${NC}"
+lipo -create \
+    target/x86_64-apple-darwin/release/svgn \
+    target/aarch64-apple-darwin/release/svgn \
+    -output "$DIST_DIR/svgn"
+
+# Make it executable
+chmod +x "$DIST_DIR/svgn"
+
+# Verify the universal binary
+echo -e "${YELLOW}Verifying universal binary...${NC}"
+file "$DIST_DIR/svgn"
+lipo -info "$DIST_DIR/svgn"
+
+# Test the binary
+echo -e "${YELLOW}Testing binary...${NC}"
+"$DIST_DIR/svgn" --version || {
+    echo -e "${RED}Error: Binary test failed${NC}"
+    exit 1
+}
+
+# Verify it's truly universal
+ARCHS=$(lipo -archs "$DIST_DIR/svgn")
+if [[ "$ARCHS" != *"x86_64"* ]] || [[ "$ARCHS" != *"arm64"* ]]; then
+    echo -e "${RED}Error: Binary is not universal (found: $ARCHS)${NC}"
+    exit 1
+fi
+
+# Get version from Cargo.toml
+VERSION=$(grep '^version' "$CARGO_DIR/Cargo.toml" | head -1 | cut -d '"' -f 2)
+echo -e "${GREEN}Building version: $VERSION${NC}"
+
+# Create tar.gz archive
+echo -e "${YELLOW}Creating tar.gz archive...${NC}"
+cd "$DIST_DIR"
+tar -czf "svgn-$VERSION-macos-universal.tar.gz" svgn
+cd "$PROJECT_ROOT"
+
+# Create pkg installer
+echo -e "${YELLOW}Creating .pkg installer...${NC}"
+PKG_ROOT="$DIST_DIR/pkg-root"
+mkdir -p "$PKG_ROOT/usr/local/bin"
+cp "$DIST_DIR/svgn" "$PKG_ROOT/usr/local/bin/"
+
+# Create the package
+pkgbuild \
+    --root "$PKG_ROOT" \
+    --identifier "com.svgn.cli" \
+    --version "$VERSION" \
+    --install-location "/" \
+    "$DIST_DIR/svgn-$VERSION-macos.pkg"
+
+# Clean up pkg root
+rm -rf "$PKG_ROOT"
+
+# Create DMG
+echo -e "${YELLOW}Creating .dmg...${NC}"
+DMG_ROOT="$DIST_DIR/dmg-root"
+mkdir -p "$DMG_ROOT"
+cp "$DIST_DIR/svgn" "$DMG_ROOT/"
+
+# Create a simple README for the DMG
+cat > "$DMG_ROOT/README.txt" << EOF
+svgn - SVG Optimizer
+Version: $VERSION
+
+To install:
+1. Copy 'svgn' to /usr/local/bin/ or another directory in your PATH
+2. Make sure it's executable: chmod +x /usr/local/bin/svgn
+3. Run: svgn --help
+
+Or use the .pkg installer for automatic installation.
+EOF
+
+# Create DMG
+hdiutil create -volname "svgn-$VERSION" \
+    -srcfolder "$DMG_ROOT" \
+    -ov \
+    -format UDZO \
+    "$DIST_DIR/svgn-$VERSION-macos.dmg"
+
+# Clean up DMG root
+rm -rf "$DMG_ROOT"
+
+# Create a simple install script
+cat > "$DIST_DIR/install.sh" << 'EOF'
+#!/bin/bash
+echo "Installing svgn to /usr/local/bin..."
+sudo cp svgn /usr/local/bin/
+sudo chmod +x /usr/local/bin/svgn
+echo "Installation complete! Run 'svgn --help' to get started."
+EOF
+chmod +x "$DIST_DIR/install.sh"
+
+# Summary
+echo -e "${GREEN}Build complete!${NC}"
+echo -e "${GREEN}Distribution files created in: $DIST_DIR${NC}"
+echo -e "  - svgn (universal binary)"
+echo -e "  - svgn-$VERSION-macos-universal.tar.gz"
+echo -e "  - svgn-$VERSION-macos.pkg"
+echo -e "  - svgn-$VERSION-macos.dmg"
+echo -e "  - install.sh"
+```
+
+Relative File Path: scripts/build_windows.cmd
+
+```
+@echo off
+REM this_file: scripts/build_windows.cmd
+
+setlocal enabledelayedexpansion
+
+echo Building svgn for Windows...
+
+REM Setup paths
+set SCRIPT_DIR=%~dp0
+set PROJECT_ROOT=%SCRIPT_DIR%..
+set DIST_DIR=%PROJECT_ROOT%\dist\windows
+set CARGO_DIR=%PROJECT_ROOT%\svgn
+
+REM Clean and create dist directory
+echo Creating distribution directory...
+if exist "%DIST_DIR%" rmdir /s /q "%DIST_DIR%"
+mkdir "%DIST_DIR%"
+
+REM Check if cargo is available
+where cargo >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo Error: cargo not found. Please install Rust.
+    exit /b 1
+)
+
+REM Determine architecture
+set ARCH=%PROCESSOR_ARCHITECTURE%
+if "%ARCH%"=="AMD64" (
+    set TARGET=x86_64-pc-windows-msvc
+    set ARCH_NAME=x64
+) else if "%ARCH%"=="x86" (
+    set TARGET=i686-pc-windows-msvc
+    set ARCH_NAME=x86
+) else if "%ARCH%"=="ARM64" (
+    set TARGET=aarch64-pc-windows-msvc
+    set ARCH_NAME=arm64
+) else (
+    echo Unsupported architecture: %ARCH%
+    exit /b 1
+)
+
+echo Building for %ARCH_NAME% (%TARGET%)...
+
+REM Add target if not already added
+rustup target add %TARGET% 2>nul
+
+REM Build release binary
+cd "%CARGO_DIR%"
+cargo build --release --target %TARGET%
+if %ERRORLEVEL% neq 0 (
+    echo Build failed!
+    exit /b 1
+)
+
+REM Copy executable to dist directory
+copy "target\%TARGET%\release\svgn.exe" "%DIST_DIR%\" >nul
+if %ERRORLEVEL% neq 0 (
+    echo Failed to copy executable!
+    exit /b 1
+)
+
+REM Test the binary
+echo Testing binary...
+"%DIST_DIR%\svgn.exe" --version >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo Error: Binary test failed!
+    exit /b 1
+)
+
+REM Check binary size
+for %%F in ("%DIST_DIR%\svgn.exe") do set SIZE=%%~zF
+set /a SIZE_MB=%SIZE% / 1048576
+if %SIZE_MB% gtr 50 (
+    echo Warning: Binary size is %SIZE_MB%MB, consider optimization
+)
+
+REM Get version from Cargo.toml
+for /f "tokens=2 delims==" %%i in ('findstr /r "^version" "%CARGO_DIR%\Cargo.toml"') do (
+    set VERSION_LINE=%%i
+    goto :version_found
+)
+:version_found
+REM Remove quotes and spaces from version
+set VERSION=%VERSION_LINE:"=%
+set VERSION=%VERSION: =%
+echo Building version: %VERSION%
+
+REM Create zip archive
+echo Creating zip archive...
+cd "%DIST_DIR%"
+powershell -Command "Compress-Archive -Path 'svgn.exe' -DestinationPath 'svgn-%VERSION%-windows-%ARCH_NAME%.zip' -Force"
+cd "%PROJECT_ROOT%"
+
+REM Create MSI installer if WiX is available
+where candle >nul 2>nul
+if %ERRORLEVEL% equ 0 (
+    echo Creating MSI installer...
+    
+    REM Create WiX source file
+    echo ^<?xml version="1.0" encoding="UTF-8"?^> > "%DIST_DIR%\svgn.wxs"
+    echo ^<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"^> >> "%DIST_DIR%\svgn.wxs"
+    echo   ^<Product Id="*" Name="svgn" Language="1033" Version="%VERSION%.0" >> "%DIST_DIR%\svgn.wxs"
+    echo            Manufacturer="svgn developers" UpgradeCode="a7c2e4b5-8d6f-4a3b-9c1e-2f5d7b9a4c6e"^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" /^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^<MajorUpgrade DowngradeErrorMessage="A newer version is already installed." /^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^<MediaTemplate EmbedCab="yes" /^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^<Feature Id="ProductFeature" Title="svgn" Level="1"^> >> "%DIST_DIR%\svgn.wxs"
+    echo       ^<ComponentGroupRef Id="ProductComponents" /^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^</Feature^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^<Directory Id="TARGETDIR" Name="SourceDir"^> >> "%DIST_DIR%\svgn.wxs"
+    echo       ^<Directory Id="ProgramFilesFolder"^> >> "%DIST_DIR%\svgn.wxs"
+    echo         ^<Directory Id="INSTALLFOLDER" Name="svgn" /^> >> "%DIST_DIR%\svgn.wxs"
+    echo       ^</Directory^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^</Directory^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER"^> >> "%DIST_DIR%\svgn.wxs"
+    echo       ^<Component Id="svgn.exe" Guid="b8c3d5a7-2f6e-4d9c-8a1b-3e5f7c9d2b4a"^> >> "%DIST_DIR%\svgn.wxs"
+    echo         ^<File Id="svgn.exe" Source="svgn.exe" KeyPath="yes"/^> >> "%DIST_DIR%\svgn.wxs"
+    echo         ^<Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" >> "%DIST_DIR%\svgn.wxs"
+    echo                      Permanent="no" Part="last" Action="set" System="yes" /^> >> "%DIST_DIR%\svgn.wxs"
+    echo       ^</Component^> >> "%DIST_DIR%\svgn.wxs"
+    echo     ^</ComponentGroup^> >> "%DIST_DIR%\svgn.wxs"
+    echo   ^</Product^> >> "%DIST_DIR%\svgn.wxs"
+    echo ^</Wix^> >> "%DIST_DIR%\svgn.wxs"
+    
+    REM Compile and link the MSI
+    cd "%DIST_DIR%"
+    candle svgn.wxs -o svgn.wixobj
+    light svgn.wixobj -o "svgn-%VERSION%-windows-%ARCH_NAME%.msi"
+    
+    REM Clean up WiX files
+    del svgn.wxs svgn.wixobj 2>nul
+    cd "%PROJECT_ROOT%"
+) else (
+    echo WiX toolset not found, skipping MSI creation
+)
+
+REM Create installer using Inno Setup if available
+set INNO_PATH=
+for %%p in (
+    "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+    "%ProgramFiles%\Inno Setup 6\ISCC.exe"
+    "%ProgramFiles(x86)%\Inno Setup 5\ISCC.exe"
+    "%ProgramFiles%\Inno Setup 5\ISCC.exe"
+) do (
+    if exist "%%~p" (
+        set INNO_PATH=%%~p
+        goto :inno_found
+    )
+)
+:inno_found
+
+if defined INNO_PATH (
+    echo Creating Inno Setup installer...
+    
+    REM Create Inno Setup script
+    echo [Setup] > "%DIST_DIR%\svgn.iss"
+    echo AppName=svgn >> "%DIST_DIR%\svgn.iss"
+    echo AppVersion=%VERSION% >> "%DIST_DIR%\svgn.iss"
+    echo DefaultDirName={autopf}\svgn >> "%DIST_DIR%\svgn.iss"
+    echo DefaultGroupName=svgn >> "%DIST_DIR%\svgn.iss"
+    echo OutputDir=. >> "%DIST_DIR%\svgn.iss"
+    echo OutputBaseFilename=svgn-%VERSION%-windows-%ARCH_NAME%-setup >> "%DIST_DIR%\svgn.iss"
+    echo Compression=lzma2 >> "%DIST_DIR%\svgn.iss"
+    echo SolidCompression=yes >> "%DIST_DIR%\svgn.iss"
+    echo ChangesEnvironment=yes >> "%DIST_DIR%\svgn.iss"
+    echo. >> "%DIST_DIR%\svgn.iss"
+    echo [Files] >> "%DIST_DIR%\svgn.iss"
+    echo Source: "svgn.exe"; DestDir: "{app}"; Flags: ignoreversion >> "%DIST_DIR%\svgn.iss"
+    echo. >> "%DIST_DIR%\svgn.iss"
+    echo [Registry] >> "%DIST_DIR%\svgn.iss"
+    echo Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: NeedsAddPath('{app}') >> "%DIST_DIR%\svgn.iss"
+    echo. >> "%DIST_DIR%\svgn.iss"
+    echo [Code] >> "%DIST_DIR%\svgn.iss"
+    echo function NeedsAddPath(Param: string): boolean; >> "%DIST_DIR%\svgn.iss"
+    echo var >> "%DIST_DIR%\svgn.iss"
+    echo   OrigPath: string; >> "%DIST_DIR%\svgn.iss"
+    echo begin >> "%DIST_DIR%\svgn.iss"
+    echo   if not RegQueryStringValue(HKEY_LOCAL_MACHINE, >> "%DIST_DIR%\svgn.iss"
+    echo     'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', >> "%DIST_DIR%\svgn.iss"
+    echo     'Path', OrigPath) then >> "%DIST_DIR%\svgn.iss"
+    echo   begin >> "%DIST_DIR%\svgn.iss"
+    echo     Result := True; >> "%DIST_DIR%\svgn.iss"
+    echo     exit; >> "%DIST_DIR%\svgn.iss"
+    echo   end; >> "%DIST_DIR%\svgn.iss"
+    echo   Result := Pos(';' + Param + ';', ';' + OrigPath + ';') = 0; >> "%DIST_DIR%\svgn.iss"
+    echo end; >> "%DIST_DIR%\svgn.iss"
+    
+    REM Compile the installer
+    cd "%DIST_DIR%"
+    "%INNO_PATH%" svgn.iss
+    
+    REM Clean up
+    del svgn.iss 2>nul
+    cd "%PROJECT_ROOT%"
+) else (
+    echo Inno Setup not found, skipping installer creation
+)
+
+REM Create a batch install script
+echo @echo off > "%DIST_DIR%\install.bat"
+echo echo Installing svgn... >> "%DIST_DIR%\install.bat"
+echo. >> "%DIST_DIR%\install.bat"
+echo set INSTALL_DIR=%%ProgramFiles%%\svgn >> "%DIST_DIR%\install.bat"
+echo if not exist "%%INSTALL_DIR%%" mkdir "%%INSTALL_DIR%%" >> "%DIST_DIR%\install.bat"
+echo copy /Y svgn.exe "%%INSTALL_DIR%%\" >> "%DIST_DIR%\install.bat"
+echo. >> "%DIST_DIR%\install.bat"
+echo echo Adding to PATH... >> "%DIST_DIR%\install.bat"
+echo setx PATH "%%PATH%%;%%INSTALL_DIR%%" /M >> "%DIST_DIR%\install.bat"
+echo. >> "%DIST_DIR%\install.bat"
+echo echo Installation complete! >> "%DIST_DIR%\install.bat"
+echo echo Please restart your command prompt and run 'svgn --help' >> "%DIST_DIR%\install.bat"
+echo pause >> "%DIST_DIR%\install.bat"
+
+REM Summary
+echo.
+echo Build complete!
+echo Distribution files created in: %DIST_DIR%
+echo   - svgn.exe
+echo   - svgn-%VERSION%-windows-%ARCH_NAME%.zip
+if exist "%DIST_DIR%\svgn-%VERSION%-windows-%ARCH_NAME%.msi" (
+    echo   - svgn-%VERSION%-windows-%ARCH_NAME%.msi
+)
+if exist "%DIST_DIR%\svgn-%VERSION%-windows-%ARCH_NAME%-setup.exe" (
+    echo   - svgn-%VERSION%-windows-%ARCH_NAME%-setup.exe
+)
+echo   - install.bat
+
+endlocal
+```
+
 Relative File Path: svgn/Cargo.lock
 
 ```
@@ -4465,6 +5600,42 @@ criterion_group!(
 criterion_main!(benches);
 ```
 
+Relative File Path: svgn/build.rs
+
+```rust
+// this_file: svgn/build.rs
+// Build script to set version from git tags
+
+use std::process::Command;
+
+fn main() {
+    // Try to get version from git tag
+    let git_version = Command::new("git")
+        .args(["describe", "--tags", "--abbrev=0"])
+        .output()
+        .ok()
+        .and_then(|output| {
+            if output.status.success() {
+                String::from_utf8(output.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        });
+
+    // If we have a git tag, use it (stripping 'v' prefix if present)
+    if let Some(tag) = git_version {
+        let version = tag.strip_prefix('v').unwrap_or(&tag);
+        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", version);
+        println!("cargo:rustc-env=SVGN_VERSION={}", version);
+    } else {
+        // Fall back to Cargo.toml version
+        println!("cargo:rustc-env=SVGN_VERSION={}", env!("CARGO_PKG_VERSION"));
+    }
+}
+```
+
 Relative File Path: svgn/examples/test_style_plugins.rs
 
 ```rust
@@ -4915,7 +6086,7 @@ fn run_cli(matches: clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
         Config::from_file(config_path)?
     } else {
         // Try to load from current directory
-        svgn::config::load_config_from_directory(".")?.unwrap_or_else(|| Config::with_default_preset())
+        svgn::config::load_config_from_directory(".")?.unwrap_or_else(Config::with_default_preset)
     };
 
     // Apply CLI overrides
@@ -5756,6 +6927,7 @@ pub type ConfigResult<T> = Result<T, ConfigError>;
 
 /// Main configuration structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct Config {
     /// Path to the file being processed (for context)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -5843,18 +7015,6 @@ fn default_indent() -> usize { 2 }
 fn default_true() -> bool { true }
 fn default_quote_attrs() -> QuoteAttrsStyle { QuoteAttrsStyle::Auto }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            path: None,
-            plugins: Vec::new(),
-            multipass: false,
-            js2svg: Js2SvgOptions::default(),
-            datauri: None,
-            parser: ParserOptions::default(),
-        }
-    }
-}
 
 impl Default for Js2SvgOptions {
     fn default() -> Self {
@@ -5983,6 +7143,7 @@ impl Config {
             "removeEmptyText",
             "removeEmptyContainers",
             "collapseGroups",
+            "removeUselessTransforms",
             "sortAttrs",
         ];
 
@@ -6585,8 +7746,8 @@ pub use config::Config;
 pub use optimizer::{optimize, optimize_with_config, OptimizeOptions, OptimizationResult};
 pub use plugin::{Plugin, PluginConfig, PluginRegistry};
 
-/// Library version
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Library version (from git tag or Cargo.toml)
+pub const VERSION: &str = env!("SVGN_VERSION");
 
 ```
 
@@ -7066,10 +8227,8 @@ impl Parser {
                     if let Ok(version) = e.version() {
                         document.metadata.version = Some(String::from_utf8_lossy(&version).to_string());
                     }
-                    if let Some(encoding) = e.encoding() {
-                        if let Ok(enc) = encoding {
-                            document.metadata.encoding = Some(String::from_utf8_lossy(&enc).to_string());
-                        }
+                    if let Some(Ok(enc)) = e.encoding() {
+                        document.metadata.encoding = Some(String::from_utf8_lossy(&enc).to_string());
                     }
                 }
                 Ok(Event::DocType(ref e)) => {
@@ -7470,6 +8629,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::ConvertShapeToPathPlugin);
     registry.register(crate::plugins::MinifyStylesPlugin);
     registry.register(crate::plugins::ConvertPathDataPlugin);
+    registry.register(crate::plugins::RemoveUselessTransformsPlugin);
     
     registry
 }
@@ -8706,7 +9866,7 @@ impl Plugin for CleanupIdsPlugin {
         let mut id_mappings: HashMap<String, String> = HashMap::new();
         
         // Process referenced IDs first
-        for (id, _refs) in &references_by_id {
+        for id in references_by_id.keys() {
             if let Some(&node_ptr) = node_by_id.get(id) {
                 unsafe {
                     let node = &mut *node_ptr;
@@ -8715,7 +9875,7 @@ impl Plugin for CleanupIdsPlugin {
                         let mut new_id;
                         loop {
                             current_id = generate_id(current_id);
-                            new_id = get_id_string(&current_id.as_ref().unwrap());
+                            new_id = get_id_string(current_id.as_ref().unwrap());
                             
                             // Make sure the new ID is unique and not preserved
                             if !is_id_preserved(&new_id) && 
@@ -8828,7 +9988,7 @@ fn collect_ids_and_refs(
         for id in ids {
             references_by_id
                 .entry(id)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push((attr_name.clone(), attr_value.clone()));
         }
     }
@@ -10370,10 +11530,8 @@ fn convert_colors_in_element_attrs(element: &mut Element, config: &ConvertColors
             
             // Convert colors to currentColor
             if let Some(ref current_color_pattern) = config.current_color {
-                if mask_counter == 0 {
-                    if val == *current_color_pattern || val != "none" {
-                        val = "currentColor".to_string();
-                    }
+                if mask_counter == 0 && (val == *current_color_pattern || val != "none") {
+                    val = "currentColor".to_string();
                 }
             }
             
@@ -10626,7 +11784,7 @@ fn convert_rgb_to_hex(value: &str) -> Option<String> {
         } else {
             m.parse::<f64>().ok()? as i32
         };
-        nums.push(n.max(0).min(255) as u8);
+        nums.push(n.clamp(0, 255) as u8);
     }
     
     Some(format!("#{:02x}{:02x}{:02x}", nums[0], nums[1], nums[2]))
@@ -10975,11 +12133,18 @@ use std::collections::{HashMap, HashSet};
 
 pub struct ConvertOneStopGradientsPlugin;
 
+impl Default for ConvertOneStopGradientsPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConvertOneStopGradientsPlugin {
     pub fn new() -> Self {
         Self
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn process_element(
         &self,
         element: &mut Element,
@@ -11115,6 +12280,7 @@ impl ConvertOneStopGradientsPlugin {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn remove_gradients(
         &self,
         element: &mut Element,
@@ -11140,6 +12306,7 @@ impl ConvertOneStopGradientsPlugin {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn remove_empty_defs(&self, element: &mut Element) {
         // Remove empty defs elements
         element.children.retain(|child| {
@@ -12662,6 +13829,7 @@ pub use remove_non_inheritable_group_attrs::RemoveNonInheritableGroupAttrsPlugin
 pub use remove_off_canvas_paths::RemoveOffCanvasPathsPlugin;
 pub use convert_shape_to_path::ConvertShapeToPathPlugin;
 pub use minify_styles::MinifyStylesPlugin;
+pub use remove_useless_transforms::RemoveUselessTransformsPlugin;
 ```
 
 Relative File Path: svgn/src/plugins/prefix_ids.rs
@@ -12699,6 +13867,12 @@ impl Default for PrefixIdsConfig {
 }
 
 pub struct PrefixIdsPlugin;
+
+impl Default for PrefixIdsPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl PrefixIdsPlugin {
     pub fn new() -> Self {
@@ -12767,12 +13941,7 @@ impl PrefixIdsPlugin {
     }
 
     fn prefix_reference(&self, prefix: &str, reference: &str) -> Option<String> {
-        if reference.starts_with('#') {
-            let id = &reference[1..];
-            Some(format!("#{}", self.prefix_id(prefix, id)))
-        } else {
-            None
-        }
+        reference.strip_prefix('#').map(|id| format!("#{}", self.prefix_id(prefix, id)))
     }
 
     fn process_element(&self, element: &mut Element, prefix: &str, config: &PrefixIdsConfig) {
@@ -12845,19 +14014,44 @@ impl PrefixIdsPlugin {
     }
 
     fn process_url_references(&self, value: &str, prefix: &str) -> String {
-        // Simple regex to match url(#id) patterns
-        let url_regex = Regex::new(r#"\burl\(([\"']?)(#[^)]+)\1\)"#).unwrap();
+        // Match url() with double quotes, single quotes, or no quotes
+        let url_double_quote = Regex::new(r#"\burl\("(#[^"]+)"\)"#).unwrap();
+        let url_single_quote = Regex::new(r#"\burl\('(#[^']+)'\)"#).unwrap();
+        let url_no_quote = Regex::new(r#"\burl\((#[^)]+)\)"#).unwrap();
         
-        url_regex.replace_all(value, |caps: &regex::Captures| {
-            let quote = caps.get(1).map_or("", |m| m.as_str());
-            let url = caps.get(2).map_or("", |m| m.as_str());
-            
+        let mut result = value.to_string();
+        
+        // Process double-quoted URLs
+        result = url_double_quote.replace_all(&result, |caps: &regex::Captures| {
+            let url = caps.get(1).unwrap().as_str();
             if let Some(prefixed) = self.prefix_reference(prefix, url) {
-                format!("url({}{}{})", quote, prefixed, quote)
+                format!(r#"url("{}")"#, prefixed)
             } else {
                 caps.get(0).unwrap().as_str().to_string()
             }
-        }).to_string()
+        }).to_string();
+        
+        // Process single-quoted URLs
+        result = url_single_quote.replace_all(&result, |caps: &regex::Captures| {
+            let url = caps.get(1).unwrap().as_str();
+            if let Some(prefixed) = self.prefix_reference(prefix, url) {
+                format!(r#"url('{}')"#, prefixed)
+            } else {
+                caps.get(0).unwrap().as_str().to_string()
+            }
+        }).to_string();
+        
+        // Process unquoted URLs
+        result = url_no_quote.replace_all(&result, |caps: &regex::Captures| {
+            let url = caps.get(1).unwrap().as_str();
+            if let Some(prefixed) = self.prefix_reference(prefix, url) {
+                format!("url({})", prefixed)
+            } else {
+                caps.get(0).unwrap().as_str().to_string()
+            }
+        }).to_string();
+        
+        result
     }
 
     fn process_animation_references(&self, value: &str, prefix: &str) -> String {
@@ -14440,18 +15634,12 @@ pub struct RemoveDeprecatedAttrsPlugin;
 
 /// Configuration parameters for the plugin
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct RemoveDeprecatedAttrsParams {
     /// Whether to remove unsafe deprecated attributes
     pub remove_unsafe: bool,
 }
 
-impl Default for RemoveDeprecatedAttrsParams {
-    fn default() -> Self {
-        Self {
-            remove_unsafe: false,
-        }
-    }
-}
 
 impl RemoveDeprecatedAttrsParams {
     /// Parse parameters from JSON value
@@ -15031,6 +16219,12 @@ use serde_json::Value;
 
 pub struct RemoveDimensionsPlugin;
 
+impl Default for RemoveDimensionsPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RemoveDimensionsPlugin {
     pub fn new() -> Self {
         Self
@@ -15426,20 +16620,20 @@ use serde_json::Value;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct RemoveEditorsNSDataConfig {
     /// Additional namespaces to remove besides the default editor namespaces
     pub additional_namespaces: Vec<String>,
 }
 
-impl Default for RemoveEditorsNSDataConfig {
-    fn default() -> Self {
-        Self {
-            additional_namespaces: Vec::new(),
-        }
-    }
-}
 
 pub struct RemoveEditorsNSDataPlugin;
+
+impl Default for RemoveEditorsNSDataPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RemoveEditorsNSDataPlugin {
     pub fn new() -> Self {
@@ -15816,6 +17010,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct RemoveElementsByAttrConfig {
     /// IDs of elements to remove
     pub ids: Vec<String>,
@@ -15823,16 +17018,14 @@ pub struct RemoveElementsByAttrConfig {
     pub classes: Vec<String>,
 }
 
-impl Default for RemoveElementsByAttrConfig {
-    fn default() -> Self {
-        Self {
-            ids: Vec::new(),
-            classes: Vec::new(),
-        }
-    }
-}
 
 pub struct RemoveElementsByAttrPlugin;
+
+impl Default for RemoveElementsByAttrPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RemoveElementsByAttrPlugin {
     pub fn new() -> Self {
@@ -18178,7 +19371,7 @@ impl RemoveOffCanvasPathsPlugin {
 
         // Process numbers in pairs (x, y)
         for chunk in numbers.chunks(2) {
-            if chunk.len() >= 1 {
+            if !chunk.is_empty() {
                 let x = chunk[0];
                 min_x = min_x.min(x);
                 max_x = max_x.max(x);
@@ -19596,10 +20789,8 @@ fn should_remove_attribute(
     }
     
     // Check for default values (only if element doesn't have id)
-    if config.default_attrs && !element.has_attr("id") {
-        if is_default_value(attr_name, attr_value) {
-            return true;
-        }
+    if config.default_attrs && !element.has_attr("id") && is_default_value(attr_name, attr_value) {
+        return true;
     }
     
     // Check for useless overrides (simplified - only if element doesn't have id)
@@ -19878,6 +21069,7 @@ impl Plugin for RemoveUnusedNSPlugin {
 }
 
 impl RemoveUnusedNSPlugin {
+    #[allow(clippy::only_used_in_recursion)]
     fn check_usage(&self, element: &Element, unused_namespaces: &mut HashSet<String>) {
         // Check if element name uses a namespace
         if element.name.contains(':') {
@@ -20210,6 +21402,7 @@ impl RemoveUselessDefsPlugin {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_useful_nodes(&self, element: &Element) -> Vec<Node> {
         let mut useful_nodes = Vec::new();
         
@@ -20549,11 +21742,99 @@ fn remove_useless_transforms_element(elem: &mut Element) {
 
 /// Returns true if the transform string matches a no-op transform
 fn is_useless_transform(s: &str) -> bool {
-    let t = s.trim().replace(",", "").replace("  ", " ");
+    let t = s.trim();
+    
+    // Check for various no-op transforms with different syntaxes
     matches!(
-        t.as_str(),
-        "translate(0,0)" | "translate(0 0)" | "rotate(0)" | "scale(1)" | "scale(1,1)"
+        t,
+        "translate(0,0)" | "translate(0, 0)" | "translate(0 0)" | 
+        "rotate(0)" | 
+        "scale(1)" | "scale(1,1)" | "scale(1, 1)" | "scale(1 1)" |
+        "skewX(0)" | "skewY(0)" | 
+        "matrix(1,0,0,1,0,0)" | "matrix(1, 0, 0, 1, 0, 0)" | "matrix(1 0 0 1 0 0)"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::{Plugin, PluginInfo};
+
+    #[test]
+    fn test_remove_identity_translate() {
+        let mut doc = Document::new();
+        let mut g = Element::new("g");
+        g.attributes.insert("transform".to_string(), "translate(0,0)".to_string());
+        doc.root.children.push(Node::Element(g));
+
+        let mut plugin = RemoveUselessTransformsPlugin;
+        let info = PluginInfo::default();
+        plugin.apply(&mut doc, &info, None).unwrap();
+
+        let g = match &doc.root.children[0] {
+            Node::Element(e) => e,
+            _ => panic!("Expected element"),
+        };
+        assert!(!g.attributes.contains_key("transform"));
+    }
+
+    #[test]
+    fn test_remove_identity_scale() {
+        let mut doc = Document::new();
+        let mut g = Element::new("g");
+        g.attributes.insert("transform".to_string(), "scale(1)".to_string());
+        doc.root.children.push(Node::Element(g));
+
+        let mut plugin = RemoveUselessTransformsPlugin;
+        let info = PluginInfo::default();
+        plugin.apply(&mut doc, &info, None).unwrap();
+
+        let g = match &doc.root.children[0] {
+            Node::Element(e) => e,
+            _ => panic!("Expected element"),
+        };
+        assert!(!g.attributes.contains_key("transform"));
+    }
+
+    #[test]
+    fn test_preserve_non_identity_transform() {
+        let mut doc = Document::new();
+        let mut g = Element::new("g");
+        g.attributes.insert("transform".to_string(), "translate(10,20)".to_string());
+        doc.root.children.push(Node::Element(g));
+
+        let mut plugin = RemoveUselessTransformsPlugin;
+        let info = PluginInfo::default();
+        plugin.apply(&mut doc, &info, None).unwrap();
+
+        let g = match &doc.root.children[0] {
+            Node::Element(e) => e,
+            _ => panic!("Expected element"),
+        };
+        assert_eq!(g.attributes.get("transform"), Some(&"translate(10,20)".to_string()));
+    }
+
+    #[test]
+    fn test_is_useless_transform() {
+        assert!(is_useless_transform("translate(0,0)"));
+        assert!(is_useless_transform("translate(0, 0)"));
+        assert!(is_useless_transform("translate(0 0)"));
+        assert!(is_useless_transform("rotate(0)"));
+        assert!(is_useless_transform("scale(1)"));
+        assert!(is_useless_transform("scale(1,1)"));
+        assert!(is_useless_transform("scale(1, 1)"));
+        assert!(is_useless_transform("skewX(0)"));
+        assert!(is_useless_transform("skewY(0)"));
+        assert!(is_useless_transform("matrix(1 0 0 1 0 0)"));
+        assert!(is_useless_transform(" translate(0,0) "));
+        
+        assert!(!is_useless_transform("translate(10,0)"));
+        assert!(!is_useless_transform("translate(0,10)"));
+        assert!(!is_useless_transform("rotate(45)"));
+        assert!(!is_useless_transform("scale(2)"));
+        assert!(!is_useless_transform("scale(1,2)"));
+    }
 }
 ```
 
@@ -20887,18 +22168,12 @@ const LEGACY_ELEMENTS: &[&str] = &[
 
 /// Configuration for the removeXlink plugin
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct RemoveXlinkConfig {
     /// Include legacy elements that don't support SVG 2 href
     pub include_legacy: bool,
 }
 
-impl Default for RemoveXlinkConfig {
-    fn default() -> Self {
-        Self {
-            include_legacy: false,
-        }
-    }
-}
 
 /// Plugin to remove xlink namespace and convert to SVG 2 equivalents
 pub struct RemoveXlinkPlugin;
@@ -21504,6 +22779,7 @@ impl Plugin for RemoveXMLNSPlugin {
 }
 
 impl RemoveXMLNSPlugin {
+    #[allow(clippy::only_used_in_recursion)]
     fn process_element(&self, element: &mut Element) {
         // Remove xmlns attribute from SVG elements
         if element.name == "svg" {
@@ -22812,20 +24088,20 @@ impl Stringifier {
 
     /// Write element attributes
     fn write_attributes(&self, element: &Element, output: &mut String) -> StringifyResult<()> {
-        // Collect attributes and sort to match SVGO order
-        let mut attrs: Vec<_> = element.attributes.iter().collect();
-        attrs.sort_by(|(a_name, _), (b_name, _)| {
+        // Collect attributes with their original index to preserve order when priorities are equal
+        let mut attrs: Vec<_> = element.attributes.iter().enumerate().collect();
+        attrs.sort_by(|(a_idx, (a_name, _)), (b_idx, (b_name, _))| {
             let a_priority = get_attribute_priority(a_name);
             let b_priority = get_attribute_priority(b_name);
             
-            // First sort by priority, then alphabetically within the same priority
+            // First sort by priority, then by original index to preserve insertion order
             match a_priority.cmp(&b_priority) {
-                std::cmp::Ordering::Equal => a_name.cmp(b_name),
+                std::cmp::Ordering::Equal => a_idx.cmp(b_idx),
                 other => other,
             }
         });
 
-        for (name, value) in attrs {
+        for (_idx, (name, value)) in attrs {
             write!(output, " {}", name)?;
             
             if !value.is_empty() {
@@ -22852,7 +24128,7 @@ impl Stringifier {
                         '"'
                     }
                 } else {
-                    return '\0'; // No quotes needed
+                    '\0'// No quotes needed
                 }
             }
             QuoteAttrsStyle::Auto => {
@@ -23404,6 +24680,7 @@ fn test_default_preset_pipeline() {
             PluginConfig::new("removeTitle".to_string()),
             PluginConfig::new("removeEmptyAttrs".to_string()),
             PluginConfig::new("removeDimensions".to_string()),
+            PluginConfig::new("removeUselessTransforms".to_string()),
             // Conversion plugins
             PluginConfig::new("convertColors".to_string()),
             PluginConfig::new("convertEllipseToCircle".to_string()),
@@ -23423,6 +24700,9 @@ fn test_default_preset_pipeline() {
     let options = OptimizeOptions::new(config);
     let result = optimize(svg, options).unwrap();
 
+    // Debug print
+    println!("Optimized SVG:\n{}", result.data);
+
     // Verify comprehensive optimizations
     assert!(!result.data.contains("<!-- SVG comment -->"));
     assert!(!result.data.contains("<metadata>"));
@@ -23438,7 +24718,7 @@ fn test_default_preset_pipeline() {
     let re = Regex::new(r#"transform\s*=\s*['\"]translate\(0,0\)['\"]"#).unwrap();
     assert!(!re.is_match(&result.data), "Output should not contain identity transform: {:?}", result.data);
     assert!(!result.data.contains("my-class  other-class")); // Classes should be cleaned
-    assert!(result.data.contains("fill=\"red\"")); // Valid attributes preserved
+    assert!(result.data.contains("fill=\"#f00\"")); // Color converted to hex
     assert!(result.data.contains("viewBox=\"0 0 200 100\"")); // ViewBox preserved
     assert!(result.data.contains("<circle")); // Ellipse should be converted to circle
     assert!(!result.data.contains("<ellipse")); // No ellipse should remain

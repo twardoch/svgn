@@ -3,7 +3,7 @@
 //! Plugin to remove hidden elements
 //!
 //! This plugin removes elements that are hidden through various means:
-//! - display="none" 
+//! - display="none"
 //! - visibility="hidden" or visibility="collapse"
 //! - opacity="0" (optional)
 //! - Zero width/height rectangles, ellipses, images
@@ -49,7 +49,12 @@ impl Plugin for RemoveHiddenElemsPlugin {
         "removes hidden elements (disabled by default)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = self.parse_config(params);
         self.process_element(&mut document.root, &config);
         Ok(())
@@ -59,7 +64,7 @@ impl Plugin for RemoveHiddenElemsPlugin {
 impl RemoveHiddenElemsPlugin {
     fn parse_config(&self, params: Option<&Value>) -> RemoveHiddenElemsConfig {
         let mut config = RemoveHiddenElemsConfig::default();
-        
+
         if let Some(Value::Object(obj)) = params {
             if let Some(Value::Bool(v)) = obj.get("displayNone") {
                 config.display_none = *v;
@@ -74,7 +79,7 @@ impl RemoveHiddenElemsPlugin {
                 config.zero_size = *v;
             }
         }
-        
+
         config
     }
 
@@ -110,7 +115,9 @@ impl RemoveHiddenElemsPlugin {
         if config.zero_size {
             match element.name.as_str() {
                 "rect" | "image" | "pattern" => {
-                    if self.is_zero_dimension(element, "width") || self.is_zero_dimension(element, "height") {
+                    if self.is_zero_dimension(element, "width")
+                        || self.is_zero_dimension(element, "height")
+                    {
                         return true;
                     }
                 }
@@ -120,7 +127,9 @@ impl RemoveHiddenElemsPlugin {
                     }
                 }
                 "ellipse" => {
-                    if self.is_zero_dimension(element, "rx") || self.is_zero_dimension(element, "ry") {
+                    if self.is_zero_dimension(element, "rx")
+                        || self.is_zero_dimension(element, "ry")
+                    {
                         return true;
                     }
                 }
@@ -183,7 +192,7 @@ impl RemoveHiddenElemsPlugin {
             if let Node::Element(ref mut child_elem) = child {
                 // First process the child's children
                 self.process_element(child_elem, config);
-                
+
                 // Then check if the child itself should be removed
                 !self.is_hidden(child_elem, config)
             } else {
@@ -198,8 +207,8 @@ impl RemoveHiddenElemsPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -230,16 +239,25 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveHiddenElemsPlugin;
         assert_eq!(plugin.name(), "removeHiddenElems");
-        assert_eq!(plugin.description(), "removes hidden elements (disabled by default)");
+        assert_eq!(
+            plugin.description(),
+            "removes hidden elements (disabled by default)"
+        );
     }
 
     #[test]
     fn test_remove_display_none() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_element("rect", vec![("display", "none"), ("width", "100"), ("height", "100")])),
-            Node::Element(create_element("circle", vec![("display", "block"), ("r", "50")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("display", "none"), ("width", "100"), ("height", "100")],
+            )),
+            Node::Element(create_element(
+                "circle",
+                vec![("display", "block"), ("r", "50")],
+            )),
         ];
 
         let mut plugin = RemoveHiddenElemsPlugin;
@@ -256,11 +274,20 @@ mod tests {
     #[test]
     fn test_remove_visibility_hidden() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_element("rect", vec![("visibility", "hidden"), ("width", "100")])),
-            Node::Element(create_element("rect", vec![("visibility", "collapse"), ("width", "100")])),
-            Node::Element(create_element("rect", vec![("visibility", "visible"), ("width", "100")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("visibility", "hidden"), ("width", "100")],
+            )),
+            Node::Element(create_element(
+                "rect",
+                vec![("visibility", "collapse"), ("width", "100")],
+            )),
+            Node::Element(create_element(
+                "rect",
+                vec![("visibility", "visible"), ("width", "100")],
+            )),
         ];
 
         let mut plugin = RemoveHiddenElemsPlugin;
@@ -270,18 +297,30 @@ mod tests {
         // Elements with visibility="hidden" or "collapse" should be removed
         assert_eq!(document.root.children.len(), 1);
         if let Node::Element(elem) = &document.root.children[0] {
-            assert_eq!(elem.attributes.get("visibility"), Some(&"visible".to_string()));
+            assert_eq!(
+                elem.attributes.get("visibility"),
+                Some(&"visible".to_string())
+            );
         }
     }
 
     #[test]
     fn test_remove_opacity_zero() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_element("rect", vec![("opacity", "0"), ("width", "100")])),
-            Node::Element(create_element("rect", vec![("opacity", "0.0"), ("width", "100")])),
-            Node::Element(create_element("rect", vec![("opacity", "0.5"), ("width", "100")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("opacity", "0"), ("width", "100")],
+            )),
+            Node::Element(create_element(
+                "rect",
+                vec![("opacity", "0.0"), ("width", "100")],
+            )),
+            Node::Element(create_element(
+                "rect",
+                vec![("opacity", "0.5"), ("width", "100")],
+            )),
         ];
 
         let mut plugin = RemoveHiddenElemsPlugin;
@@ -298,11 +337,20 @@ mod tests {
     #[test]
     fn test_remove_zero_width_rect() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_element("rect", vec![("width", "0"), ("height", "100")])),
-            Node::Element(create_element("rect", vec![("width", "100"), ("height", "0")])),
-            Node::Element(create_element("rect", vec![("width", "100"), ("height", "100")])),
+            Node::Element(create_element(
+                "rect",
+                vec![("width", "0"), ("height", "100")],
+            )),
+            Node::Element(create_element(
+                "rect",
+                vec![("width", "100"), ("height", "0")],
+            )),
+            Node::Element(create_element(
+                "rect",
+                vec![("width", "100"), ("height", "100")],
+            )),
         ];
 
         let mut plugin = RemoveHiddenElemsPlugin;
@@ -316,10 +364,16 @@ mod tests {
     #[test]
     fn test_remove_zero_radius_circle() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_element("circle", vec![("r", "0"), ("cx", "50"), ("cy", "50")])),
-            Node::Element(create_element("circle", vec![("r", "50"), ("cx", "50"), ("cy", "50")])),
+            Node::Element(create_element(
+                "circle",
+                vec![("r", "0"), ("cx", "50"), ("cy", "50")],
+            )),
+            Node::Element(create_element(
+                "circle",
+                vec![("r", "50"), ("cx", "50"), ("cy", "50")],
+            )),
         ];
 
         let mut plugin = RemoveHiddenElemsPlugin;
@@ -336,7 +390,7 @@ mod tests {
     #[test]
     fn test_remove_zero_radius_ellipse() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_element("ellipse", vec![("rx", "0"), ("ry", "50")])),
             Node::Element(create_element("ellipse", vec![("rx", "50"), ("ry", "0")])),
@@ -354,7 +408,7 @@ mod tests {
     #[test]
     fn test_remove_empty_path() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
             Node::Element(create_element("path", vec![("d", "")])),
             Node::Element(create_element("path", vec![("d", "  ")])),
@@ -376,7 +430,7 @@ mod tests {
     #[test]
     fn test_remove_empty_groups() {
         let mut document = create_test_document();
-        
+
         let empty_group = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
@@ -388,13 +442,13 @@ mod tests {
             name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
-            children: vec![Node::Element(create_element("rect", vec![("width", "100"), ("height", "100")]))],
+            children: vec![Node::Element(create_element(
+                "rect",
+                vec![("width", "100"), ("height", "100")],
+            ))],
         };
 
-        document.root.children = vec![
-            Node::Element(empty_group),
-            Node::Element(filled_group),
-        ];
+        document.root.children = vec![Node::Element(empty_group), Node::Element(filled_group)];
 
         let mut plugin = RemoveHiddenElemsPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), None);
@@ -410,10 +464,11 @@ mod tests {
     #[test]
     fn test_config_display_none_disabled() {
         let mut document = create_test_document();
-        
-        document.root.children = vec![
-            Node::Element(create_element("rect", vec![("display", "none"), ("width", "100")])),
-        ];
+
+        document.root.children = vec![Node::Element(create_element(
+            "rect",
+            vec![("display", "none"), ("width", "100")],
+        ))];
 
         let config = serde_json::json!({
             "displayNone": false
@@ -430,15 +485,21 @@ mod tests {
     #[test]
     fn test_nested_hidden_elements() {
         let mut document = create_test_document();
-        
+
         let group = Element {
             name: "g".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
             children: vec![
-                Node::Element(create_element("rect", vec![("display", "none"), ("width", "100")])),
+                Node::Element(create_element(
+                    "rect",
+                    vec![("display", "none"), ("width", "100")],
+                )),
                 Node::Element(create_element("circle", vec![("r", "50")])),
-                Node::Element(create_element("rect", vec![("visibility", "hidden"), ("width", "100")])),
+                Node::Element(create_element(
+                    "rect",
+                    vec![("visibility", "hidden"), ("width", "100")],
+                )),
             ],
         };
 
@@ -460,10 +521,16 @@ mod tests {
     #[test]
     fn test_zero_line() {
         let mut document = create_test_document();
-        
+
         document.root.children = vec![
-            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "10"), ("y2", "10")])),
-            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "20"), ("y2", "20")])),
+            Node::Element(create_element(
+                "line",
+                vec![("x1", "10"), ("y1", "10"), ("x2", "10"), ("y2", "10")],
+            )),
+            Node::Element(create_element(
+                "line",
+                vec![("x1", "10"), ("y1", "10"), ("x2", "20"), ("y2", "20")],
+            )),
         ];
 
         let mut plugin = RemoveHiddenElemsPlugin;

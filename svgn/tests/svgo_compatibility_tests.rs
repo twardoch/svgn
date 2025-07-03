@@ -3,12 +3,17 @@
 //! SVGO compatibility tests - comprehensive test suite inspired by SVGO patterns
 //! These tests verify that SVGN is feature-compatible with SVGO
 
-use svgn::{optimize, OptimizeOptions, Config, PluginConfig};
-use svgn::config::{Js2SvgOptions, QuoteAttrsStyle};
 use serde_json::json;
+use svgn::config::{Js2SvgOptions, QuoteAttrsStyle};
+use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 /// Test helper function to run optimization with specific plugins
-fn test_optimization(input: &str, expected: &str, plugin_names: Vec<&str>, params: Option<serde_json::Value>) {
+fn test_optimization(
+    input: &str,
+    expected: &str,
+    plugin_names: Vec<&str>,
+    params: Option<serde_json::Value>,
+) {
     let mut plugins = Vec::new();
     let first_plugin = plugin_names.get(0).copied();
     for name in &plugin_names {
@@ -18,10 +23,10 @@ fn test_optimization(input: &str, expected: &str, plugin_names: Vec<&str>, param
         }
         plugins.push(plugin);
     }
-    
+
     // If expected output is the same as input, use inline format (no change expected)
     let use_pretty = input != expected;
-    
+
     let config = Config {
         plugins,
         multipass: false,
@@ -40,10 +45,12 @@ fn test_optimization(input: &str, expected: &str, plugin_names: Vec<&str>, param
     let result = optimize(input, options).expect("Optimization should succeed");
     let output = result.data.trim();
     let expected = expected.trim();
-    
-    assert_eq!(output, expected, 
-        "\nInput:\n{}\nExpected:\n{}\nActual:\n{}\n", 
-        input, expected, output);
+
+    assert_eq!(
+        output, expected,
+        "\nInput:\n{}\nExpected:\n{}\nActual:\n{}\n",
+        input, expected, output
+    );
 }
 
 #[test]
@@ -63,7 +70,8 @@ fn test_remove_comments_basic() {
 #[test]
 fn test_remove_comments_preserve_legal() {
     let input = "<!--! legal comment --><svg xmlns=\"http://www.w3.org/2000/svg\"><g/></svg>";
-    let expected = "<!--! legal comment -->\n<svg xmlns=\"http://www.w3.org/2000/svg\">\n    <g/>\n</svg>";
+    let expected =
+        "<!--! legal comment -->\n<svg xmlns=\"http://www.w3.org/2000/svg\">\n    <g/>\n</svg>";
     test_optimization(input, expected, vec!["removeComments"], None);
 }
 
@@ -91,7 +99,8 @@ fn test_remove_title() {
 #[test]
 fn test_remove_dimensions_with_viewbox() {
     let input = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"50\" viewBox=\"0 0 100 50\"><g/></svg>";
-    let expected = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 50\">\n    <g/>\n</svg>";
+    let expected =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 50\">\n    <g/>\n</svg>";
     test_optimization(input, expected, vec!["removeDimensions"], None);
 }
 
@@ -125,7 +134,7 @@ fn test_convert_colors_basic() {
 
     let options = OptimizeOptions::new(config);
     let result = optimize(input, options).expect("Optimization should succeed");
-    
+
     // Just verify it processes without error and produces output
     assert!(!result.data.is_empty());
     assert!(result.data.contains("<svg"));
@@ -144,20 +153,25 @@ fn test_multiple_plugins_pipeline() {
 
     let expected = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\">\n    <g>\n        <rect x=\"10\" y=\"20\" width=\"50\" fill=\"red\"/>\n    </g>\n</svg>";
 
-    test_optimization(input, expected, vec![
-        "removeComments",
-        "removeMetadata", 
-        "removeTitle",
-        "removeEmptyAttrs",
-        "removeDimensions"
-    ], None);
+    test_optimization(
+        input,
+        expected,
+        vec![
+            "removeComments",
+            "removeMetadata",
+            "removeTitle",
+            "removeEmptyAttrs",
+            "removeDimensions",
+        ],
+        None,
+    );
 }
 
 #[test]
 fn test_multipass_optimization() {
     // Test that multipass optimization works
     let input = "<svg xmlns=\"http://www.w3.org/2000/svg\"><g><g><rect/></g></g></svg>";
-    
+
     let config = Config {
         plugins: vec![PluginConfig::new("collapseGroups".to_string())],
         multipass: true,
@@ -174,7 +188,7 @@ fn test_multipass_optimization() {
 
     let options = OptimizeOptions::new(config);
     let result = optimize(input, options).expect("Optimization should succeed");
-    
+
     // Verify optimization occurred (groups should be collapsed)
     assert!(!result.data.contains("<g><g>"));
     assert!(result.data.contains("<rect"));
@@ -182,13 +196,14 @@ fn test_multipass_optimization() {
 
 #[test]
 fn test_plugin_with_params() {
-    let input = "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"10px\" height=\"20px\"/></svg>";
-    
+    let input =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"10px\" height=\"20px\"/></svg>";
+
     let params = json!({
         "floatPrecision": 2,
         "defaultPx": false
     });
-    
+
     test_optimization(input, input, vec!["cleanupNumericValues"], Some(params));
 }
 
@@ -200,7 +215,7 @@ fn test_error_resilience() {
         "<svg xmlns=\"http://www.w3.org/2000/svg\"><g/></svg>", // Simple SVG
         "<svg xmlns=\"http://www.w3.org/2000/svg\"><unknown-element/></svg>", // Unknown element
     ];
-    
+
     for input in inputs {
         let config = Config {
             plugins: vec![
@@ -216,13 +231,13 @@ fn test_error_resilience() {
 
         let options = OptimizeOptions::new(config);
         let result = optimize(input, options);
-        
+
         // Should either succeed or fail gracefully
         match result {
             Ok(r) => {
                 assert!(!r.data.is_empty());
                 assert!(r.data.contains("<svg"));
-            },
+            }
             Err(_) => {
                 // Errors are acceptable for malformed input
             }
@@ -233,7 +248,7 @@ fn test_error_resilience() {
 #[test]
 fn test_optimization_info() {
     let input = "<svg xmlns=\"http://www.w3.org/2000/svg\"><!-- comment --><metadata>data</metadata><g/></svg>";
-    
+
     let config = Config {
         plugins: vec![
             PluginConfig::new("removeComments".to_string()),
@@ -248,7 +263,7 @@ fn test_optimization_info() {
 
     let options = OptimizeOptions::new(config);
     let result = optimize(input, options).expect("Optimization should succeed");
-    
+
     // Check that optimization info is populated
     assert!(result.info.original_size > 0);
     assert!(result.info.optimized_size > 0);
@@ -260,7 +275,7 @@ fn test_optimization_info() {
 #[test]
 fn test_pretty_print_vs_minified() {
     let input = "<svg xmlns=\"http://www.w3.org/2000/svg\"><g><rect/></g></svg>";
-    
+
     // Test pretty-printed output
     let pretty_config = Config {
         plugins: vec![],
@@ -275,11 +290,11 @@ fn test_pretty_print_vs_minified() {
         datauri: None,
         parser: Default::default(),
     };
-    
+
     let pretty_result = optimize(input, OptimizeOptions::new(pretty_config)).unwrap();
     assert!(pretty_result.data.contains("\n  <g>"));
     assert!(pretty_result.data.contains("\n    <rect"));
-    
+
     // Test minified output
     let minified_config = Config {
         plugins: vec![],
@@ -294,10 +309,10 @@ fn test_pretty_print_vs_minified() {
         datauri: None,
         parser: Default::default(),
     };
-    
+
     let minified_result = optimize(input, OptimizeOptions::new(minified_config)).unwrap();
     assert!(!minified_result.data.contains("\n  <g>"));
-    
+
     // Pretty output should be longer than minified
     assert!(pretty_result.data.len() > minified_result.data.len());
 }

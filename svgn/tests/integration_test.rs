@@ -2,8 +2,8 @@
 
 //! Integration tests for svgn
 
-use svgn::{optimize, OptimizeOptions, Config, PluginConfig};
 use svgn::config::{Js2SvgOptions, QuoteAttrsStyle};
+use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 #[test]
 fn test_full_optimization_pipeline() {
@@ -60,7 +60,7 @@ fn test_full_optimization_pipeline() {
     assert!(!result.data.contains("enable-background"));
     assert!(!result.data.contains("unused-gradient"));
     assert!(!result.data.contains("myVeryLongGradientId")); // Should be minified
-    // Accept url(#b) or url(#a) depending on optimization result
+                                                            // Accept url(#b) or url(#a) depending on optimization result
     assert!(result.data.contains("url(#b)") || result.data.contains("url(#a)"));
     assert!(result.data.contains(r#"x="10 20""#)); // Newline replaced with space
     assert!(result.data.contains(r#"y="30 40""#)); // Multiple spaces reduced
@@ -145,10 +145,14 @@ fn test_default_preset_pipeline() {
     assert!(!result.data.contains("width=\"200\"")); // Should be removed due to viewBox
     assert!(!result.data.contains("height=\"100\"")); // Should be removed due to viewBox
     assert!(!result.data.contains("fill=\"\"")); // Empty fill should be removed
-    // Accept transform removal, or tolerate quote/whitespace variation. Robust check:
+                                                 // Accept transform removal, or tolerate quote/whitespace variation. Robust check:
     use regex::Regex;
     let re = Regex::new(r#"transform\s*=\s*['\"]translate\(0,0\)['\"]"#).unwrap();
-    assert!(!re.is_match(&result.data), "Output should not contain identity transform: {:?}", result.data);
+    assert!(
+        !re.is_match(&result.data),
+        "Output should not contain identity transform: {:?}",
+        result.data
+    );
     assert!(!result.data.contains("my-class  other-class")); // Classes should be cleaned
     assert!(result.data.contains("fill=\"#f00\"")); // Color converted to hex
     assert!(result.data.contains("viewBox=\"0 0 200 100\"")); // ViewBox preserved
@@ -169,17 +173,17 @@ fn test_error_handling_invalid_svg() {
 
     let config = Config::default();
     let options = OptimizeOptions::new(config);
-    
+
     // Should handle invalid SVG gracefully
     let result = optimize(invalid_svg, options);
-    
+
     // Depending on implementation, this might error or attempt to fix
     // For now, let's expect it to either succeed with fixes or fail gracefully
     match result {
         Ok(r) => {
             // If it succeeds, it should have attempted to fix the markup
             assert!(r.data.len() > 0);
-        },
+        }
         Err(_) => {
             // If it fails, that's also acceptable for malformed input
             // The error should be informative

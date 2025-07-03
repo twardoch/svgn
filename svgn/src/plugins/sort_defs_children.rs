@@ -3,14 +3,14 @@
 //! Plugin to sort children of `<defs>` elements to improve compression
 //!
 //! This plugin sorts children of defs in order to improve compression. Elements are
-//! sorted first by frequency (most frequent first), then by element name length 
+//! sorted first by frequency (most frequent first), then by element name length
 //! (longer names first), then alphabetically by element name.
 
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
-use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 /// Plugin to sort defs children for better compression
 pub struct SortDefsChildrenPlugin;
@@ -24,7 +24,12 @@ impl Plugin for SortDefsChildrenPlugin {
         "Sorts children of <defs> to improve compression"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
@@ -48,7 +53,7 @@ impl SortDefsChildrenPlugin {
     fn sort_defs_children(&self, defs: &mut Element) {
         // Count frequencies of element names
         let mut frequencies: HashMap<String, usize> = HashMap::new();
-        
+
         for child in &defs.children {
             if let Node::Element(ref elem) = child {
                 *frequencies.entry(elem.name.clone()).or_insert(0) += 1;
@@ -62,7 +67,7 @@ impl SortDefsChildrenPlugin {
                     // First, sort by frequency (descending)
                     let freq_a = frequencies.get(&elem_a.name).unwrap_or(&0);
                     let freq_b = frequencies.get(&elem_b.name).unwrap_or(&0);
-                    
+
                     match freq_b.cmp(freq_a) {
                         Ordering::Equal => {
                             // Then by name length (descending)
@@ -71,14 +76,14 @@ impl SortDefsChildrenPlugin {
                                     // Finally by name (descending/reverse alphabetical)
                                     elem_b.name.cmp(&elem_a.name)
                                 }
-                                other => other
+                                other => other,
                             }
                         }
-                        other => other
+                        other => other,
                     }
                 }
                 // Non-element nodes maintain their relative order
-                _ => Ordering::Equal
+                _ => Ordering::Equal,
             }
         });
     }
@@ -89,8 +94,8 @@ impl SortDefsChildrenPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -117,13 +122,16 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = SortDefsChildrenPlugin;
         assert_eq!(plugin.name(), "sortDefsChildren");
-        assert_eq!(plugin.description(), "Sorts children of <defs> to improve compression");
+        assert_eq!(
+            plugin.description(),
+            "Sorts children of <defs> to improve compression"
+        );
     }
 
     #[test]
     fn test_sort_by_frequency() {
         let mut document = create_test_document();
-        
+
         let defs = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
@@ -146,7 +154,9 @@ mod tests {
 
         // Should be sorted by frequency: pattern (3), linearGradient (2), mask (1)
         if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
+            let names: Vec<&str> = defs
+                .children
+                .iter()
                 .filter_map(|child| {
                     if let Node::Element(elem) = child {
                         Some(elem.name.as_str())
@@ -155,8 +165,18 @@ mod tests {
                     }
                 })
                 .collect();
-            
-            assert_eq!(names, vec!["pattern", "pattern", "pattern", "linearGradient", "linearGradient", "mask"]);
+
+            assert_eq!(
+                names,
+                vec![
+                    "pattern",
+                    "pattern",
+                    "pattern",
+                    "linearGradient",
+                    "linearGradient",
+                    "mask"
+                ]
+            );
         } else {
             panic!("Expected defs element");
         }
@@ -165,7 +185,7 @@ mod tests {
     #[test]
     fn test_sort_by_name_length() {
         let mut document = create_test_document();
-        
+
         let defs = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
@@ -186,7 +206,9 @@ mod tests {
 
         // Should be sorted by name length (all have frequency 1)
         if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
+            let names: Vec<&str> = defs
+                .children
+                .iter()
                 .filter_map(|child| {
                     if let Node::Element(elem) = child {
                         Some(elem.name.as_str())
@@ -195,7 +217,7 @@ mod tests {
                     }
                 })
                 .collect();
-            
+
             // Length 4 elements come first, then sorted alphabetically in reverse
             assert_eq!(names, vec!["rect", "path", "use", "g"]);
         } else {
@@ -206,7 +228,7 @@ mod tests {
     #[test]
     fn test_sort_alphabetically() {
         let mut document = create_test_document();
-        
+
         let defs = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
@@ -227,7 +249,9 @@ mod tests {
 
         // Should be sorted reverse alphabetically (all same length and frequency)
         if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
+            let names: Vec<&str> = defs
+                .children
+                .iter()
                 .filter_map(|child| {
                     if let Node::Element(elem) = child {
                         Some(elem.name.as_str())
@@ -236,7 +260,7 @@ mod tests {
                     }
                 })
                 .collect();
-            
+
             assert_eq!(names, vec!["xyz", "mno", "def", "abc"]);
         } else {
             panic!("Expected defs element");
@@ -246,7 +270,7 @@ mod tests {
     #[test]
     fn test_preserve_non_element_nodes() {
         let mut document = create_test_document();
-        
+
         let defs = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
@@ -281,7 +305,7 @@ mod tests {
     #[test]
     fn test_nested_defs() {
         let mut document = create_test_document();
-        
+
         // Create nested defs structure
         let inner_defs = Element {
             name: "defs".to_string(),
@@ -313,7 +337,9 @@ mod tests {
         // Both outer and inner defs should be sorted
         if let Node::Element(ref outer_defs) = document.root.children[0] {
             // Check outer defs sorting
-            let outer_names: Vec<&str> = outer_defs.children.iter()
+            let outer_names: Vec<&str> = outer_defs
+                .children
+                .iter()
                 .filter_map(|child| {
                     if let Node::Element(elem) = child {
                         Some(elem.name.as_str())
@@ -322,13 +348,15 @@ mod tests {
                     }
                 })
                 .collect();
-            
+
             // Should be sorted by length: ellipse(7), path(4), defs(4)
             assert_eq!(outer_names, vec!["ellipse", "path", "defs"]);
-            
+
             // Check inner defs sorting
             if let Node::Element(ref inner_defs) = outer_defs.children[2] {
-                let inner_names: Vec<&str> = inner_defs.children.iter()
+                let inner_names: Vec<&str> = inner_defs
+                    .children
+                    .iter()
                     .filter_map(|child| {
                         if let Node::Element(elem) = child {
                             Some(elem.name.as_str())
@@ -337,7 +365,7 @@ mod tests {
                         }
                     })
                     .collect();
-                
+
                 // Should be sorted by length: circle(6), rect(4)
                 assert_eq!(inner_names, vec!["circle", "rect"]);
             }
@@ -349,7 +377,7 @@ mod tests {
     #[test]
     fn test_empty_defs() {
         let mut document = create_test_document();
-        
+
         let defs = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
@@ -374,19 +402,19 @@ mod tests {
     #[test]
     fn test_complex_sorting() {
         let mut document = create_test_document();
-        
+
         let defs = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
             namespaces: HashMap::new(),
             children: vec![
                 // Mix of frequencies and lengths
-                Node::Element(create_element("a")),     // freq=1, len=1
-                Node::Element(create_element("bb")),    // freq=2, len=2
-                Node::Element(create_element("ccc")),   // freq=1, len=3
-                Node::Element(create_element("a")),     // freq=2 now
-                Node::Element(create_element("bb")),    // freq=2, len=2
-                Node::Element(create_element("dddd")),  // freq=1, len=4
+                Node::Element(create_element("a")), // freq=1, len=1
+                Node::Element(create_element("bb")), // freq=2, len=2
+                Node::Element(create_element("ccc")), // freq=1, len=3
+                Node::Element(create_element("a")), // freq=2 now
+                Node::Element(create_element("bb")), // freq=2, len=2
+                Node::Element(create_element("dddd")), // freq=1, len=4
             ],
         };
 
@@ -397,7 +425,9 @@ mod tests {
         assert!(result.is_ok());
 
         if let Node::Element(ref defs) = document.root.children[0] {
-            let names: Vec<&str> = defs.children.iter()
+            let names: Vec<&str> = defs
+                .children
+                .iter()
                 .filter_map(|child| {
                     if let Node::Element(elem) = child {
                         Some(elem.name.as_str())
@@ -406,7 +436,7 @@ mod tests {
                     }
                 })
                 .collect();
-            
+
             // Expected order:
             // - First by frequency: a(2), bb(2), then ccc(1), dddd(1)
             // - Within same frequency, by length: bb(2) before a(1), dddd(4) before ccc(3)

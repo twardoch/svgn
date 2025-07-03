@@ -16,15 +16,20 @@ impl Plugin for MergeStylesPlugin {
     fn name(&self) -> &'static str {
         "mergeStyles"
     }
-    
+
     fn description(&self) -> &'static str {
         "Merge multiple <style> elements into one"
     }
-    
-    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _plugin_info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         // Process the root element
         merge_styles(&mut document.root);
-        
+
         Ok(())
     }
 }
@@ -33,7 +38,7 @@ impl Plugin for MergeStylesPlugin {
 fn merge_styles(element: &mut Element) {
     let mut style_contents: Vec<(Option<String>, String)> = Vec::new();
     let mut first_style_index: Option<usize> = None;
-    
+
     // First pass: collect all style elements
     for (index, child) in element.children.iter().enumerate() {
         if let Node::Element(ref elem) = child {
@@ -42,10 +47,10 @@ fn merge_styles(element: &mut Element) {
                 if first_style_index.is_none() {
                     first_style_index = Some(index);
                 }
-                
+
                 // Get media attribute if present
                 let media = elem.attributes.get("media").cloned();
-                
+
                 // Extract text content from style element
                 let mut content = String::new();
                 for child in &elem.children {
@@ -55,49 +60,53 @@ fn merge_styles(element: &mut Element) {
                         content.push_str(cdata);
                     }
                 }
-                
+
                 if !content.trim().is_empty() {
                     style_contents.push((media, content));
                 }
             }
         }
     }
-    
+
     // If we have multiple style elements, merge them
     if style_contents.len() > 1 {
         // Create merged content
         let mut merged_content = String::new();
         let mut needs_cdata = false;
-        
+
         for (media, content) in &style_contents {
             // Check if we need CDATA wrapper
             if content.contains('<') || content.contains('&') {
                 needs_cdata = true;
             }
-            
+
             if let Some(media_value) = media {
                 // Wrap content with @media if media attribute exists
-                merged_content.push_str(&format!("@media {} {{\n{}\n}}\n", media_value, content.trim()));
+                merged_content.push_str(&format!(
+                    "@media {} {{\n{}\n}}\n",
+                    media_value,
+                    content.trim()
+                ));
             } else {
                 merged_content.push_str(content);
                 merged_content.push('\n');
             }
         }
-        
+
         // Create the merged style element
         if let Some(first_index) = first_style_index {
             let mut merged_style = Element::new("style");
-            
+
             // Add the merged content
             if needs_cdata {
                 merged_style.children.push(Node::CData(merged_content));
             } else {
                 merged_style.children.push(Node::Text(merged_content));
             }
-            
+
             // Replace the first style element with the merged one
             element.children[first_index] = Node::Element(merged_style);
-            
+
             // Mark indices of style elements to remove (all except the first one)
             let mut indices_to_remove = Vec::new();
             for (index, child) in element.children.iter().enumerate() {
@@ -107,14 +116,14 @@ fn merge_styles(element: &mut Element) {
                     }
                 }
             }
-            
+
             // Remove style elements in reverse order to maintain correct indices
             for &index in indices_to_remove.iter().rev() {
                 element.children.remove(index);
             }
         }
     }
-    
+
     // Remove empty style elements
     element.children.retain(|child| {
         if let Node::Element(ref elem) = child {
@@ -135,7 +144,7 @@ fn merge_styles(element: &mut Element) {
             true
         }
     });
-    
+
     // Recursively process child elements
     for child in &mut element.children {
         if let Node::Element(ref mut elem) = child {
@@ -149,7 +158,7 @@ fn merge_styles(element: &mut Element) {
 mod tests {
     use super::*;
     use crate::parser::Parser;
-    
+
     #[test]
     fn test_merge_styles() {
         let svg = r#"<svg>
@@ -158,18 +167,21 @@ mod tests {
             <rect class="a"/>
             <rect class="b"/>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = MergeStylesPlugin;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
-        
+
         // Check that only one style element remains
         assert_eq!(count_style_elements(&document.root), 1);
     }
-    
+
     #[test]
     fn test_merge_styles_with_media() {
         let svg = r#"<svg>
@@ -177,18 +189,21 @@ mod tests {
             <style>.b{fill:blue}</style>
             <style media="screen">.c{fill:green}</style>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = MergeStylesPlugin;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
-        
+
         // Check that only one style element remains
         assert_eq!(count_style_elements(&document.root), 1);
     }
-    
+
     #[test]
     fn test_remove_empty_styles() {
         let svg = r#"<svg>
@@ -199,18 +214,21 @@ mod tests {
             
             </style>
         </svg>"#;
-        
+
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
-        
+
         let mut plugin = MergeStylesPlugin;
-        let plugin_info = PluginInfo { path: None, multipass_count: 0 };
+        let plugin_info = PluginInfo {
+            path: None,
+            multipass_count: 0,
+        };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
-        
+
         // Check that only one style element remains (the non-empty one)
         assert_eq!(count_style_elements(&document.root), 1);
     }
-    
+
     fn count_style_elements(element: &Element) -> usize {
         let mut count = 0;
         for child in &element.children {

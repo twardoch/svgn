@@ -63,19 +63,29 @@ pub struct PluginInfo {
 pub trait Plugin: Send + Sync {
     /// Plugin name (must be unique)
     fn name(&self) -> &'static str;
-    
+
     /// Plugin description
     fn description(&self) -> &'static str;
-    
+
     /// Apply the plugin transformation to the document
-    fn apply(&mut self, document: &mut Document, plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()>;
-    
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        plugin_info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()>;
+
     /// Check if the plugin should be applied based on the document
     /// Default implementation always returns true
-    fn should_apply(&self, _document: &Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> bool {
+    fn should_apply(
+        &self,
+        _document: &Document,
+        _plugin_info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> bool {
         true
     }
-    
+
     /// Validate plugin parameters
     /// Default implementation accepts any parameters
     fn validate_params(&self, _params: Option<&Value>) -> PluginResult<()> {
@@ -146,7 +156,10 @@ impl PluginRegistry {
 
     /// Get a plugin by name
     pub fn get(&self, name: &str) -> Option<&dyn Plugin> {
-        self.plugins.iter().find(|p| p.name() == name).map(|p| p.as_ref())
+        self.plugins
+            .iter()
+            .find(|p| p.name() == name)
+            .map(|p| p.as_ref())
     }
 
     /// Get a plugin by name (mutable)
@@ -205,7 +218,7 @@ impl Default for PluginRegistry {
 /// Create the default plugin registry with all built-in plugins
 pub fn create_default_registry() -> PluginRegistry {
     let mut registry = PluginRegistry::new();
-    
+
     // Register built-in plugins
     registry.register(crate::plugins::CleanupAttrsPlugin);
     registry.register(crate::plugins::CleanupEnableBackgroundPlugin);
@@ -254,7 +267,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::MinifyStylesPlugin);
     registry.register(crate::plugins::ConvertPathDataPlugin);
     registry.register(crate::plugins::RemoveUselessTransformsPlugin);
-    
+
     registry
 }
 
@@ -277,7 +290,12 @@ mod tests {
             "Test plugin"
         }
 
-        fn apply(&mut self, _document: &mut Document, _plugin_info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        fn apply(
+            &mut self,
+            _document: &mut Document,
+            _plugin_info: &PluginInfo,
+            _params: Option<&Value>,
+        ) -> PluginResult<()> {
             Ok(())
         }
     }
@@ -299,10 +317,8 @@ mod tests {
         assert!(config.enabled);
         assert!(config.params.is_none());
 
-        let config_with_params = PluginConfig::with_params(
-            "test".to_string(),
-            json!({"option": "value"})
-        );
+        let config_with_params =
+            PluginConfig::with_params("test".to_string(), json!({"option": "value"}));
         assert!(config_with_params.params.is_some());
 
         let disabled_config = PluginConfig::new("test".to_string()).disabled();

@@ -22,10 +22,15 @@ impl Plugin for RemoveUnusedNSPlugin {
         "removes unused namespaces declaration"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         // First, collect all namespace declarations from the root SVG element
         let mut unused_namespaces = HashSet::new();
-        
+
         // Collect xmlns: attributes from root element
         for attr_name in document.root.attributes.keys() {
             if attr_name.starts_with("xmlns:") {
@@ -48,6 +53,7 @@ impl Plugin for RemoveUnusedNSPlugin {
 }
 
 impl RemoveUnusedNSPlugin {
+    #[allow(clippy::only_used_in_recursion)]
     fn check_usage(&self, element: &Element, unused_namespaces: &mut HashSet<String>) {
         // Check if element name uses a namespace
         if element.name.contains(':') {
@@ -83,8 +89,8 @@ impl RemoveUnusedNSPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -102,21 +108,30 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveUnusedNSPlugin;
         assert_eq!(plugin.name(), "removeUnusedNS");
-        assert_eq!(plugin.description(), "removes unused namespaces declaration");
+        assert_eq!(
+            plugin.description(),
+            "removes unused namespaces declaration"
+        );
     }
 
     #[test]
     fn test_remove_unused_namespace() {
         let mut document = create_test_document();
-        
+
         // Add unused namespace
-        document.root.attributes.insert("xmlns:unused".to_string(), "http://example.com/unused".to_string());
-        document.root.attributes.insert("xmlns:xlink".to_string(), "http://www.w3.org/1999/xlink".to_string());
+        document.root.attributes.insert(
+            "xmlns:unused".to_string(),
+            "http://example.com/unused".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:xlink".to_string(),
+            "http://www.w3.org/1999/xlink".to_string(),
+        );
 
         // Add an element that uses xlink
         let mut rect_attrs = IndexMap::new();
         rect_attrs.insert("xlink:href".to_string(), "#test".to_string());
-        
+
         let rect_element = Element {
             name: "rect".to_string(),
             attributes: rect_attrs,
@@ -138,10 +153,13 @@ mod tests {
     #[test]
     fn test_preserve_used_namespace_in_element_name() {
         let mut document = create_test_document();
-        
+
         // Add namespace
-        document.root.attributes.insert("xmlns:svg".to_string(), "http://www.w3.org/2000/svg".to_string());
-        
+        document.root.attributes.insert(
+            "xmlns:svg".to_string(),
+            "http://www.w3.org/2000/svg".to_string(),
+        );
+
         // Add a child element with namespaced name
         let ns_element = Element {
             name: "svg:g".to_string(),
@@ -163,14 +181,17 @@ mod tests {
     #[test]
     fn test_preserve_used_namespace_in_attributes() {
         let mut document = create_test_document();
-        
+
         // Add namespace
-        document.root.attributes.insert("xmlns:custom".to_string(), "http://example.com/custom".to_string());
-        
+        document.root.attributes.insert(
+            "xmlns:custom".to_string(),
+            "http://example.com/custom".to_string(),
+        );
+
         // Add an element with namespaced attribute
         let mut element_attrs = IndexMap::new();
         element_attrs.insert("custom:data".to_string(), "value".to_string());
-        
+
         let element = Element {
             name: "rect".to_string(),
             attributes: element_attrs,
@@ -191,11 +212,20 @@ mod tests {
     #[test]
     fn test_remove_all_unused_namespaces() {
         let mut document = create_test_document();
-        
+
         // Add multiple unused namespaces
-        document.root.attributes.insert("xmlns:ns1".to_string(), "http://example.com/ns1".to_string());
-        document.root.attributes.insert("xmlns:ns2".to_string(), "http://example.com/ns2".to_string());
-        document.root.attributes.insert("xmlns:ns3".to_string(), "http://example.com/ns3".to_string());
+        document.root.attributes.insert(
+            "xmlns:ns1".to_string(),
+            "http://example.com/ns1".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:ns2".to_string(),
+            "http://example.com/ns2".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:ns3".to_string(),
+            "http://example.com/ns3".to_string(),
+        );
 
         // Add an element without any namespace usage
         let element = Element {
@@ -220,10 +250,16 @@ mod tests {
     #[test]
     fn test_no_namespaces_to_remove() {
         let mut document = create_test_document();
-        
+
         // No xmlns: attributes
-        document.root.attributes.insert("width".to_string(), "100".to_string());
-        document.root.attributes.insert("height".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("width".to_string(), "100".to_string());
+        document
+            .root
+            .attributes
+            .insert("height".to_string(), "100".to_string());
 
         let mut plugin = RemoveUnusedNSPlugin;
         let result = plugin.apply(&mut document, &PluginInfo::default(), Some(&Value::Null));
@@ -237,14 +273,17 @@ mod tests {
     #[test]
     fn test_nested_element_namespace_usage() {
         let mut document = create_test_document();
-        
+
         // Add namespace
-        document.root.attributes.insert("xmlns:deep".to_string(), "http://example.com/deep".to_string());
-        
+        document.root.attributes.insert(
+            "xmlns:deep".to_string(),
+            "http://example.com/deep".to_string(),
+        );
+
         // Create nested structure where namespace is used deep in the tree
         let mut deep_attrs = IndexMap::new();
         deep_attrs.insert("deep:attr".to_string(), "value".to_string());
-        
+
         let deep_element = Element {
             name: "text".to_string(),
             attributes: deep_attrs,
@@ -279,16 +318,25 @@ mod tests {
     #[test]
     fn test_mixed_used_and_unused_namespaces() {
         let mut document = create_test_document();
-        
+
         // Add multiple namespaces
-        document.root.attributes.insert("xmlns:used".to_string(), "http://example.com/used".to_string());
-        document.root.attributes.insert("xmlns:unused".to_string(), "http://example.com/unused".to_string());
-        document.root.attributes.insert("xmlns:alsounused".to_string(), "http://example.com/alsounused".to_string());
-        
+        document.root.attributes.insert(
+            "xmlns:used".to_string(),
+            "http://example.com/used".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:unused".to_string(),
+            "http://example.com/unused".to_string(),
+        );
+        document.root.attributes.insert(
+            "xmlns:alsounused".to_string(),
+            "http://example.com/alsounused".to_string(),
+        );
+
         // Add an element that uses only one namespace
         let mut element_attrs = IndexMap::new();
         element_attrs.insert("used:data".to_string(), "value".to_string());
-        
+
         let element = Element {
             name: "rect".to_string(),
             attributes: element_attrs,

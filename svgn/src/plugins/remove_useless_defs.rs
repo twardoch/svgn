@@ -2,7 +2,7 @@
 
 //! Plugin to remove useless elements in `<defs>` without id
 //!
-//! This plugin removes content of defs and properties that aren't rendered 
+//! This plugin removes content of defs and properties that aren't rendered
 //! directly without ids. Elements with ids or style elements are preserved.
 
 use crate::ast::{Document, Element, Node};
@@ -12,7 +12,7 @@ use serde_json::Value;
 /// Non-rendering SVG elements (elements that define reusable resources)
 const NON_RENDERING_ELEMENTS: &[&str] = &[
     "clipPath",
-    "filter", 
+    "filter",
     "linearGradient",
     "marker",
     "mask",
@@ -34,7 +34,12 @@ impl Plugin for RemoveUselessDefsPlugin {
         "removes elements in <defs> without id"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
@@ -43,10 +48,10 @@ impl Plugin for RemoveUselessDefsPlugin {
 impl RemoveUselessDefsPlugin {
     fn process_element(&self, element: &mut Element) {
         // Check if this element should have its children filtered
-        if element.name == "defs" || 
-           (NON_RENDERING_ELEMENTS.contains(&element.name.as_str()) && 
-            !element.attributes.contains_key("id")) {
-            
+        if element.name == "defs"
+            || (NON_RENDERING_ELEMENTS.contains(&element.name.as_str())
+                && !element.attributes.contains_key("id"))
+        {
             let useful_nodes = self.collect_useful_nodes(element);
             element.children = useful_nodes;
         }
@@ -65,9 +70,10 @@ impl RemoveUselessDefsPlugin {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_useful_nodes(&self, element: &Element) -> Vec<Node> {
         let mut useful_nodes = Vec::new();
-        
+
         for child in &element.children {
             if let Node::Element(ref elem) = child {
                 if elem.attributes.contains_key("id") || elem.name == "style" {
@@ -83,7 +89,7 @@ impl RemoveUselessDefsPlugin {
                 useful_nodes.push(child.clone());
             }
         }
-        
+
         useful_nodes
     }
 }
@@ -93,8 +99,8 @@ impl RemoveUselessDefsPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -112,13 +118,16 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveUselessDefsPlugin;
         assert_eq!(plugin.name(), "removeUselessDefs");
-        assert_eq!(plugin.description(), "removes elements in <defs> without id");
+        assert_eq!(
+            plugin.description(),
+            "removes elements in <defs> without id"
+        );
     }
 
     #[test]
     fn test_remove_empty_defs() {
         let mut document = create_test_document();
-        
+
         let defs_element = Element {
             name: "defs".to_string(),
             attributes: IndexMap::new(),
@@ -144,10 +153,10 @@ mod tests {
     #[test]
     fn test_preserve_elements_with_id() {
         let mut document = create_test_document();
-        
+
         let mut gradient_attrs = IndexMap::new();
         gradient_attrs.insert("id".to_string(), "grad1".to_string());
-        
+
         let gradient_element = Element {
             name: "linearGradient".to_string(),
             attributes: gradient_attrs,
@@ -186,7 +195,7 @@ mod tests {
     #[test]
     fn test_remove_elements_without_id() {
         let mut document = create_test_document();
-        
+
         let gradient_element = Element {
             name: "linearGradient".to_string(),
             attributes: IndexMap::new(),
@@ -219,7 +228,7 @@ mod tests {
     #[test]
     fn test_preserve_style_elements() {
         let mut document = create_test_document();
-        
+
         let style_element = Element {
             name: "style".to_string(),
             attributes: IndexMap::new(),
@@ -257,10 +266,10 @@ mod tests {
     #[test]
     fn test_flatten_nested_useless_elements() {
         let mut document = create_test_document();
-        
+
         let mut useful_attrs = IndexMap::new();
         useful_attrs.insert("id".to_string(), "useful".to_string());
-        
+
         let useful_element = Element {
             name: "stop".to_string(),
             attributes: useful_attrs,
@@ -313,10 +322,10 @@ mod tests {
     #[test]
     fn test_non_rendering_elements_without_id() {
         let mut document = create_test_document();
-        
+
         let mut mask_with_id_attrs = IndexMap::new();
         mask_with_id_attrs.insert("id".to_string(), "mask1".to_string());
-        
+
         let mask_with_id = Element {
             name: "mask".to_string(),
             attributes: mask_with_id_attrs,
@@ -342,7 +351,7 @@ mod tests {
 
         // Should have 1 element (mask with ID), mask without ID should be empty
         assert_eq!(document.root.children.len(), 2);
-        
+
         if let Node::Element(ref mask1) = document.root.children[0] {
             assert_eq!(mask1.name, "mask");
             assert!(mask1.attributes.contains_key("id"));

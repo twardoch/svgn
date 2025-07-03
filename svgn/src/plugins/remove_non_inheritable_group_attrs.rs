@@ -23,7 +23,12 @@ impl Plugin for RemoveNonInheritableGroupAttrsPlugin {
         "removes non-inheritable group's presentation attributes"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
@@ -49,8 +54,9 @@ impl RemoveNonInheritableGroupAttrsPlugin {
 
         for attr_name in element.attributes.keys() {
             // Check if this is a presentation attribute that is NOT inheritable
-            if PRESENTATION_ATTRS.contains(attr_name.as_str()) 
-                && !INHERITABLE_ATTRS.contains(attr_name.as_str()) {
+            if PRESENTATION_ATTRS.contains(attr_name.as_str())
+                && !INHERITABLE_ATTRS.contains(attr_name.as_str())
+            {
                 attrs_to_remove.push(attr_name.clone());
             }
         }
@@ -67,8 +73,8 @@ impl RemoveNonInheritableGroupAttrsPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -99,13 +105,16 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveNonInheritableGroupAttrsPlugin;
         assert_eq!(plugin.name(), "removeNonInheritableGroupAttrs");
-        assert_eq!(plugin.description(), "removes non-inheritable group's presentation attributes");
+        assert_eq!(
+            plugin.description(),
+            "removes non-inheritable group's presentation attributes"
+        );
     }
 
     #[test]
     fn test_remove_non_inheritable_attrs() {
         let mut document = create_test_document();
-        
+
         // Create a group with both inheritable and non-inheritable presentation attributes
         let group = create_group_with_attrs(vec![
             // Non-inheritable presentation attributes (should be removed)
@@ -123,7 +132,7 @@ mod tests {
             ("id", "myGroup"),
             ("class", "important"),
         ]);
-        
+
         document.root.children = vec![Node::Element(group)];
 
         let mut plugin = RemoveNonInheritableGroupAttrsPlugin;
@@ -138,13 +147,16 @@ mod tests {
             assert!(!elem.attributes.contains_key("filter"));
             assert!(!elem.attributes.contains_key("opacity"));
             assert!(!elem.attributes.contains_key("overflow"));
-            
+
             // Inheritable should be kept
             assert_eq!(elem.attributes.get("fill"), Some(&"red".to_string()));
             assert_eq!(elem.attributes.get("stroke"), Some(&"blue".to_string()));
             assert_eq!(elem.attributes.get("font-size"), Some(&"14px".to_string()));
-            assert_eq!(elem.attributes.get("transform"), Some(&"translate(10,10)".to_string()));
-            
+            assert_eq!(
+                elem.attributes.get("transform"),
+                Some(&"translate(10,10)".to_string())
+            );
+
             // Non-presentation should be kept
             assert_eq!(elem.attributes.get("id"), Some(&"myGroup".to_string()));
             assert_eq!(elem.attributes.get("class"), Some(&"important".to_string()));
@@ -156,19 +168,14 @@ mod tests {
     #[test]
     fn test_nested_groups() {
         let mut document = create_test_document();
-        
+
         // Create nested groups with non-inheritable attrs
-        let inner_group = create_group_with_attrs(vec![
-            ("opacity", "0.8"),
-            ("fill", "green"),
-        ]);
-        
-        let mut outer_group = create_group_with_attrs(vec![
-            ("filter", "url(#blur)"),
-            ("stroke", "black"),
-        ]);
+        let inner_group = create_group_with_attrs(vec![("opacity", "0.8"), ("fill", "green")]);
+
+        let mut outer_group =
+            create_group_with_attrs(vec![("filter", "url(#blur)"), ("stroke", "black")]);
         outer_group.children = vec![Node::Element(inner_group)];
-        
+
         document.root.children = vec![Node::Element(outer_group)];
 
         let mut plugin = RemoveNonInheritableGroupAttrsPlugin;
@@ -179,7 +186,7 @@ mod tests {
         if let Node::Element(outer) = &document.root.children[0] {
             assert!(!outer.attributes.contains_key("filter"));
             assert_eq!(outer.attributes.get("stroke"), Some(&"black".to_string()));
-            
+
             // Check inner group
             if let Node::Element(inner) = &outer.children[0] {
                 assert!(!inner.attributes.contains_key("opacity"));
@@ -195,7 +202,7 @@ mod tests {
     #[test]
     fn test_only_affects_groups() {
         let mut document = create_test_document();
-        
+
         // Create a rect with non-inheritable attrs (should not be affected)
         let mut rect_attrs = IndexMap::new();
         rect_attrs.insert("opacity".to_string(), "0.5".to_string());
@@ -203,14 +210,14 @@ mod tests {
         rect_attrs.insert("fill".to_string(), "red".to_string());
         rect_attrs.insert("width".to_string(), "100".to_string());
         rect_attrs.insert("height".to_string(), "100".to_string());
-        
+
         let rect = Element {
             name: "rect".to_string(),
             attributes: rect_attrs,
             namespaces: HashMap::new(),
             children: vec![],
         };
-        
+
         document.root.children = vec![Node::Element(rect)];
 
         let mut plugin = RemoveNonInheritableGroupAttrsPlugin;
@@ -220,7 +227,10 @@ mod tests {
         // Rect should keep all attributes since plugin only affects groups
         if let Node::Element(elem) = &document.root.children[0] {
             assert_eq!(elem.attributes.get("opacity"), Some(&"0.5".to_string()));
-            assert_eq!(elem.attributes.get("filter"), Some(&"url(#blur)".to_string()));
+            assert_eq!(
+                elem.attributes.get("filter"),
+                Some(&"url(#blur)".to_string())
+            );
             assert_eq!(elem.attributes.get("fill"), Some(&"red".to_string()));
             assert_eq!(elem.attributes.len(), 5);
         } else {
@@ -231,13 +241,10 @@ mod tests {
     #[test]
     fn test_empty_group() {
         let mut document = create_test_document();
-        
+
         // Create an empty group with non-inheritable attrs
-        let group = create_group_with_attrs(vec![
-            ("mask", "url(#mask)"),
-            ("id", "emptyGroup"),
-        ]);
-        
+        let group = create_group_with_attrs(vec![("mask", "url(#mask)"), ("id", "emptyGroup")]);
+
         document.root.children = vec![Node::Element(group)];
 
         let mut plugin = RemoveNonInheritableGroupAttrsPlugin;
@@ -255,7 +262,7 @@ mod tests {
     #[test]
     fn test_all_non_inheritable_attrs() {
         let mut document = create_test_document();
-        
+
         // Create a group with various non-inheritable presentation attributes
         let group = create_group_with_attrs(vec![
             ("alignment-baseline", "middle"),
@@ -277,7 +284,7 @@ mod tests {
             // Add one inheritable to verify it's kept
             ("fill", "red"),
         ]);
-        
+
         document.root.children = vec![Node::Element(group)];
 
         let mut plugin = RemoveNonInheritableGroupAttrsPlugin;
@@ -302,7 +309,7 @@ mod tests {
             assert!(!elem.attributes.contains_key("stop-opacity"));
             assert!(!elem.attributes.contains_key("text-decoration"));
             assert!(!elem.attributes.contains_key("unicode-bidi"));
-            
+
             // Inheritable should be kept
             assert_eq!(elem.attributes.get("fill"), Some(&"red".to_string()));
             assert_eq!(elem.attributes.len(), 1);

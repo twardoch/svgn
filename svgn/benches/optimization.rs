@@ -3,7 +3,7 @@
 //! Benchmarks for SVG optimization performance
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use svgn::{optimize_default, Config, optimize_with_config};
+use svgn::{optimize_default, optimize_with_config, Config};
 
 const SIMPLE_SVG: &str = r#"<svg width="100" height="100">
     <rect x="10" y="10" width="50" height="50" fill="red"/>
@@ -39,7 +39,7 @@ fn bench_complex_optimization(c: &mut Criterion) {
 fn bench_with_pretty_printing(c: &mut Criterion) {
     let mut config = Config::with_default_preset();
     config.js2svg.pretty = true;
-    
+
     c.bench_function("optimize with pretty printing", |b| {
         b.iter(|| optimize_with_config(black_box(SIMPLE_SVG), black_box(config.clone())))
     });
@@ -48,7 +48,7 @@ fn bench_with_pretty_printing(c: &mut Criterion) {
 fn bench_multipass_optimization(c: &mut Criterion) {
     let mut config = Config::with_default_preset();
     config.multipass = true;
-    
+
     c.bench_function("multipass optimization", |b| {
         b.iter(|| optimize_with_config(black_box(COMPLEX_SVG), black_box(config.clone())))
     });

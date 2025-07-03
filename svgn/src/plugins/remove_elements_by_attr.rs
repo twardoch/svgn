@@ -5,7 +5,7 @@ use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use std::collections::HashSet;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RemoveElementsByAttrConfig {
     /// IDs of elements to remove
     pub ids: Vec<String>,
@@ -13,16 +13,13 @@ pub struct RemoveElementsByAttrConfig {
     pub classes: Vec<String>,
 }
 
-impl Default for RemoveElementsByAttrConfig {
+pub struct RemoveElementsByAttrPlugin;
+
+impl Default for RemoveElementsByAttrPlugin {
     fn default() -> Self {
-        Self {
-            ids: Vec::new(),
-            classes: Vec::new(),
-        }
+        Self::new()
     }
 }
-
-pub struct RemoveElementsByAttrPlugin;
 
 impl RemoveElementsByAttrPlugin {
     pub fn new() -> Self {
@@ -31,7 +28,7 @@ impl RemoveElementsByAttrPlugin {
 
     fn parse_config(&self, params: Option<&Value>) -> RemoveElementsByAttrConfig {
         let mut config = RemoveElementsByAttrConfig::default();
-        
+
         if let Some(Value::Object(obj)) = params {
             // Parse IDs
             if let Some(id_value) = obj.get("id") {
@@ -47,7 +44,7 @@ impl RemoveElementsByAttrPlugin {
                     _ => {}
                 }
             }
-            
+
             // Parse classes
             if let Some(class_value) = obj.get("class") {
                 match class_value {
@@ -63,11 +60,15 @@ impl RemoveElementsByAttrPlugin {
                 }
             }
         }
-        
+
         config
     }
 
-    fn should_remove_element(&self, element: &Element, config: &RemoveElementsByAttrConfig) -> bool {
+    fn should_remove_element(
+        &self,
+        element: &Element,
+        config: &RemoveElementsByAttrConfig,
+    ) -> bool {
         // Check if element ID matches any configured IDs
         if !config.ids.is_empty() {
             if let Some(id) = element.attributes.get("id") {
@@ -76,7 +77,7 @@ impl RemoveElementsByAttrPlugin {
                 }
             }
         }
-        
+
         // Check if element class contains any of the configured classes
         if !config.classes.is_empty() {
             if let Some(class_attr) = element.attributes.get("class") {
@@ -88,7 +89,7 @@ impl RemoveElementsByAttrPlugin {
                 }
             }
         }
-        
+
         false
     }
 
@@ -101,7 +102,7 @@ impl RemoveElementsByAttrPlugin {
                     if self.should_remove_element(child_elem, config) {
                         return false; // Remove this element
                     }
-                    
+
                     // Recursively process this child element
                     self.process_element(child_elem, config);
                     true // Keep this element
@@ -121,16 +122,21 @@ impl Plugin for RemoveElementsByAttrPlugin {
         "removes arbitrary elements by ID or className (disabled by default)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        params: Option<&Value>,
+    ) -> PluginResult<()> {
         let config = self.parse_config(params);
-        
+
         // Only proceed if we have something to remove
         if config.ids.is_empty() && config.classes.is_empty() {
             return Ok(());
         }
-        
+
         self.process_element(&mut document.root, &config);
-        
+
         Ok(())
     }
 }
@@ -166,7 +172,10 @@ mod tests {
     fn test_plugin_creation() {
         let plugin = RemoveElementsByAttrPlugin::new();
         assert_eq!(plugin.name(), "removeElementsByAttr");
-        assert_eq!(plugin.description(), "removes arbitrary elements by ID or className (disabled by default)");
+        assert_eq!(
+            plugin.description(),
+            "removes arbitrary elements by ID or className (disabled by default)"
+        );
     }
 
     #[test]
@@ -175,7 +184,7 @@ mod tests {
         let config_json = serde_json::json!({
             "id": "elementToRemove"
         });
-        
+
         let config = plugin.parse_config(Some(&config_json));
         assert_eq!(config.ids, vec!["elementToRemove"]);
         assert!(config.classes.is_empty());
@@ -187,7 +196,7 @@ mod tests {
         let config_json = serde_json::json!({
             "id": ["elementToRemove1", "elementToRemove2"]
         });
-        
+
         let config = plugin.parse_config(Some(&config_json));
         assert_eq!(config.ids, vec!["elementToRemove1", "elementToRemove2"]);
         assert!(config.classes.is_empty());
@@ -199,7 +208,7 @@ mod tests {
         let config_json = serde_json::json!({
             "class": "classToRemove"
         });
-        
+
         let config = plugin.parse_config(Some(&config_json));
         assert!(config.ids.is_empty());
         assert_eq!(config.classes, vec!["classToRemove"]);
@@ -211,7 +220,7 @@ mod tests {
         let config_json = serde_json::json!({
             "class": ["classToRemove1", "classToRemove2"]
         });
-        
+
         let config = plugin.parse_config(Some(&config_json));
         assert!(config.ids.is_empty());
         assert_eq!(config.classes, vec!["classToRemove1", "classToRemove2"]);
@@ -224,7 +233,7 @@ mod tests {
             "id": "elementToRemove",
             "class": ["classToRemove1", "classToRemove2"]
         });
-        
+
         let config = plugin.parse_config(Some(&config_json));
         assert_eq!(config.ids, vec!["elementToRemove"]);
         assert_eq!(config.classes, vec!["classToRemove1", "classToRemove2"]);
@@ -237,7 +246,7 @@ mod tests {
             ids: vec!["removeMe".to_string()],
             classes: vec![],
         };
-        
+
         let mut element_attrs = IndexMap::new();
         element_attrs.insert("id".to_string(), "removeMe".to_string());
         let element = Element {
@@ -246,9 +255,9 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![],
         };
-        
+
         assert!(plugin.should_remove_element(&element, &config));
-        
+
         // Test element that shouldn't be removed
         let mut element_attrs2 = IndexMap::new();
         element_attrs2.insert("id".to_string(), "keepMe".to_string());
@@ -258,7 +267,7 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![],
         };
-        
+
         assert!(!plugin.should_remove_element(&element2, &config));
     }
 
@@ -269,29 +278,35 @@ mod tests {
             ids: vec![],
             classes: vec!["removeMe".to_string()],
         };
-        
+
         // Test element with matching class
         let mut element_attrs = IndexMap::new();
-        element_attrs.insert("class".to_string(), "someClass removeMe anotherClass".to_string());
+        element_attrs.insert(
+            "class".to_string(),
+            "someClass removeMe anotherClass".to_string(),
+        );
         let element = Element {
             name: "rect".to_string(),
             attributes: element_attrs,
             namespaces: HashMap::new(),
             children: vec![],
         };
-        
+
         assert!(plugin.should_remove_element(&element, &config));
-        
+
         // Test element that shouldn't be removed
         let mut element_attrs2 = IndexMap::new();
-        element_attrs2.insert("class".to_string(), "someClass keepMe anotherClass".to_string());
+        element_attrs2.insert(
+            "class".to_string(),
+            "someClass keepMe anotherClass".to_string(),
+        );
         let element2 = Element {
             name: "rect".to_string(),
             attributes: element_attrs2,
             namespaces: HashMap::new(),
             children: vec![],
         };
-        
+
         assert!(!plugin.should_remove_element(&element2, &config));
     }
 
@@ -299,7 +314,7 @@ mod tests {
     fn test_apply_removes_by_id() {
         let mut plugin = RemoveElementsByAttrPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Add element to remove
         let mut attrs_remove = IndexMap::new();
         attrs_remove.insert("id".to_string(), "elementToRemove".to_string());
@@ -309,7 +324,7 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         // Add element to keep
         let mut attrs_keep = IndexMap::new();
         attrs_keep.insert("id".to_string(), "elementToKeep".to_string());
@@ -319,20 +334,23 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         let config = serde_json::json!({
             "id": "elementToRemove"
         });
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, Some(&config));
         assert!(result.is_ok());
-        
+
         // Should have only one element remaining
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(element) = &doc.root.children[0] {
             assert_eq!(element.name, "circle");
-            assert_eq!(element.attributes.get("id"), Some(&"elementToKeep".to_string()));
+            assert_eq!(
+                element.attributes.get("id"),
+                Some(&"elementToKeep".to_string())
+            );
         } else {
             panic!("Expected element");
         }
@@ -342,40 +360,49 @@ mod tests {
     fn test_apply_removes_by_class() {
         let mut plugin = RemoveElementsByAttrPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Add element to remove
         let mut attrs_remove = IndexMap::new();
-        attrs_remove.insert("class".to_string(), "some-class removeMe another-class".to_string());
+        attrs_remove.insert(
+            "class".to_string(),
+            "some-class removeMe another-class".to_string(),
+        );
         doc.root.children.push(Node::Element(Element {
             name: "rect".to_string(),
             attributes: attrs_remove,
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         // Add element to keep
         let mut attrs_keep = IndexMap::new();
-        attrs_keep.insert("class".to_string(), "some-class keep-me another-class".to_string());
+        attrs_keep.insert(
+            "class".to_string(),
+            "some-class keep-me another-class".to_string(),
+        );
         doc.root.children.push(Node::Element(Element {
             name: "circle".to_string(),
             attributes: attrs_keep,
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         let config = serde_json::json!({
             "class": "removeMe"
         });
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, Some(&config));
         assert!(result.is_ok());
-        
+
         // Should have only one element remaining
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(element) = &doc.root.children[0] {
             assert_eq!(element.name, "circle");
-            assert_eq!(element.attributes.get("class"), Some(&"some-class keep-me another-class".to_string()));
+            assert_eq!(
+                element.attributes.get("class"),
+                Some(&"some-class keep-me another-class".to_string())
+            );
         } else {
             panic!("Expected element");
         }
@@ -385,7 +412,7 @@ mod tests {
     fn test_apply_no_config_does_nothing() {
         let mut plugin = RemoveElementsByAttrPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Add some elements
         let mut attrs = IndexMap::new();
         attrs.insert("id".to_string(), "someId".to_string());
@@ -395,11 +422,11 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![],
         }));
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, None);
         assert!(result.is_ok());
-        
+
         // Should still have the element
         assert_eq!(doc.root.children.len(), 1);
     }
@@ -408,7 +435,7 @@ mod tests {
     fn test_apply_recursive() {
         let mut plugin = RemoveElementsByAttrPlugin::new();
         let mut doc = create_test_document();
-        
+
         // Create nested structure
         let mut nested_attrs = IndexMap::new();
         nested_attrs.insert("id".to_string(), "removeMe".to_string());
@@ -418,7 +445,7 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![],
         };
-        
+
         let mut group_attrs = IndexMap::new();
         group_attrs.insert("id".to_string(), "group".to_string());
         let group = Element {
@@ -427,17 +454,17 @@ mod tests {
             namespaces: HashMap::new(),
             children: vec![Node::Element(nested_element)],
         };
-        
+
         doc.root.children.push(Node::Element(group));
-        
+
         let config = serde_json::json!({
             "id": "removeMe"
         });
-        
+
         let info = PluginInfo::default();
         let result = plugin.apply(&mut doc, &info, Some(&config));
         assert!(result.is_ok());
-        
+
         // Group should remain but nested element should be removed
         assert_eq!(doc.root.children.len(), 1);
         if let Node::Element(group) = &doc.root.children[0] {

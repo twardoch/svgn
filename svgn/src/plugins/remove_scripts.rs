@@ -7,13 +7,13 @@
 
 use crate::ast::{Document, Element, Node};
 use crate::collections::{
-    ANIMATION_EVENT_ATTRS, DOCUMENT_EVENT_ATTRS, DOCUMENT_ELEMENT_EVENT_ATTRS,
-    GLOBAL_EVENT_ATTRS, GRAPHICAL_EVENT_ATTRS,
+    ANIMATION_EVENT_ATTRS, DOCUMENT_ELEMENT_EVENT_ATTRS, DOCUMENT_EVENT_ATTRS, GLOBAL_EVENT_ATTRS,
+    GRAPHICAL_EVENT_ATTRS,
 };
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use std::collections::HashMap;
 use indexmap::IndexMap;
 use serde_json::Value;
+use std::collections::HashMap;
 
 /// Plugin to remove scripts and script-related attributes
 pub struct RemoveScriptsPlugin;
@@ -27,7 +27,12 @@ impl Plugin for RemoveScriptsPlugin {
         "removes scripts (disabled by default)"
     }
 
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+    fn apply(
+        &mut self,
+        document: &mut Document,
+        _info: &PluginInfo,
+        _params: Option<&Value>,
+    ) -> PluginResult<()> {
         self.process_element(&mut document.root);
         Ok(())
     }
@@ -78,13 +83,10 @@ impl RemoveScriptsPlugin {
 
     fn process_anchor_element(&self, element: &mut Element) {
         // Check for javascript: URLs in href attributes
-        let has_javascript_url = element
-            .attributes
-            .iter()
-            .any(|(attr, value)| {
-                (attr == "href" || attr.ends_with(":href"))
-                    && value.trim_start().starts_with("javascript:")
-            });
+        let has_javascript_url = element.attributes.iter().any(|(attr, value)| {
+            (attr == "href" || attr.ends_with(":href"))
+                && value.trim_start().starts_with("javascript:")
+        });
 
         if has_javascript_url {
             // Replace the anchor element with its non-text children
@@ -107,8 +109,8 @@ impl RemoveScriptsPlugin {
 mod tests {
     use super::*;
     use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
     use indexmap::IndexMap;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         Document {
@@ -126,13 +128,16 @@ mod tests {
     fn test_plugin_name_and_description() {
         let plugin = RemoveScriptsPlugin;
         assert_eq!(plugin.name(), "removeScripts");
-        assert_eq!(plugin.description(), "removes scripts (disabled by default)");
+        assert_eq!(
+            plugin.description(),
+            "removes scripts (disabled by default)"
+        );
     }
 
     #[test]
     fn test_remove_script_elements() {
         let mut document = create_test_document();
-        
+
         let script_element = Element {
             name: "script".to_string(),
             attributes: IndexMap::new(),
@@ -168,7 +173,7 @@ mod tests {
     #[test]
     fn test_remove_event_attributes() {
         let mut document = create_test_document();
-        
+
         let mut attributes = IndexMap::new();
         attributes.insert("onclick".to_string(), "alert('click')".to_string());
         attributes.insert("onload".to_string(), "doSomething()".to_string());
@@ -201,7 +206,7 @@ mod tests {
     #[test]
     fn test_javascript_url_in_anchor() {
         let mut document = create_test_document();
-        
+
         let mut attributes = IndexMap::new();
         attributes.insert("href".to_string(), "javascript:alert('test')".to_string());
 
@@ -245,7 +250,7 @@ mod tests {
     #[test]
     fn test_normal_anchor_preserved() {
         let mut document = create_test_document();
-        
+
         let mut attributes = IndexMap::new();
         attributes.insert("href".to_string(), "https://example.com".to_string());
 
@@ -276,7 +281,7 @@ mod tests {
     #[test]
     fn test_xlink_href_with_javascript() {
         let mut document = create_test_document();
-        
+
         let mut attributes = IndexMap::new();
         attributes.insert("xlink:href".to_string(), "javascript:void(0)".to_string());
 

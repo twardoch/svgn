@@ -18,30 +18,37 @@
 //     pub mod remove_empty_attrs;
 // }
 
-use svgn::{optimize_with_config, Config, PluginConfig};
 use serde_json::json;
+use svgn::{optimize_with_config, Config, PluginConfig};
 
 /// Helper function to run a plugin test
-fn run_plugin_test(input: &str, expected: &str, plugin_name: &str, params: Option<serde_json::Value>) {
+fn run_plugin_test(
+    input: &str,
+    expected: &str,
+    plugin_name: &str,
+    params: Option<serde_json::Value>,
+) {
     let mut config = Config::new();
-    config.js2svg.pretty = true;  // Enable pretty printing to match expected output
-    config.js2svg.indent = 4;     // Use 4 spaces for indentation
-    config.parser.preserve_comments = true;  // Preserve comments during parsing
-    config.parser.preserve_whitespace = true;  // Preserve whitespace during parsing
-    
+    config.js2svg.pretty = true; // Enable pretty printing to match expected output
+    config.js2svg.indent = 4; // Use 4 spaces for indentation
+    config.parser.preserve_comments = true; // Preserve comments during parsing
+    config.parser.preserve_whitespace = true; // Preserve whitespace during parsing
+
     let mut plugin_config = PluginConfig::new(plugin_name.to_string());
     if let Some(p) = params {
         plugin_config.params = Some(p);
     }
     config.plugins.push(plugin_config);
-    
+
     let result = optimize_with_config(input, config).expect("Optimization should succeed");
     let output = result.data.trim();
     let expected = expected.trim();
-    
-    assert_eq!(output, expected, 
-        "\nPlugin: {}\nInput:\n{}\nExpected:\n{}\nActual:\n{}\n", 
-        plugin_name, input, expected, output);
+
+    assert_eq!(
+        output, expected,
+        "\nPlugin: {}\nInput:\n{}\nExpected:\n{}\nActual:\n{}\n",
+        plugin_name, input, expected, output
+    );
 }
 
 #[test]

@@ -29,28 +29,28 @@ pub enum ConfigError {
 pub type ConfigResult<T> = Result<T, ConfigError>;
 
 /// Main configuration structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     /// Path to the file being processed (for context)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
-    
+
     /// Plugin configurations
     #[serde(default, deserialize_with = "deserialize_plugins")]
     pub plugins: Vec<PluginConfig>,
-    
+
     /// Multi-pass optimization
     #[serde(default)]
     pub multipass: bool,
-    
+
     /// Output formatting options
     #[serde(default)]
     pub js2svg: Js2SvgOptions,
-    
+
     /// Data URI output format
     #[serde(skip_serializing_if = "Option::is_none")]
     pub datauri: Option<DataUriFormat>,
-    
+
     /// Parser options
     #[serde(default)]
     pub parser: ParserOptions,
@@ -62,15 +62,15 @@ pub struct Js2SvgOptions {
     /// Pretty-print the output
     #[serde(default)]
     pub pretty: bool,
-    
+
     /// Indentation for pretty-printing (number of spaces)
     #[serde(default = "default_indent")]
     pub indent: usize,
-    
+
     /// Use self-closing tags for empty elements
     #[serde(default = "default_true")]
     pub self_closing: bool,
-    
+
     /// Quote attributes (always, never, auto)
     #[serde(default = "default_quote_attrs")]
     pub quote_attrs: QuoteAttrsStyle,
@@ -106,28 +106,21 @@ pub struct ParserOptions {
     /// Preserve whitespace in text content
     #[serde(default)]
     pub preserve_whitespace: bool,
-    
+
     /// Preserve comments
     #[serde(default)]
     pub preserve_comments: bool,
 }
 
 // Default value functions for serde
-fn default_indent() -> usize { 2 }
-fn default_true() -> bool { true }
-fn default_quote_attrs() -> QuoteAttrsStyle { QuoteAttrsStyle::Auto }
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            path: None,
-            plugins: Vec::new(),
-            multipass: false,
-            js2svg: Js2SvgOptions::default(),
-            datauri: None,
-            parser: ParserOptions::default(),
-        }
-    }
+fn default_indent() -> usize {
+    2
+}
+fn default_true() -> bool {
+    true
+}
+fn default_quote_attrs() -> QuoteAttrsStyle {
+    QuoteAttrsStyle::Auto
 }
 
 impl Default for Js2SvgOptions {
@@ -160,7 +153,7 @@ impl Config {
     pub fn from_file<P: AsRef<Path>>(path: P) -> ConfigResult<Self> {
         let path = path.as_ref();
         let content = std::fs::read_to_string(path)?;
-        
+
         match path.extension().and_then(|s| s.to_str()) {
             Some("json") => Self::from_json(&content),
             Some("toml") => Self::from_toml(&content),
@@ -168,7 +161,8 @@ impl Config {
                 // For JavaScript config files, we would need to execute them
                 // For now, return an error suggesting JSON or TOML
                 Err(ConfigError::InvalidConfig(
-                    "JavaScript config files not yet supported. Please use JSON or TOML format.".to_string()
+                    "JavaScript config files not yet supported. Please use JSON or TOML format."
+                        .to_string(),
                 ))
             }
             _ => {
@@ -228,11 +222,11 @@ impl Config {
     /// Create a config with the default preset
     pub fn with_default_preset() -> Self {
         let mut config = Self::new();
-        
+
         // Add default plugins (excluding unimplemented complex plugins for now)
         let default_plugins = vec![
             "removeComments",
-            "removeMetadata", 
+            "removeMetadata",
             "removeTitle",
             "removeDesc",
             "removeDoctype",
@@ -252,7 +246,7 @@ impl Config {
             // "convertTransform",   // Requires matrix math
             // "mergePaths",         // Requires path analysis
             // "moveElemsAttrsToGroup", // Requires DOM analysis
-            // "moveGroupAttrsToElems", // Requires DOM analysis  
+            // "moveGroupAttrsToElems", // Requires DOM analysis
             // "inlineStyles",       // Requires CSS parsing
             "removeEmptyText",
             "removeEmptyContainers",
@@ -272,11 +266,11 @@ impl Config {
 /// Load configuration from common file names in the given directory
 pub fn load_config_from_directory<P: AsRef<Path>>(dir: P) -> ConfigResult<Option<Config>> {
     let dir = dir.as_ref();
-    
+
     // Common config file names (in order of preference)
     let config_names = [
         "svgn.config.toml",
-        "svgn.config.json", 
+        "svgn.config.json",
         "svgo.config.json",
         "svgo.config.js",
         "svgo.config.cjs",
@@ -300,38 +294,35 @@ where
 {
     use serde::de::{self, SeqAccess, Visitor};
     use serde_json::Value;
-    
+
     struct PluginsVisitor;
-    
+
     impl<'de> Visitor<'de> for PluginsVisitor {
         type Value = Vec<PluginConfig>;
-        
+
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str("an array of plugin names or plugin config objects")
         }
-        
+
         fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
         where
             A: SeqAccess<'de>,
         {
             let mut plugins = Vec::new();
-            
+
             while let Some(value) = seq.next_element::<Value>()? {
                 let plugin = match value {
                     Value::String(name) => PluginConfig::new(name),
-                    Value::Object(_) => {
-                        serde_json::from_value(value)
-                            .map_err(de::Error::custom)?
-                    }
+                    Value::Object(_) => serde_json::from_value(value).map_err(de::Error::custom)?,
                     _ => return Err(de::Error::custom("Invalid plugin format")),
                 };
                 plugins.push(plugin);
             }
-            
+
             Ok(plugins)
         }
     }
-    
+
     deserializer.deserialize_seq(PluginsVisitor)
 }
 
@@ -367,14 +358,14 @@ mod tests {
     #[test]
     fn test_plugin_management() {
         let mut config = Config::new();
-        
+
         config.add_plugin(PluginConfig::new("test".to_string()));
         assert_eq!(config.plugins.len(), 1);
         assert!(config.get_plugin("test").is_some());
-        
+
         config.set_plugin_enabled("test", false);
         assert!(!config.get_plugin("test").unwrap().enabled);
-        
+
         config.remove_plugin("test");
         assert_eq!(config.plugins.len(), 0);
     }
