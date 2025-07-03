@@ -1,4 +1,10 @@
-theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
+
+# GitHub Pages plugins
+plugins:
+  - jekyll-remote-theme
+  - jekyll-sitemap
+  - jekyll-feed
 
 # Site settings
 title: SVGN Documentation
