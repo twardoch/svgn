@@ -48,6 +48,7 @@ pub mod sort_defs_children;
 pub mod remove_hidden_elems;
 pub mod remove_non_inheritable_group_attrs;
 pub mod remove_off_canvas_paths;
+pub mod convert_shape_to_path;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -93,3 +94,4 @@ pub use sort_defs_children::SortDefsChildrenPlugin;
 pub use remove_hidden_elems::RemoveHiddenElemsPlugin;
 pub use remove_non_inheritable_group_attrs::RemoveNonInheritableGroupAttrsPlugin;
 pub use remove_off_canvas_paths::RemoveOffCanvasPathsPlugin;
+pub use convert_shape_to_path::ConvertShapeToPath;
