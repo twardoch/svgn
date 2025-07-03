@@ -7,8 +7,8 @@ plugins:
   - jekyll-feed
 
 # Site settings
-title: SVGN Documentation
-description: A native Rust SVG optimizer - API-compatible port of SVGO
+title: svgn
+description: SVG optimizer, API-compatible Rust port of svgo
 baseurl: "/svgn"
 url: "https://twardoch.github.io"
 
