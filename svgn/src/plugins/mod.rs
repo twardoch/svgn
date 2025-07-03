@@ -43,7 +43,9 @@ pub mod remove_unused_ns;
 pub mod remove_view_box;
 pub mod remove_xlink;
 pub mod remove_xmlns;
+pub mod remove_raster_images;
 pub mod sort_defs_children;
+pub mod remove_hidden_elems;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -84,4 +86,6 @@ pub use remove_unused_ns::RemoveUnusedNSPlugin;
 pub use remove_view_box::RemoveViewBoxPlugin;
 pub use remove_xlink::RemoveXlinkPlugin;
 pub use remove_xmlns::RemoveXMLNSPlugin;
+pub use remove_raster_images::RemoveRasterImagesPlugin;
 pub use sort_defs_children::SortDefsChildrenPlugin;
+pub use remove_hidden_elems::RemoveHiddenElemsPlugin;
