@@ -8,10 +8,12 @@
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
 use serde_json::Value;
-use selectors::{Parser, SelectorList};
+use selectors::{parser::Parser, SelectorList};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode, ElementSelectorFlags, NeedsSelectorFlags, IgnoreNthChildForInvalidation};
+use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode, ElementSelectorFlags};
 use selectors::NthIndexCache;
+use cssparser::ToCss;
+use std::collections::HashMap;
 
 /// Plugin to remove attributes by CSS selector
 pub struct RemoveAttributesBySelectorPlugin;
@@ -180,7 +182,7 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         id: &<Self::Impl as selectors::SelectorImpl>::Identifier,
         _case_sensitivity: CaseSensitivity,
     ) -> bool {
-        self.element.attributes.get("id").map_or(false, |v| v == id)
+        self.element.attributes.get("id").map_or(false, |v| v == &id.0)
     }
 
     fn has_class(
@@ -189,7 +191,7 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         _case_sensitivity: CaseSensitivity,
     ) -> bool {
         if let Some(class_attr) = self.element.attributes.get("class") {
-            class_attr.split_whitespace().any(|class| class == name)
+            class_attr.split_whitespace().any(|class| class == &name.0)
         } else {
             false
         }
@@ -202,11 +204,11 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         operation: &AttrSelectorOperation<&<Self::Impl as selectors::SelectorImpl>::AttrValue>,
     ) -> bool {
         // We only support no namespace for now
-        if !matches!(ns, NamespaceConstraint::Specific(&url) if url.is_empty()) && !matches!(ns, NamespaceConstraint::Any) {
+        if !matches!(ns, NamespaceConstraint::Specific(&ref url) if url.0.is_empty()) && !matches!(ns, NamespaceConstraint::Any) {
             return false;
         }
 
-        if let Some(attr_value) = self.element.attributes.get(local_name.as_ref()) {
+        if let Some(attr_value) = self.element.attributes.get(&local_name.0) {
             match operation {
                 AttrSelectorOperation::Exists => true,
                 AttrSelectorOperation::WithValue {
@@ -216,14 +218,14 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
                 } => {
                     use selectors::attr::AttrSelectorOperator::*;
                     match operator {
-                        Equal => attr_value == value,
-                        Includes => attr_value.split_whitespace().any(|v| v == value),
+                        Equal => attr_value == value.0.as_str(),
+                        Includes => attr_value.split_whitespace().any(|v| v == value.0.as_str()),
                         DashMatch => {
-                            attr_value == value || attr_value.starts_with(&format!("{}-", value))
+                            attr_value == value.0.as_str() || attr_value.starts_with(&format!("{}-", value.0))
                         }
-                        Prefix => attr_value.starts_with(value.as_ref()),
-                        Substring => attr_value.contains(value.as_ref()),
-                        Suffix => attr_value.ends_with(value.as_ref()),
+                        Prefix => attr_value.starts_with(&value.0),
+                        Substring => attr_value.contains(&value.0),
+                        Suffix => attr_value.ends_with(&value.0),
                     }
                 }
             }
@@ -244,8 +246,8 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         &self,
         _pc: &<Self::Impl as selectors::SelectorImpl>::NonTSPseudoClass,
         _context: &mut MatchingContext<Self::Impl>,
-    ) -> Result<bool, ()> {
-        Ok(false)
+    ) -> bool {
+        false
     }
 
     fn is_link(&self) -> bool {
@@ -273,13 +275,115 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct SelectorImpl;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AttrValue(String);
+
+impl<'a> From<&'a str> for AttrValue {
+    fn from(s: &'a str) -> Self {
+        AttrValue(s.to_string())
+    }
+}
+
+impl ToCss for AttrValue {
+    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
+    where
+        W: std::fmt::Write,
+    {
+        write!(dest, "{}", self.0)
+    }
+}
+
+impl AsRef<str> for AttrValue {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Identifier(String);
+
+impl<'a> From<&'a str> for Identifier {
+    fn from(s: &'a str) -> Self {
+        Identifier(s.to_string())
+    }
+}
+
+impl ToCss for Identifier {
+    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
+    where
+        W: std::fmt::Write,
+    {
+        write!(dest, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct LocalName(String);
+
+impl<'a> From<&'a str> for LocalName {
+    fn from(s: &'a str) -> Self {
+        LocalName(s.to_string())
+    }
+}
+
+impl std::borrow::Borrow<str> for LocalName {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl ToCss for LocalName {
+    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
+    where
+        W: std::fmt::Write,
+    {
+        write!(dest, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct NamespaceUrl(String);
+
+impl std::borrow::Borrow<str> for NamespaceUrl {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl ToCss for NamespaceUrl {
+    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
+    where
+        W: std::fmt::Write,
+    {
+        write!(dest, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct NamespacePrefix(String);
+
+impl<'a> From<&'a str> for NamespacePrefix {
+    fn from(s: &'a str) -> Self {
+        NamespacePrefix(s.to_string())
+    }
+}
+
+impl ToCss for NamespacePrefix {
+    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
+    where
+        W: std::fmt::Write,
+    {
+        write!(dest, "{}", self.0)
+    }
+}
+
 impl selectors::SelectorImpl for SelectorImpl {
     type ExtraMatchingData<'a> = ();
-    type AttrValue = String;
-    type Identifier = String;
-    type LocalName = String;
-    type NamespaceUrl = String;
-    type NamespacePrefix = String;
+    type AttrValue = AttrValue;
+    type Identifier = Identifier;
+    type LocalName = LocalName;
+    type NamespaceUrl = NamespaceUrl;
+    type NamespacePrefix = NamespacePrefix;
     type BorrowedLocalName = str;
     type BorrowedNamespaceUrl = str;
     type NonTSPseudoClass = NonTSPseudoClass;
@@ -301,7 +405,7 @@ impl selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     }
 }
 
-impl selectors::parser::ToCss for NonTSPseudoClass {
+impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, _dest: &mut W) -> std::fmt::Result
     where
         W: std::fmt::Write,
@@ -313,7 +417,7 @@ impl selectors::parser::ToCss for NonTSPseudoClass {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum PseudoElement {}
 
-impl selectors::parser::ToCss for PseudoElement {
+impl ToCss for PseudoElement {
     fn to_css<W>(&self, _dest: &mut W) -> std::fmt::Result
     where
         W: std::fmt::Write,
@@ -326,30 +430,55 @@ impl selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
 }
 
-/// Find elements matching a selector
-fn find_matching_elements<'a>(
-    node: &'a mut Node,
+/// Collect matching elements without mutable borrows
+fn collect_matching_paths(
+    node: &Node,
     selector_list: &SelectorList<SelectorImpl>,
-    matching_elements: &mut Vec<&'a mut Element>,
+    current_path: Vec<usize>,
+    matching_paths: &mut Vec<Vec<usize>>,
 ) {
-    if let Node::Element(ref mut element) = node {
+    if let Node::Element(element) = node {
         let wrapper = ElementWrapper { element };
+        let mut nth_index_cache = NthIndexCache::default();
         let mut context = MatchingContext::new(
             MatchingMode::Normal,
             None,
-            None,
+            &mut nth_index_cache,
             selectors::context::QuirksMode::NoQuirks,
+            selectors::matching::NeedsSelectorFlags::No,
+            selectors::matching::IgnoreNthChildForInvalidation::No,
         );
         
         if matches_selector_list(selector_list, &wrapper, &mut context) {
-            matching_elements.push(element);
+            matching_paths.push(current_path.clone());
         }
         
         // Recursively search children
-        for child in &mut element.children {
-            find_matching_elements(child, selector_list, matching_elements);
+        for (i, child) in element.children.iter().enumerate() {
+            let mut child_path = current_path.clone();
+            child_path.push(i);
+            collect_matching_paths(child, selector_list, child_path, matching_paths);
         }
     }
+}
+
+/// Get mutable element by path
+fn get_element_by_path_mut<'a>(node: &'a mut Node, path: &[usize]) -> Option<&'a mut Element> {
+    if path.is_empty() {
+        if let Node::Element(element) = node {
+            return Some(element);
+        }
+        return None;
+    }
+    
+    if let Node::Element(element) = node {
+        if let Some(&index) = path.first() {
+            if let Some(child) = element.children.get_mut(index) {
+                return get_element_by_path_mut(child, &path[1..]);
+            }
+        }
+    }
+    None
 }
 
 impl Plugin for RemoveAttributesBySelectorPlugin {
@@ -367,8 +496,9 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
         // Process each selector configuration
         for config in &params.selectors {
             // Parse the CSS selector
-            let parser = Parser::new();
-            let selector_list = match parser.parse_author_origin_no_namespace(&config.selector) {
+            let mut parser_input = cssparser::ParserInput::new(&config.selector);
+            let mut parser = cssparser::Parser::new(&mut parser_input);
+            let selector_list = match SelectorList::<SelectorImpl>::parse(&selectors::parser::Parser, &mut parser, selectors::parser::ParseRelative::No) {
                 Ok(list) => list,
                 Err(_) => {
                     return Err(PluginError::InvalidConfig(format!(
@@ -378,17 +508,24 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
                 }
             };
             
-            // Find matching elements in the document
-            let mut matching_elements = Vec::new();
-            if let Some(ref mut root) = document.root {
-                find_matching_elements(root, &selector_list, &mut matching_elements);
-            }
+            // Collect paths to matching elements
+            let mut matching_paths = Vec::new();
+            let root_node = Node::Element(document.root.clone());
+            collect_matching_paths(&root_node, &selector_list, vec![], &mut matching_paths);
             
             // Remove specified attributes from matching elements
-            for element in matching_elements {
-                for attr_name in &config.attributes {
-                    element.attributes.remove(attr_name);
+            let mut root_node_mut = Node::Element(document.root.clone());
+            for path in matching_paths {
+                if let Some(element) = get_element_by_path_mut(&mut root_node_mut, &path) {
+                    for attr_name in &config.attributes {
+                        element.attributes.shift_remove(attr_name);
+                    }
                 }
+            }
+            
+            // Update the document root
+            if let Node::Element(updated_root) = root_node_mut {
+                document.root = updated_root;
             }
         }
         
@@ -416,7 +553,7 @@ mod tests {
         // Create a simple SVG structure
         let mut svg = Element {
             name: "svg".to_string(),
-            namespace: None,
+            namespaces: HashMap::new(),
             attributes: IndexMap::new(),
             children: vec![],
         };
@@ -424,7 +561,7 @@ mod tests {
         // Add rect with fill="#00ff00"
         let mut rect = Element {
             name: "rect".to_string(),
-            namespace: None,
+            namespaces: HashMap::new(),
             attributes: IndexMap::new(),
             children: vec![],
         };
@@ -436,7 +573,7 @@ mod tests {
         rect.attributes.insert("stroke".to_string(), "#00ff00".to_string());
         
         svg.children.push(Node::Element(rect));
-        doc.root = Some(Node::Element(svg));
+        doc.root = svg;
         doc
     }
 
@@ -454,11 +591,9 @@ mod tests {
         plugin.apply(&mut doc, &plugin_info, Some(&params)).unwrap();
         
         // Check that fill was removed but stroke remains
-        if let Some(Node::Element(ref svg)) = doc.root {
-            if let Some(Node::Element(ref rect)) = svg.children.first() {
-                assert_eq!(rect.attributes.get("fill"), None);
-                assert_eq!(rect.attributes.get("stroke"), Some(&"#00ff00".to_string()));
-            }
+        if let Some(Node::Element(ref rect)) = doc.root.children.first() {
+            assert_eq!(rect.attributes.get("fill"), None);
+            assert_eq!(rect.attributes.get("stroke"), Some(&"#00ff00".to_string()));
         }
     }
 
@@ -476,13 +611,11 @@ mod tests {
         plugin.apply(&mut doc, &plugin_info, Some(&params)).unwrap();
         
         // Check that both fill and stroke were removed
-        if let Some(Node::Element(ref svg)) = doc.root {
-            if let Some(Node::Element(ref rect)) = svg.children.first() {
-                assert_eq!(rect.attributes.get("fill"), None);
-                assert_eq!(rect.attributes.get("stroke"), None);
-                // Other attributes should remain
-                assert_eq!(rect.attributes.get("width"), Some(&"100".to_string()));
-            }
+        if let Some(Node::Element(ref rect)) = doc.root.children.first() {
+            assert_eq!(rect.attributes.get("fill"), None);
+            assert_eq!(rect.attributes.get("stroke"), None);
+            // Other attributes should remain
+            assert_eq!(rect.attributes.get("width"), Some(&"100".to_string()));
         }
     }
 
@@ -491,21 +624,19 @@ mod tests {
         let mut doc = create_test_document();
         
         // Add an element with id="remove"
-        if let Some(Node::Element(ref mut svg)) = doc.root {
-            let mut circle = Element {
-                name: "circle".to_string(),
-                namespace: None,
-                attributes: IndexMap::new(),
-                children: vec![],
-            };
+        let mut circle = Element {
+            name: "circle".to_string(),
+            namespaces: HashMap::new(),
+            attributes: IndexMap::new(),
+            children: vec![],
+        };
             circle.attributes.insert("id".to_string(), "remove".to_string());
             circle.attributes.insert("cx".to_string(), "50".to_string());
             circle.attributes.insert("cy".to_string(), "50".to_string());
             circle.attributes.insert("r".to_string(), "25".to_string());
             circle.attributes.insert("stroke".to_string(), "black".to_string());
             
-            svg.children.push(Node::Element(circle));
-        }
+        doc.root.children.push(Node::Element(circle));
         
         let mut plugin = RemoveAttributesBySelectorPlugin;
         let plugin_info = PluginInfo::default();
@@ -526,19 +657,17 @@ mod tests {
         plugin.apply(&mut doc, &plugin_info, Some(&params)).unwrap();
         
         // Check results
-        if let Some(Node::Element(ref svg)) = doc.root {
-            // Check rect
-            if let Some(Node::Element(ref rect)) = svg.children.first() {
-                assert_eq!(rect.attributes.get("fill"), None);
-                assert_eq!(rect.attributes.get("stroke"), Some(&"#00ff00".to_string()));
-            }
-            
-            // Check circle
-            if let Some(Node::Element(ref circle)) = svg.children.get(1) {
-                assert_eq!(circle.attributes.get("id"), None);
-                assert_eq!(circle.attributes.get("stroke"), None);
-                assert_eq!(circle.attributes.get("cx"), Some(&"50".to_string()));
-            }
+        // Check rect
+        if let Some(Node::Element(ref rect)) = doc.root.children.first() {
+            assert_eq!(rect.attributes.get("fill"), None);
+            assert_eq!(rect.attributes.get("stroke"), Some(&"#00ff00".to_string()));
+        }
+        
+        // Check circle
+        if let Some(Node::Element(ref circle)) = doc.root.children.get(1) {
+            assert_eq!(circle.attributes.get("id"), None);
+            assert_eq!(circle.attributes.get("stroke"), None);
+            assert_eq!(circle.attributes.get("cx"), Some(&"50".to_string()));
         }
     }
 
@@ -556,10 +685,8 @@ mod tests {
         plugin.apply(&mut doc, &plugin_info, Some(&params)).unwrap();
         
         // Check that fill was removed from rect
-        if let Some(Node::Element(ref svg)) = doc.root {
-            if let Some(Node::Element(ref rect)) = svg.children.first() {
-                assert_eq!(rect.attributes.get("fill"), None);
-            }
+        if let Some(Node::Element(ref rect)) = doc.root.children.first() {
+            assert_eq!(rect.attributes.get("fill"), None);
         }
     }
 
