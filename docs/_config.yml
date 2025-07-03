@@ -9,8 +9,8 @@ plugins:
 # Site settings
 title: SVGN Documentation
 description: A native Rust SVG optimizer - API-compatible port of SVGO
-baseurl: ""
-url: "https://twardoch.github.io/svgn"
+baseurl: "/svgn"
+url: "https://twardoch.github.io"
 
 # Just the Docs specific settings
 search_enabled: true
