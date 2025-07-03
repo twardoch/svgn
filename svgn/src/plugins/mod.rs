@@ -25,6 +25,9 @@ pub mod sort_attrs;
 pub mod remove_style_element;
 pub mod merge_styles;
 pub mod convert_style_to_attrs;
+pub mod convert_colors;
+pub mod add_attributes_to_svg_element;
+pub mod add_classes_to_svg_element;
 
 // Re-export plugins
 pub use cleanup_attrs::CleanupAttrsPlugin;
@@ -47,3 +50,6 @@ pub use sort_attrs::SortAttrsPlugin;
 pub use remove_style_element::RemoveStyleElement;
 pub use merge_styles::MergeStylesPlugin;
 pub use convert_style_to_attrs::ConvertStyleToAttrsPlugin;
+pub use convert_colors::ConvertColorsPlugin;
+pub use add_attributes_to_svg_element::AddAttributesToSVGElementPlugin;
+pub use add_classes_to_svg_element::AddClassesToSVGElementPlugin;

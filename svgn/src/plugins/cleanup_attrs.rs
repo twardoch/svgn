@@ -106,7 +106,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupAttrsPlugin;
+        let mut plugin = CleanupAttrsPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that newlines are replaced with spaces where needed
@@ -126,7 +126,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupAttrsPlugin;
+        let mut plugin = CleanupAttrsPlugin;
         plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that multiple spaces are reduced to single spaces and trimmed
@@ -146,7 +146,7 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupAttrsPlugin;
+        let mut plugin = CleanupAttrsPlugin;
         let params = json!({
             "newlines": false,
             "spaces": false,

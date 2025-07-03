@@ -6,12 +6,12 @@ This is a flat task list derived from PLAN.md. Tasks are organized by priority a
 
 
 
-### Attribute Processers  
+### Attribute Processors  
 - [x] `sortAttrs` ✅
 - [x] `removeAttrs` ✅ 
 - [x] `removeUnknownsAndDefaults` ✅
-- [ ] `addAttributesToSVGElement`
-- [ ] `addClassesToSVGElement`
+- [x] `addAttributesToSVGElement` ✅
+- [x] `addClassesToSVGElement` ✅
 - [ ] `removeAttributesBySelector`
 - [ ] `removeDeprecatedAttrs`
 
@@ -247,26 +247,6 @@ Refactor the Rust plugin system to implement a visitor pattern:
 4.  Update existing plugins to utilize this new visitor pattern.
 
 ---
-**Issue:** Missing PluginInfo Object
-
-**Description:**
-The Rust plugin system (`svgn/src/plugin.rs`) currently passes only the `Document` and optional `params` to the `apply` method of plugins. The JavaScript SVGO passes an additional `PluginInfo` object (containing `path`, `multipassCount`, etc.) to its plugin functions.
-
-**Impact:**
-Many SVGO plugins rely on the `PluginInfo` object for their functionality:
-1.  **`path`:** Used by `prefixIds` to generate unique IDs based on the input file name.
-2.  **`multipassCount`:** Used by plugins like `cleanupIds` to track optimization passes and ensure deterministic behavior across multiple passes.
-3.  **General Context:** Provides valuable context about the current optimization run that plugins might need.
-
-Without this information, porting these plugins to Rust will either require reimplementing the logic to obtain this context (if possible) or result in functional differences.
-
-**Proposed Solution:**
-1.  Define a `PluginInfo` struct in Rust (e.g., in `svgn/src/plugin.rs` or `svgn/src/optimizer.rs`) with fields like `path: Option<String>`, `multipass_count: usize`.
-2.  Modify the `Plugin` trait's `apply` method signature to include a `&PluginInfo` parameter.
-3.  Ensure that the `PluginInfo` object is correctly populated and passed down through the optimization pipeline (from `optimizer.rs` to `plugin.rs`).
-4.  Update existing plugins that might benefit from this information.
-
----
 **Issue:** Missing Preset Implementation
 
 **Description:**
@@ -373,51 +353,6 @@ While not a functional correctness issue that breaks the SVG, the absence of thi
 3.  **Skip Processing:** If this condition is met, the plugin should return early, indicating that no further ID cleanup is necessary for this SVG.
 
 ---
-**Issue:** Missing `sortAttrs` Rust Implementation
-
-**Description:**
-The Rust counterpart for `ref/svgo/plugins/sortAttrs.js` is missing. The file `svgn/src/plugins/sort_attrs.rs` does not exist. This plugin is responsible for sorting element attributes for better compression and readability.
-
-**Impact:**
-Without this plugin, the `svgn` optimizer will not be able to sort attributes, potentially leading to larger file sizes (due to less effective gzip compression) and less readable SVG output compared to the original SVGO.
-
-**Proposed Solution:**
-1.  Create the file `svgn/src/plugins/sort_attrs.rs`.
-2.  Port the functionality from `ref/svgo/plugins/sortAttrs.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
-3.  Integrate the new Rust plugin into the `svgn` plugin registry.
-4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
-
----
-**Issue:** Missing `addAttributesToSVGElement` Rust Implementation
-
-**Description:**
-The Rust counterpart for `ref/svgo/plugins/addAttributesToSVGElement.js` is missing. The file `svgn/src/plugins/add_attributes_to_svg_element.rs` does not exist. This plugin adds attributes to the root `<svg>` element.
-
-**Impact:**
-Without this plugin, the `svgn` optimizer will not be able to add attributes to the root SVG element, which is a feature provided by SVGO.
-
-**Proposed Solution:**
-1.  Create the file `svgn/src/plugins/add_attributes_to_svg_element.rs`.
-2.  Port the functionality from `ref/svgo/plugins/addAttributesToSVGElement.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
-3.  Integrate the new Rust plugin into the `svgn` plugin registry.
-4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
-
----
-**Issue:** Missing `addClassesToSVGElement` Rust Implementation
-
-**Description:**
-The Rust counterpart for `ref/svgo/plugins/addClassesToSVGElement.js` is missing. The file `svgn/src/plugins/add_classes_to_svg_element.rs` does not exist. This plugin adds class names to the root `<svg>` element.
-
-**Impact:**
-Without this plugin, the `svgn` optimizer will not be able to add class names to the root SVG element, which is a feature provided by SVGO.
-
-**Proposed Solution:**
-1.  Create the file `svgn/src/plugins/add_classes_to_svg_element.rs`.
-2.  Port the functionality from `ref/svgo/plugins/addClassesToSVGElement.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
-3.  Integrate the new Rust plugin into the `svgn` plugin registry.
-4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
-
----
 **Issue:** Missing `removeAttributesBySelector` Rust Implementation
 
 **Description:**
@@ -444,5 +379,20 @@ Without this plugin, the `svgn` optimizer will not be able to remove deprecated 
 **Proposed Solution:**
 1.  Create the file `svgn/src/plugins/remove_deprecated_attrs.rs`.
 2.  Port the functionality from `ref/svgo/plugins/removeDeprecatedAttrs.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
+3.  Integrate the new Rust plugin into the `svgn` plugin registry.
+4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.
+
+---
+**Issue:** Missing `convertEllipseToCircle` Rust Implementation
+
+**Description:**
+The Rust counterpart for `ref/svgo/plugins/convertEllipseToCircle.js` is missing. The file `svgn/src/plugins/convert_ellipse_to_circle.rs` does not exist. This plugin converts non-eccentric `<ellipse>` elements to `<circle>` elements.
+
+**Impact:**
+Without this plugin, the `svgn` optimizer will not be able to perform this specific shape optimization, which can lead to slightly larger SVG files.
+
+**Proposed Solution:**
+1.  Create the file `svgn/src/plugins/convert_ellipse_to_circle.rs`.
+2.  Port the functionality from `ref/svgo/plugins/convertEllipseToCircle.js` to Rust, ensuring API compatibility and adherence to Rust best practices.
 3.  Integrate the new Rust plugin into the `svgn` plugin registry.
 4.  Once implemented, analyze the quality of the porting and add further comments to `TODO.md` regarding any improvements or discrepancies found.

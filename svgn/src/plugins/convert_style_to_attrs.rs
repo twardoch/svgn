@@ -23,14 +23,14 @@ static CSS_DECLARATION_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)
         (?:
-            /\*[^]*?\*/  # CSS comments
+            /\*[\s\S]*?\*/  # CSS comments
             |
             (?:
                 ([-\w]+)  # property name
                 \s*:\s*
                 (
                     (?:
-                        /\*[^]*?\*/  # inline comments
+                        /\*[\s\S]*?\*/  # inline comments
                         |
                         '(?:[^'\\]|\\.)*'  # single-quoted strings
                         |
@@ -75,13 +75,13 @@ fn convert_styles(element: &mut Element) {
         for cap in CSS_DECLARATION_RE.captures_iter(&style_value) {
             if let (Some(prop_match), Some(value_match)) = (cap.get(1), cap.get(2)) {
                 let property = prop_match.as_str().trim();
-                let value = value_match.as_str().trim();
+                let value = strip_css_comments(value_match.as_str()).trim().to_string();
                 
                 // Check if this is a presentation attribute
                 if PRESENTATION_ATTRS.contains(property) {
                     // Don't override existing attributes
                     if !element.attributes.contains_key(property) {
-                        new_attributes.push((property.to_string(), value.to_string()));
+                        new_attributes.push((property.to_string(), value));
                     } else {
                         // Keep in style if attribute already exists
                         remaining_styles.push(format!("{}: {}", property, value));
@@ -114,6 +114,13 @@ fn convert_styles(element: &mut Element) {
     }
 }
 
+/// Strip CSS comments from a value string
+fn strip_css_comments(value: &str) -> String {
+    // Simple regex to remove CSS comments
+    let comment_re = Regex::new(r"/\*[\s\S]*?\*/").unwrap();
+    comment_re.replace_all(value, "").to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -133,19 +140,17 @@ mod tests {
         let plugin_info = PluginInfo { path: None, multipass_count: 0 };
         plugin.apply(&mut document, &plugin_info, None).unwrap();
         
-        // Check first rect
-        if let Node::Element(rect) = &document.root.children[1] {
-            assert_eq!(rect.attributes.get("fill"), Some(&"red".to_string()));
-            assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
-            assert_eq!(rect.attributes.get("opacity"), Some(&"0.5".to_string()));
-            assert!(!rect.attributes.contains_key("style"));
-        }
+        // Find rect element
+        let rect = document.root.child_elements().find(|e| e.name == "rect").unwrap();
+        assert_eq!(rect.attributes.get("fill"), Some(&"red".to_string()));
+        assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
+        assert_eq!(rect.attributes.get("opacity"), Some(&"0.5".to_string()));
+        assert!(!rect.attributes.contains_key("style"));
         
-        // Check circle - custom-prop should remain in style
-        if let Node::Element(circle) = &document.root.children[3] {
-            assert_eq!(circle.attributes.get("fill"), Some(&"green".to_string()));
-            assert_eq!(circle.attributes.get("style"), Some(&"custom-prop: value".to_string()));
-        }
+        // Find circle element - custom-prop should remain in style
+        let circle = document.root.child_elements().find(|e| e.name == "circle").unwrap();
+        assert_eq!(circle.attributes.get("fill"), Some(&"green".to_string()));
+        assert_eq!(circle.attributes.get("style"), Some(&"custom-prop: value".to_string()));
     }
     
     #[test]
@@ -162,11 +167,10 @@ mod tests {
         plugin.apply(&mut document, &plugin_info, None).unwrap();
         
         // Check that existing fill attribute is preserved
-        if let Node::Element(rect) = &document.root.children[1] {
-            assert_eq!(rect.attributes.get("fill"), Some(&"green".to_string()));
-            assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
-            assert_eq!(rect.attributes.get("style"), Some(&"fill: red".to_string()));
-        }
+        let rect = document.root.child_elements().find(|e| e.name == "rect").unwrap();
+        assert_eq!(rect.attributes.get("fill"), Some(&"green".to_string()));
+        assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
+        assert_eq!(rect.attributes.get("style"), Some(&"fill: red".to_string()));
     }
     
     #[test]
@@ -183,11 +187,10 @@ mod tests {
         plugin.apply(&mut document, &plugin_info, None).unwrap();
         
         // Check parsing of complex CSS
-        if let Node::Element(rect) = &document.root.children[1] {
-            assert_eq!(rect.attributes.get("fill"), Some(&"url(#grad)".to_string()));
-            assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
-            assert_eq!(rect.attributes.get("font-family"), Some(&"'Arial', sans-serif".to_string()));
-            assert!(!rect.attributes.contains_key("style"));
-        }
+        let rect = document.root.child_elements().find(|e| e.name == "rect").unwrap();
+        assert_eq!(rect.attributes.get("fill"), Some(&"url(#grad)".to_string()));
+        assert_eq!(rect.attributes.get("stroke"), Some(&"blue".to_string()));
+        assert_eq!(rect.attributes.get("font-family"), Some(&"'Arial', sans-serif".to_string()));
+        assert!(!rect.attributes.contains_key("style"));
     }
 }

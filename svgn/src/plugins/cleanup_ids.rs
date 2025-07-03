@@ -395,8 +395,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = CleanupIdsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that unused IDs are removed
         let defs = document.root.child_elements().next().unwrap();
@@ -425,8 +425,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = CleanupIdsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Check that ID is minified
         let defs = document.root.child_elements().next().unwrap();
@@ -451,13 +451,13 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
+        let mut plugin = CleanupIdsPlugin;
         let params = json!({
             "preserve": ["preserve-me"],
             "preservePrefixes": ["icon-"]
         });
         
-        plugin.apply(&mut document, Some(&params)).unwrap();
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), Some(&params)).unwrap();
         
         // Check that preserved IDs are kept
         let rect1 = document.root.child_elements().next().unwrap();
@@ -481,8 +481,8 @@ mod tests {
         let parser = Parser::new();
         let mut document = parser.parse(svg).unwrap();
         
-        let plugin = CleanupIdsPlugin;
-        plugin.apply(&mut document, None).unwrap();
+        let mut plugin = CleanupIdsPlugin;
+        plugin.apply(&mut document, &crate::plugin::PluginInfo::default(), None).unwrap();
         
         // Should not remove ID when scripts are present
         let rect = document.root.child_elements().nth(1).unwrap();
