@@ -233,7 +233,7 @@ This final phase focuses on preparing the project for public use.
 -   **[ ] 6.1. Code Documentation**
     -   [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions.
 
--   **[ ] 6.2. User Documentation**
+-   **[x] 6.2. User Documentation**
     -   [x] Create user-friendly documentation in the `docs/` directory.
     -   [x] This will include guides on how to use the CLI, the Rust library, and the WASM module.
     -   [x] Provide a detailed reference for all configuration options and plugins.

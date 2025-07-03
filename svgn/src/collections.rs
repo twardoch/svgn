@@ -456,3 +456,20 @@ pub static PRESENTATION_ATTRS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
         "writing-mode",
     ])
 });
+
+
+/// Properties that can contain URL references in SVG
+pub static REFERENCES_PROPS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    HashSet::from([
+        "clip-path",
+        "color-profile", 
+        "fill",
+        "filter",
+        "marker-end",
+        "marker-mid",
+        "marker-start",
+        "mask",
+        "stroke",
+        "style",
+    ])
+});
