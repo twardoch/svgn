@@ -10,7 +10,8 @@ use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
 use serde_json::Value;
 use selectors::{Parser, SelectorList};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{matches_selector_list, ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode, ElementSelectorFlags, NeedsSelectorFlags, IgnoreNthChildForInvalidation};
+use selectors::NthIndexCache;
 
 /// Plugin to remove attributes by CSS selector
 pub struct RemoveAttributesBySelectorPlugin;
@@ -106,6 +107,7 @@ fn parse_attributes(value: &Value) -> PluginResult<Vec<String>> {
 }
 
 /// Element wrapper for selector matching
+#[derive(Debug, Clone)]
 struct ElementWrapper<'a> {
     element: &'a Element,
 }
@@ -165,11 +167,8 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
     }
 
     fn has_namespace(&self, ns: &<Self::Impl as selectors::SelectorImpl>::BorrowedNamespaceUrl) -> bool {
-        if let Some(ref elem_ns) = self.element.namespace {
-            elem_ns == ns
-        } else {
-            ns.is_empty()
-        }
+        // SVG elements don't have namespaces in our AST structure
+        ns.is_empty()
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
@@ -213,18 +212,18 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
                 AttrSelectorOperation::WithValue {
                     operator,
                     case_sensitivity: _,
-                    expected_value,
+                    value,
                 } => {
                     use selectors::attr::AttrSelectorOperator::*;
                     match operator {
-                        Equal => attr_value == expected_value,
-                        Includes => attr_value.split_whitespace().any(|v| v == expected_value),
+                        Equal => attr_value == value,
+                        Includes => attr_value.split_whitespace().any(|v| v == value),
                         DashMatch => {
-                            attr_value == expected_value || attr_value.starts_with(&format!("{}-", expected_value))
+                            attr_value == value || attr_value.starts_with(&format!("{}-", value))
                         }
-                        Prefix => attr_value.starts_with(expected_value.as_ref()),
-                        Substring => attr_value.contains(expected_value.as_ref()),
-                        Suffix => attr_value.ends_with(expected_value.as_ref()),
+                        Prefix => attr_value.starts_with(value.as_ref()),
+                        Substring => attr_value.contains(value.as_ref()),
+                        Suffix => attr_value.ends_with(value.as_ref()),
                     }
                 }
             }
@@ -245,7 +244,7 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         &self,
         _pc: &<Self::Impl as selectors::SelectorImpl>::NonTSPseudoClass,
         _context: &mut MatchingContext<Self::Impl>,
-    ) -> Result<bool, selectors::matching::MatchingError> {
+    ) -> Result<bool, ()> {
         Ok(false)
     }
 
@@ -253,12 +252,20 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         false
     }
 
-    fn has_custom_state(&self, _name: &<Self::Impl as selectors::SelectorImpl>::Identifier) -> bool {
-        false
+    fn prev_sibling_element(&self) -> Option<Self> {
+        None
     }
 
-    fn is_html_document(&self) -> bool {
-        false
+    fn next_sibling_element(&self) -> Option<Self> {
+        None
+    }
+
+    fn first_element_child(&self) -> Option<Self> {
+        None
+    }
+
+    fn apply_selector_flags(&self, _flags: ElementSelectorFlags) {
+        // No flags to apply
     }
 }
 
