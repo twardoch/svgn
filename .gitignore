@@ -1,9 +1,10 @@
+.DS_Store
+.idea/
 *.pdb
 **/*.rs.bk
 **/mutants.out*/
-.idea/
 debug
 ref/
+ref/svgo
 ref/svgo/
 target/
-ref/svgo
