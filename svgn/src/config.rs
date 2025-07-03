@@ -229,7 +229,7 @@ impl Config {
     pub fn with_default_preset() -> Self {
         let mut config = Self::new();
         
-        // Add default plugins (simplified for now)
+        // Add default plugins (excluding unimplemented complex plugins for now)
         let default_plugins = vec![
             "removeComments",
             "removeMetadata", 
@@ -247,15 +247,16 @@ impl Config {
             "minifyStyles",
             "convertStyleToAttrs",
             "convertColors",
-            "convertPathData",
-            "convertTransform",
+            // TODO: Implement complex plugins:
+            // "convertPathData",    // Requires lyon integration
+            // "convertTransform",   // Requires matrix math
+            // "mergePaths",         // Requires path analysis
+            // "moveElemsAttrsToGroup", // Requires DOM analysis
+            // "moveGroupAttrsToElems", // Requires DOM analysis  
+            // "inlineStyles",       // Requires CSS parsing
             "removeEmptyText",
             "removeEmptyContainers",
-            "mergePaths",
             "collapseGroups",
-            "moveElemsAttrsToGroup",
-            "moveGroupAttrsToElems",
-            "inlineStyles",
             "sortAttrs",
         ];
 
