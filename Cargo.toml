@@ -25,6 +25,8 @@ regex = "1.10"
 indexmap = "2.2"
 base64 = "0.22"
 urlencoding = "2.1"
+cssparser = "0.31"
+lightningcss = "1.0"
 
 [dev-dependencies]
 assert_cmd = "2.0"
