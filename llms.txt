@@ -166,446 +166,6 @@ TODO.md
 <files>
 This section contains the contents of the repository's files.
 
-<file path="svgn/src/plugins/remove_off_canvas_paths.rs">
-// this_file: svgn/src/plugins/remove_off_canvas_paths.rs
-
-//! Plugin to remove paths that are drawn outside of the viewBox
-//!
-//! This plugin removes paths and shapes that are completely outside the viewBox,
-//! making them invisible and unnecessary.
-
-use crate::ast::{Document, Element, Node};
-use crate::plugin::{Plugin, PluginInfo, PluginResult};
-use serde_json::Value;
-
-#[derive(Debug, Clone, Copy)]
-struct ViewBox {
-    x: f64,
-    y: f64,
-    width: f64,
-    height: f64,
-}
-
-/// Plugin to remove paths drawn outside viewBox
-pub struct RemoveOffCanvasPathsPlugin;
-
-impl Plugin for RemoveOffCanvasPathsPlugin {
-    fn name(&self) -> &'static str {
-        "removeOffCanvasPaths"
-    }
-
-    fn description(&self) -> &'static str {
-        "removes elements that are drawn outside of the viewBox (disabled by default)"
-    }
-
-    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
-        // First, find the viewBox from the root SVG element
-        if let Some(viewbox) = self.get_viewbox(&document.root) {
-            self.process_element(&mut document.root, &viewbox);
-        }
-        Ok(())
-    }
-}
-
-impl RemoveOffCanvasPathsPlugin {
-    fn get_viewbox(&self, svg_element: &Element) -> Option<ViewBox> {
-        if svg_element.name != "svg" {
-            return None;
-        }
-
-        let viewbox_str = svg_element.attributes.get("viewBox")?;
-        let parts: Vec<f64> = viewbox_str
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
-
-        if parts.len() == 4 {
-            Some(ViewBox {
-                x: parts[0],
-                y: parts[1],
-                width: parts[2],
-                height: parts[3],
-            })
-        } else {
-            None
-        }
-    }
-
-    fn process_element(&self, element: &mut Element, viewbox: &ViewBox) {
-        // Process children and remove those outside viewBox
-        element.children.retain_mut(|child| {
-            if let Node::Element(ref mut child_elem) = child {
-                // First check if this element is outside viewBox
-                if self.is_outside_viewbox(child_elem, viewbox) {
-                    return false; // Remove this element
-                }
-                
-                // Recursively process children
-                self.process_element(child_elem, viewbox);
-                true
-            } else {
-                true // Keep non-element nodes
-            }
-        });
-    }
-
-    fn is_outside_viewbox(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        match element.name.as_str() {
-            "rect" => self.is_rect_outside(element, viewbox),
-            "circle" => self.is_circle_outside(element, viewbox),
-            "ellipse" => self.is_ellipse_outside(element, viewbox),
-            "line" => self.is_line_outside(element, viewbox),
-            "polygon" | "polyline" => self.is_polygon_outside(element, viewbox),
-            "path" => self.is_path_outside(element, viewbox),
-            _ => false, // Don't remove other elements
-        }
-    }
-
-    fn is_rect_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        let x = self.get_numeric_attr(element, "x").unwrap_or(0.0);
-        let y = self.get_numeric_attr(element, "y").unwrap_or(0.0);
-        let width = self.get_numeric_attr(element, "width").unwrap_or(0.0);
-        let height = self.get_numeric_attr(element, "height").unwrap_or(0.0);
-
-        // Check if rect is completely outside viewBox
-        x + width < viewbox.x || 
-        x > viewbox.x + viewbox.width ||
-        y + height < viewbox.y || 
-        y > viewbox.y + viewbox.height
-    }
-
-    fn is_circle_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        let cx = self.get_numeric_attr(element, "cx").unwrap_or(0.0);
-        let cy = self.get_numeric_attr(element, "cy").unwrap_or(0.0);
-        let r = self.get_numeric_attr(element, "r").unwrap_or(0.0);
-
-        // Check if circle is completely outside viewBox
-        cx + r < viewbox.x || 
-        cx - r > viewbox.x + viewbox.width ||
-        cy + r < viewbox.y || 
-        cy - r > viewbox.y + viewbox.height
-    }
-
-    fn is_ellipse_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        let cx = self.get_numeric_attr(element, "cx").unwrap_or(0.0);
-        let cy = self.get_numeric_attr(element, "cy").unwrap_or(0.0);
-        let rx = self.get_numeric_attr(element, "rx").unwrap_or(0.0);
-        let ry = self.get_numeric_attr(element, "ry").unwrap_or(0.0);
-
-        // Check if ellipse is completely outside viewBox
-        cx + rx < viewbox.x || 
-        cx - rx > viewbox.x + viewbox.width ||
-        cy + ry < viewbox.y || 
-        cy - ry > viewbox.y + viewbox.height
-    }
-
-    fn is_line_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        let x1 = self.get_numeric_attr(element, "x1").unwrap_or(0.0);
-        let y1 = self.get_numeric_attr(element, "y1").unwrap_or(0.0);
-        let x2 = self.get_numeric_attr(element, "x2").unwrap_or(0.0);
-        let y2 = self.get_numeric_attr(element, "y2").unwrap_or(0.0);
-
-        // Check if both endpoints are outside the same edge of viewBox
-        (x1 < viewbox.x && x2 < viewbox.x) ||
-        (x1 > viewbox.x + viewbox.width && x2 > viewbox.x + viewbox.width) ||
-        (y1 < viewbox.y && y2 < viewbox.y) ||
-        (y1 > viewbox.y + viewbox.height && y2 > viewbox.y + viewbox.height)
-    }
-
-    fn is_polygon_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        if let Some(points_str) = element.attributes.get("points") {
-            let points = self.parse_points(points_str);
-            if points.is_empty() {
-                return false;
-            }
-
-            // Check if all points are outside the same edge
-            let all_left = points.iter().all(|(x, _)| *x < viewbox.x);
-            let all_right = points.iter().all(|(x, _)| *x > viewbox.x + viewbox.width);
-            let all_above = points.iter().all(|(_, y)| *y < viewbox.y);
-            let all_below = points.iter().all(|(_, y)| *y > viewbox.y + viewbox.height);
-
-            all_left || all_right || all_above || all_below
-        } else {
-            false
-        }
-    }
-
-    fn is_path_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
-        if let Some(d) = element.attributes.get("d") {
-            // Simple heuristic: extract numeric values from path data
-            // This is a simplified check - a full implementation would parse the path
-            let bounds = self.get_path_bounds(d);
-            if let Some((min_x, min_y, max_x, max_y)) = bounds {
-                max_x < viewbox.x || 
-                min_x > viewbox.x + viewbox.width ||
-                max_y < viewbox.y || 
-                min_y > viewbox.y + viewbox.height
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    fn parse_points(&self, points_str: &str) -> Vec<(f64, f64)> {
-        let numbers: Vec<f64> = points_str
-            .split(|c: char| c.is_whitespace() || c == ',')
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
-
-        numbers
-            .chunks(2)
-            .filter_map(|chunk| {
-                if chunk.len() == 2 {
-                    Some((chunk[0], chunk[1]))
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
-    fn get_path_bounds(&self, d: &str) -> Option<(f64, f64, f64, f64)> {
-        // Extract numbers from path data (simplified)
-        let numbers: Vec<f64> = d
-            .split(|c: char| c.is_alphabetic() || c.is_whitespace() || c == ',')
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
-
-        if numbers.is_empty() {
-            return None;
-        }
-
-        let mut min_x = f64::INFINITY;
-        let mut max_x = f64::NEG_INFINITY;
-        let mut min_y = f64::INFINITY;
-        let mut max_y = f64::NEG_INFINITY;
-
-        // Process numbers in pairs (x, y)
-        for chunk in numbers.chunks(2) {
-            if chunk.len() >= 1 {
-                let x = chunk[0];
-                min_x = min_x.min(x);
-                max_x = max_x.max(x);
-            }
-            if chunk.len() >= 2 {
-                let y = chunk[1];
-                min_y = min_y.min(y);
-                max_y = max_y.max(y);
-            }
-        }
-
-        Some((min_x, min_y, max_x, max_y))
-    }
-
-    fn get_numeric_attr(&self, element: &Element, attr_name: &str) -> Option<f64> {
-        element.attributes.get(attr_name)?.parse::<f64>().ok()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{Document, Element, Node};
-    use std::collections::HashMap;
-    use indexmap::IndexMap;
-
-    fn create_test_document_with_viewbox(viewbox: &str) -> Document {
-        let mut root_attrs = IndexMap::new();
-        root_attrs.insert("viewBox".to_string(), viewbox.to_string());
-        
-        Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: root_attrs,
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            ..Default::default()
-        }
-    }
-
-    fn create_element(name: &str, attrs: Vec<(&str, &str)>) -> Element {
-        let mut attributes = IndexMap::new();
-        for (k, v) in attrs {
-            attributes.insert(k.to_string(), v.to_string());
-        }
-        Element {
-            name: name.to_string(),
-            attributes,
-            namespaces: HashMap::new(),
-            children: vec![],
-        }
-    }
-
-    #[test]
-    fn test_plugin_name_and_description() {
-        let plugin = RemoveOffCanvasPathsPlugin;
-        assert_eq!(plugin.name(), "removeOffCanvasPaths");
-        assert_eq!(plugin.description(), "removes elements that are drawn outside of the viewBox (disabled by default)");
-    }
-
-    #[test]
-    fn test_remove_rect_outside_viewbox() {
-        let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
-        document.root.children = vec![
-            // Rect completely outside (left)
-            Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
-            // Rect completely outside (right)
-            Node::Element(create_element("rect", vec![("x", "110"), ("y", "10"), ("width", "40"), ("height", "40")])),
-            // Rect inside viewBox
-            Node::Element(create_element("rect", vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")])),
-            // Rect partially outside (should keep)
-            Node::Element(create_element("rect", vec![("x", "90"), ("y", "10"), ("width", "20"), ("height", "40")])),
-        ];
-
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        // Only rects completely outside should be removed
-        assert_eq!(document.root.children.len(), 2);
-    }
-
-    #[test]
-    fn test_remove_circle_outside_viewbox() {
-        let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
-        document.root.children = vec![
-            // Circle completely outside
-            Node::Element(create_element("circle", vec![("cx", "-20"), ("cy", "50"), ("r", "10")])),
-            // Circle inside
-            Node::Element(create_element("circle", vec![("cx", "50"), ("cy", "50"), ("r", "30")])),
-            // Circle touching edge (should keep)
-            Node::Element(create_element("circle", vec![("cx", "95"), ("cy", "50"), ("r", "10")])),
-        ];
-
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        assert_eq!(document.root.children.len(), 2);
-    }
-
-    #[test]
-    fn test_remove_line_outside_viewbox() {
-        let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
-        document.root.children = vec![
-            // Line completely outside (both points left)
-            Node::Element(create_element("line", vec![("x1", "-20"), ("y1", "10"), ("x2", "-10"), ("y2", "20")])),
-            // Line crossing viewBox (should keep)
-            Node::Element(create_element("line", vec![("x1", "-10"), ("y1", "50"), ("x2", "110"), ("y2", "50")])),
-            // Line inside
-            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "90"), ("y2", "90")])),
-        ];
-
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        assert_eq!(document.root.children.len(), 2);
-    }
-
-    #[test]
-    fn test_remove_polygon_outside_viewbox() {
-        let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
-        document.root.children = vec![
-            // Polygon completely outside
-            Node::Element(create_element("polygon", vec![("points", "110,10 120,20 115,30")])),
-            // Polygon inside
-            Node::Element(create_element("polygon", vec![("points", "10,10 50,10 30,50")])),
-        ];
-
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        assert_eq!(document.root.children.len(), 1);
-    }
-
-    #[test]
-    fn test_no_viewbox_no_removal() {
-        let mut document = Document {
-            root: Element {
-                name: "svg".to_string(),
-                attributes: IndexMap::new(),
-                namespaces: HashMap::new(),
-                children: vec![],
-            },
-            ..Default::default()
-        };
-        
-        document.root.children = vec![
-            Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
-            Node::Element(create_element("circle", vec![("cx", "1000"), ("cy", "1000"), ("r", "50")])),
-        ];
-
-        let initial_count = document.root.children.len();
-        
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        // Without viewBox, nothing should be removed
-        assert_eq!(document.root.children.len(), initial_count);
-    }
-
-    #[test]
-    fn test_nested_elements() {
-        let mut document = create_test_document_with_viewbox("0 0 100 100");
-        
-        let mut group = Element {
-            name: "g".to_string(),
-            attributes: IndexMap::new(),
-            namespaces: HashMap::new(),
-            children: vec![
-                // Rect outside
-                Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
-                // Rect inside
-                Node::Element(create_element("rect", vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")])),
-            ],
-        };
-        
-        document.root.children = vec![Node::Element(group)];
-
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        // Group should remain with only the inside rect
-        if let Node::Element(group) = &document.root.children[0] {
-            assert_eq!(group.children.len(), 1);
-        }
-    }
-
-    #[test]
-    fn test_viewbox_with_offset() {
-        let mut document = create_test_document_with_viewbox("50 50 100 100");
-        
-        document.root.children = vec![
-            // Rect outside the offset viewBox
-            Node::Element(create_element("rect", vec![("x", "0"), ("y", "0"), ("width", "40"), ("height", "40")])),
-            // Rect inside the offset viewBox
-            Node::Element(create_element("rect", vec![("x", "60"), ("y", "60"), ("width", "40"), ("height", "40")])),
-        ];
-
-        let mut plugin = RemoveOffCanvasPathsPlugin;
-        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
-        assert!(result.is_ok());
-
-        assert_eq!(document.root.children.len(), 1);
-        if let Node::Element(elem) = &document.root.children[0] {
-            assert_eq!(elem.attributes.get("x"), Some(&"60".to_string()));
-        }
-    }
-}
-</file>
-
 <file path=".specstory/.what-is-this.md">
 # SpecStory Artifacts Directory
     
@@ -8700,6 +8260,446 @@ mod tests {
 }
 </file>
 
+<file path="svgn/src/plugins/remove_off_canvas_paths.rs">
+// this_file: svgn/src/plugins/remove_off_canvas_paths.rs
+
+//! Plugin to remove paths that are drawn outside of the viewBox
+//!
+//! This plugin removes paths and shapes that are completely outside the viewBox,
+//! making them invisible and unnecessary.
+
+use crate::ast::{Document, Element, Node};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use serde_json::Value;
+
+#[derive(Debug, Clone, Copy)]
+struct ViewBox {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+/// Plugin to remove paths drawn outside viewBox
+pub struct RemoveOffCanvasPathsPlugin;
+
+impl Plugin for RemoveOffCanvasPathsPlugin {
+    fn name(&self) -> &'static str {
+        "removeOffCanvasPaths"
+    }
+
+    fn description(&self) -> &'static str {
+        "removes elements that are drawn outside of the viewBox (disabled by default)"
+    }
+
+    fn apply(&mut self, document: &mut Document, _info: &PluginInfo, _params: Option<&Value>) -> PluginResult<()> {
+        // First, find the viewBox from the root SVG element
+        if let Some(viewbox) = self.get_viewbox(&document.root) {
+            self.process_element(&mut document.root, &viewbox);
+        }
+        Ok(())
+    }
+}
+
+impl RemoveOffCanvasPathsPlugin {
+    fn get_viewbox(&self, svg_element: &Element) -> Option<ViewBox> {
+        if svg_element.name != "svg" {
+            return None;
+        }
+
+        let viewbox_str = svg_element.attributes.get("viewBox")?;
+        let parts: Vec<f64> = viewbox_str
+            .split_whitespace()
+            .filter_map(|s| s.parse::<f64>().ok())
+            .collect();
+
+        if parts.len() == 4 {
+            Some(ViewBox {
+                x: parts[0],
+                y: parts[1],
+                width: parts[2],
+                height: parts[3],
+            })
+        } else {
+            None
+        }
+    }
+
+    fn process_element(&self, element: &mut Element, viewbox: &ViewBox) {
+        // Process children and remove those outside viewBox
+        element.children.retain_mut(|child| {
+            if let Node::Element(ref mut child_elem) = child {
+                // First check if this element is outside viewBox
+                if self.is_outside_viewbox(child_elem, viewbox) {
+                    return false; // Remove this element
+                }
+                
+                // Recursively process children
+                self.process_element(child_elem, viewbox);
+                true
+            } else {
+                true // Keep non-element nodes
+            }
+        });
+    }
+
+    fn is_outside_viewbox(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        match element.name.as_str() {
+            "rect" => self.is_rect_outside(element, viewbox),
+            "circle" => self.is_circle_outside(element, viewbox),
+            "ellipse" => self.is_ellipse_outside(element, viewbox),
+            "line" => self.is_line_outside(element, viewbox),
+            "polygon" | "polyline" => self.is_polygon_outside(element, viewbox),
+            "path" => self.is_path_outside(element, viewbox),
+            _ => false, // Don't remove other elements
+        }
+    }
+
+    fn is_rect_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        let x = self.get_numeric_attr(element, "x").unwrap_or(0.0);
+        let y = self.get_numeric_attr(element, "y").unwrap_or(0.0);
+        let width = self.get_numeric_attr(element, "width").unwrap_or(0.0);
+        let height = self.get_numeric_attr(element, "height").unwrap_or(0.0);
+
+        // Check if rect is completely outside viewBox
+        x + width < viewbox.x || 
+        x > viewbox.x + viewbox.width ||
+        y + height < viewbox.y || 
+        y > viewbox.y + viewbox.height
+    }
+
+    fn is_circle_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        let cx = self.get_numeric_attr(element, "cx").unwrap_or(0.0);
+        let cy = self.get_numeric_attr(element, "cy").unwrap_or(0.0);
+        let r = self.get_numeric_attr(element, "r").unwrap_or(0.0);
+
+        // Check if circle is completely outside viewBox
+        cx + r < viewbox.x || 
+        cx - r > viewbox.x + viewbox.width ||
+        cy + r < viewbox.y || 
+        cy - r > viewbox.y + viewbox.height
+    }
+
+    fn is_ellipse_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        let cx = self.get_numeric_attr(element, "cx").unwrap_or(0.0);
+        let cy = self.get_numeric_attr(element, "cy").unwrap_or(0.0);
+        let rx = self.get_numeric_attr(element, "rx").unwrap_or(0.0);
+        let ry = self.get_numeric_attr(element, "ry").unwrap_or(0.0);
+
+        // Check if ellipse is completely outside viewBox
+        cx + rx < viewbox.x || 
+        cx - rx > viewbox.x + viewbox.width ||
+        cy + ry < viewbox.y || 
+        cy - ry > viewbox.y + viewbox.height
+    }
+
+    fn is_line_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        let x1 = self.get_numeric_attr(element, "x1").unwrap_or(0.0);
+        let y1 = self.get_numeric_attr(element, "y1").unwrap_or(0.0);
+        let x2 = self.get_numeric_attr(element, "x2").unwrap_or(0.0);
+        let y2 = self.get_numeric_attr(element, "y2").unwrap_or(0.0);
+
+        // Check if both endpoints are outside the same edge of viewBox
+        (x1 < viewbox.x && x2 < viewbox.x) ||
+        (x1 > viewbox.x + viewbox.width && x2 > viewbox.x + viewbox.width) ||
+        (y1 < viewbox.y && y2 < viewbox.y) ||
+        (y1 > viewbox.y + viewbox.height && y2 > viewbox.y + viewbox.height)
+    }
+
+    fn is_polygon_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        if let Some(points_str) = element.attributes.get("points") {
+            let points = self.parse_points(points_str);
+            if points.is_empty() {
+                return false;
+            }
+
+            // Check if all points are outside the same edge
+            let all_left = points.iter().all(|(x, _)| *x < viewbox.x);
+            let all_right = points.iter().all(|(x, _)| *x > viewbox.x + viewbox.width);
+            let all_above = points.iter().all(|(_, y)| *y < viewbox.y);
+            let all_below = points.iter().all(|(_, y)| *y > viewbox.y + viewbox.height);
+
+            all_left || all_right || all_above || all_below
+        } else {
+            false
+        }
+    }
+
+    fn is_path_outside(&self, element: &Element, viewbox: &ViewBox) -> bool {
+        if let Some(d) = element.attributes.get("d") {
+            // Simple heuristic: extract numeric values from path data
+            // This is a simplified check - a full implementation would parse the path
+            let bounds = self.get_path_bounds(d);
+            if let Some((min_x, min_y, max_x, max_y)) = bounds {
+                max_x < viewbox.x || 
+                min_x > viewbox.x + viewbox.width ||
+                max_y < viewbox.y || 
+                min_y > viewbox.y + viewbox.height
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn parse_points(&self, points_str: &str) -> Vec<(f64, f64)> {
+        let numbers: Vec<f64> = points_str
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter_map(|s| s.parse::<f64>().ok())
+            .collect();
+
+        numbers
+            .chunks(2)
+            .filter_map(|chunk| {
+                if chunk.len() == 2 {
+                    Some((chunk[0], chunk[1]))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn get_path_bounds(&self, d: &str) -> Option<(f64, f64, f64, f64)> {
+        // Extract numbers from path data (simplified)
+        let numbers: Vec<f64> = d
+            .split(|c: char| c.is_alphabetic() || c.is_whitespace() || c == ',')
+            .filter_map(|s| s.parse::<f64>().ok())
+            .collect();
+
+        if numbers.is_empty() {
+            return None;
+        }
+
+        let mut min_x = f64::INFINITY;
+        let mut max_x = f64::NEG_INFINITY;
+        let mut min_y = f64::INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+
+        // Process numbers in pairs (x, y)
+        for chunk in numbers.chunks(2) {
+            if chunk.len() >= 1 {
+                let x = chunk[0];
+                min_x = min_x.min(x);
+                max_x = max_x.max(x);
+            }
+            if chunk.len() >= 2 {
+                let y = chunk[1];
+                min_y = min_y.min(y);
+                max_y = max_y.max(y);
+            }
+        }
+
+        Some((min_x, min_y, max_x, max_y))
+    }
+
+    fn get_numeric_attr(&self, element: &Element, attr_name: &str) -> Option<f64> {
+        element.attributes.get(attr_name)?.parse::<f64>().ok()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use std::collections::HashMap;
+    use indexmap::IndexMap;
+
+    fn create_test_document_with_viewbox(viewbox: &str) -> Document {
+        let mut root_attrs = IndexMap::new();
+        root_attrs.insert("viewBox".to_string(), viewbox.to_string());
+        
+        Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: root_attrs,
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        }
+    }
+
+    fn create_element(name: &str, attrs: Vec<(&str, &str)>) -> Element {
+        let mut attributes = IndexMap::new();
+        for (k, v) in attrs {
+            attributes.insert(k.to_string(), v.to_string());
+        }
+        Element {
+            name: name.to_string(),
+            attributes,
+            namespaces: HashMap::new(),
+            children: vec![],
+        }
+    }
+
+    #[test]
+    fn test_plugin_name_and_description() {
+        let plugin = RemoveOffCanvasPathsPlugin;
+        assert_eq!(plugin.name(), "removeOffCanvasPaths");
+        assert_eq!(plugin.description(), "removes elements that are drawn outside of the viewBox (disabled by default)");
+    }
+
+    #[test]
+    fn test_remove_rect_outside_viewbox() {
+        let mut document = create_test_document_with_viewbox("0 0 100 100");
+        
+        document.root.children = vec![
+            // Rect completely outside (left)
+            Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            // Rect completely outside (right)
+            Node::Element(create_element("rect", vec![("x", "110"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            // Rect inside viewBox
+            Node::Element(create_element("rect", vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            // Rect partially outside (should keep)
+            Node::Element(create_element("rect", vec![("x", "90"), ("y", "10"), ("width", "20"), ("height", "40")])),
+        ];
+
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Only rects completely outside should be removed
+        assert_eq!(document.root.children.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_circle_outside_viewbox() {
+        let mut document = create_test_document_with_viewbox("0 0 100 100");
+        
+        document.root.children = vec![
+            // Circle completely outside
+            Node::Element(create_element("circle", vec![("cx", "-20"), ("cy", "50"), ("r", "10")])),
+            // Circle inside
+            Node::Element(create_element("circle", vec![("cx", "50"), ("cy", "50"), ("r", "30")])),
+            // Circle touching edge (should keep)
+            Node::Element(create_element("circle", vec![("cx", "95"), ("cy", "50"), ("r", "10")])),
+        ];
+
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        assert_eq!(document.root.children.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_line_outside_viewbox() {
+        let mut document = create_test_document_with_viewbox("0 0 100 100");
+        
+        document.root.children = vec![
+            // Line completely outside (both points left)
+            Node::Element(create_element("line", vec![("x1", "-20"), ("y1", "10"), ("x2", "-10"), ("y2", "20")])),
+            // Line crossing viewBox (should keep)
+            Node::Element(create_element("line", vec![("x1", "-10"), ("y1", "50"), ("x2", "110"), ("y2", "50")])),
+            // Line inside
+            Node::Element(create_element("line", vec![("x1", "10"), ("y1", "10"), ("x2", "90"), ("y2", "90")])),
+        ];
+
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        assert_eq!(document.root.children.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_polygon_outside_viewbox() {
+        let mut document = create_test_document_with_viewbox("0 0 100 100");
+        
+        document.root.children = vec![
+            // Polygon completely outside
+            Node::Element(create_element("polygon", vec![("points", "110,10 120,20 115,30")])),
+            // Polygon inside
+            Node::Element(create_element("polygon", vec![("points", "10,10 50,10 30,50")])),
+        ];
+
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        assert_eq!(document.root.children.len(), 1);
+    }
+
+    #[test]
+    fn test_no_viewbox_no_removal() {
+        let mut document = Document {
+            root: Element {
+                name: "svg".to_string(),
+                attributes: IndexMap::new(),
+                namespaces: HashMap::new(),
+                children: vec![],
+            },
+            ..Default::default()
+        };
+        
+        document.root.children = vec![
+            Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            Node::Element(create_element("circle", vec![("cx", "1000"), ("cy", "1000"), ("r", "50")])),
+        ];
+
+        let initial_count = document.root.children.len();
+        
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Without viewBox, nothing should be removed
+        assert_eq!(document.root.children.len(), initial_count);
+    }
+
+    #[test]
+    fn test_nested_elements() {
+        let mut document = create_test_document_with_viewbox("0 0 100 100");
+        
+        let mut group = Element {
+            name: "g".to_string(),
+            attributes: IndexMap::new(),
+            namespaces: HashMap::new(),
+            children: vec![
+                // Rect outside
+                Node::Element(create_element("rect", vec![("x", "-50"), ("y", "10"), ("width", "40"), ("height", "40")])),
+                // Rect inside
+                Node::Element(create_element("rect", vec![("x", "10"), ("y", "10"), ("width", "40"), ("height", "40")])),
+            ],
+        };
+        
+        document.root.children = vec![Node::Element(group)];
+
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        // Group should remain with only the inside rect
+        if let Node::Element(group) = &document.root.children[0] {
+            assert_eq!(group.children.len(), 1);
+        }
+    }
+
+    #[test]
+    fn test_viewbox_with_offset() {
+        let mut document = create_test_document_with_viewbox("50 50 100 100");
+        
+        document.root.children = vec![
+            // Rect outside the offset viewBox
+            Node::Element(create_element("rect", vec![("x", "0"), ("y", "0"), ("width", "40"), ("height", "40")])),
+            // Rect inside the offset viewBox
+            Node::Element(create_element("rect", vec![("x", "60"), ("y", "60"), ("width", "40"), ("height", "40")])),
+        ];
+
+        let mut plugin = RemoveOffCanvasPathsPlugin;
+        let result = plugin.apply(&mut document, &PluginInfo::default(), None);
+        assert!(result.is_ok());
+
+        assert_eq!(document.root.children.len(), 1);
+        if let Node::Element(elem) = &document.root.children[0] {
+            assert_eq!(elem.attributes.get("x"), Some(&"60".to_string()));
+        }
+    }
+}
+</file>
+
 <file path="svgn/src/plugins/remove_raster_images.rs">
 // this_file: svgn/src/plugins/remove_raster_images.rs
 
@@ -15884,87 +15884,6 @@ If you work with Python, use 'uv pip' instead of 'pip', and use 'uvx hatch test'
 When I say "/report", you must: Read all `./TODO.md` and `./PLAN.md` files and analyze recent changes. Document all changes in `./CHANGELOG.md`. From `./TODO.md` and `./PLAN.md` remove things that are done. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics, while `./TODO.md` is its flat simplified itemized `- [ ]`-prefixed representation. When I say "/work", you must work in iterations like so: Read all `./TODO.md` and `./PLAN.md` files and reflect. Work on the tasks. Think, contemplate, research, reflect, refine, revise. Be careful, curious, vigilant, energetic. Verify your changes. Think aloud. Consult, research, reflect. Then update `./PLAN.md` and `./TODO.md` with tasks that will lead to improving the work you’ve just done. Then '/report', and then iterate again.
 </file>
 
-<file path="generate_compatibility_tests.py">
-import os
-import re
-
-def normalize_svg(svg_string):
-    return svg_string.strip().replace('\r\n', '\n')
-
-def generate_rust_test_file(fixtures_dir, output_file):
-    test_cases = []
-    for root, _, files in os.walk(fixtures_dir):
-        for file_name in files:
-            if file_name.endswith(".svg.txt"):
-                file_path = os.path.join(root, file_name)
-                relative_path = os.path.relpath(file_path, fixtures_dir)
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-
-                # Split by '===' to separate description from test case
-                parts = content.split('===')
-                test_content = parts[1] if len(parts) > 1 else parts[0]
-
-                # Split by '@@@' to separate original, expected, and params
-                test_parts = test_content.split('@@@')
-                original_svg = normalize_svg(test_parts[0])
-                expected_svg = normalize_svg(test_parts[1]) if len(test_parts) > 1 else ""
-                params_json = test_parts[2].strip() if len(test_parts) > 2 else "{}"
-
-                # Extract plugin name from filename (e.g., removeComments.01.svg.txt -> removeComments)
-                plugin_name_match = re.match(r'([a-zA-Z0-9]+)\.\d+\.svg\.txt', file_name)
-                plugin_name = plugin_name_match.group(1) if plugin_name_match else "unknown_plugin"
-
-                test_cases.append({
-                    "name": os.path.splitext(os.path.splitext(file_name)[0])[0].replace('.', '_').replace('-', '_'),
-                    "original": original_svg,
-                    "expected": expected_svg,
-                    "plugin_name": plugin_name,
-                    "params": params_json,
-                    "file_path": relative_path.replace('\\', '/'), # Use forward slashes for Rust path
-                })
-
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write("// This file is auto-generated by generate_compatibility_tests.py\n")
-        f.write("// Do not modify it directly.\n\n")
-        f.write("use crate::optimize;\n")
-        f.write("use crate::config::{Config, PluginConfig};\n")
-        f.write("use std::collections::HashMap;\n")
-        f.write("use serde_json::from_str;\n\n")
-        f.write("fn normalize_svg(s: &str) -> String {\n")
-        f.write("    s.trim().replace("\r\n", "\n").to_string()\n")
-        f.write("}\n\n")
-        f.write("#[test]\n")
-        f.write("fn compatibility_tests() {\n")
-        f.write("    let test_cases: Vec<(&str, &str, &str, &str, &str)> = vec![\n")
-        for case in test_cases:
-            f.write(f"        (\"{case['name']}\", r#\"{case['original']}\"#, r#\"{case['expected']}\"#, \"{case['plugin_name']}\", r#\"{case['params']}\"#),\n")
-        f.write("    ];\n\n")
-        f.write("    for (name, original, expected, plugin_name, params_json) in test_cases {\n")
-        f.write("        println!(\"Running test: {}\n\", name);\n")
-        f.write("        let mut config = Config::default();\n")
-        f.write("        let mut plugin_map = HashMap::new();\n")
-        f.write("        let params: serde_json::Value = from_str(params_json).unwrap();\n")
-        f.write("        plugin_map.insert(plugin_name.to_string(), params);\n")
-        f.write("        config.plugins = Some(vec![PluginConfig::Enabled { name: plugin_name.to_string(), params: Some(plugin_map) }]);\n")
-        f.write("        \n")
-        f.write("        let result = optimize(original.to_string(), Some(config));\n")
-        f.write("        assert!(result.is_ok(), \"Test {} failed with error: {:?}\", name, result.err());\n")
-        f.write("        let optimized_svg = normalize_svg(&result.unwrap().data);\n")
-        f.write("        assert_eq!(optimized_svg, expected, \"Test {} failed\\nOriginal:\\n{}\nExpected:\\n{}\nActual:\\n{}\", name, original, expected, optimized_svg);\n")
-        f.write("    }\n")
-        f.write("}\n")
-
-if __name__ == "__main__":
-    fixtures_dir = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/ref/svgo/test/plugins"
-    output_file = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/compatibility_plugins_test.rs"
-    generate_rust_test_file(fixtures_dir, output_file)
-
-    fixtures_dir = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/ref/svgo/test/svgo"
-    output_file = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/compatibility_svgo_test.rs"
-    generate_rust_test_file(fixtures_dir, output_file)
-</file>
-
 <file path="LICENSE">
 MIT License
 
@@ -19295,6 +19214,87 @@ mod tests {
 - [ ] No compiler warnings or test failures observed.
 </file>
 
+<file path="generate_compatibility_tests.py">
+import os
+import re
+
+def normalize_svg(svg_string):
+    return svg_string.strip().replace('\r\n', '\n')
+
+def generate_rust_test_file(fixtures_dir, output_file):
+    test_cases = []
+    for root, _, files in os.walk(fixtures_dir):
+        for file_name in files:
+            if file_name.endswith(".svg.txt"):
+                file_path = os.path.join(root, file_name)
+                relative_path = os.path.relpath(file_path, fixtures_dir)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Split by '===' to separate description from test case
+                parts = content.split('===')
+                test_content = parts[1] if len(parts) > 1 else parts[0]
+
+                # Split by '@@@' to separate original, expected, and params
+                test_parts = test_content.split('@@@')
+                original_svg = normalize_svg(test_parts[0])
+                expected_svg = normalize_svg(test_parts[1]) if len(test_parts) > 1 else ""
+                params_json = test_parts[2].strip() if len(test_parts) > 2 else "{}"
+
+                # Extract plugin name from filename (e.g., removeComments.01.svg.txt -> removeComments)
+                plugin_name_match = re.match(r'([a-zA-Z0-9]+)\.\d+\.svg\.txt', file_name)
+                plugin_name = plugin_name_match.group(1) if plugin_name_match else "unknown_plugin"
+
+                test_cases.append({
+                    "name": os.path.splitext(os.path.splitext(file_name)[0])[0].replace('.', '_').replace('-', '_'),
+                    "original": original_svg,
+                    "expected": expected_svg,
+                    "plugin_name": plugin_name,
+                    "params": params_json,
+                    "file_path": relative_path.replace('\\', '/'), # Use forward slashes for Rust path
+                })
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("// This file is auto-generated by generate_compatibility_tests.py\n")
+        f.write("// Do not modify it directly.\n\n")
+        f.write("use crate::optimize;\n")
+        f.write("use crate::config::{Config, PluginConfig};\n")
+        f.write("use std::collections::HashMap;\n")
+        f.write("use serde_json::from_str;\n\n")
+        f.write("fn normalize_svg(s: &str) -> String {\n")
+        f.write("    s.trim().replace("\r\n", "\n").to_string()\n")
+        f.write("}\n\n")
+        f.write("#[test]\n")
+        f.write("fn compatibility_tests() {\n")
+        f.write("    let test_cases: Vec<(&str, &str, &str, &str, &str)> = vec![\n")
+        for case in test_cases:
+            f.write(f"        (\"{case['name']}\", r#\"{case['original']}\"#, r#\"{case['expected']}\"#, \"{case['plugin_name']}\", r#\"{case['params']}\"#),\n")
+        f.write("    ];\n\n")
+        f.write("    for (name, original, expected, plugin_name, params_json) in test_cases {\n")
+        f.write("        println!(\"Running test: {}\n\", name);\n")
+        f.write("        let mut config = Config::default();\n")
+        f.write("        let mut plugin_map = HashMap::new();\n")
+        f.write("        let params: serde_json::Value = from_str(params_json).unwrap();\n")
+        f.write("        plugin_map.insert(plugin_name.to_string(), params);\n")
+        f.write("        config.plugins = Some(vec![PluginConfig::Enabled { name: plugin_name.to_string(), params: Some(plugin_map) }]);\n")
+        f.write("        \n")
+        f.write("        let result = optimize(original.to_string(), Some(config));\n")
+        f.write("        assert!(result.is_ok(), \"Test {} failed with error: {:?}\", name, result.err());\n")
+        f.write("        let optimized_svg = normalize_svg(&result.unwrap().data);\n")
+        f.write("        assert_eq!(optimized_svg, expected, \"Test {} failed\\nOriginal:\\n{}\nExpected:\\n{}\nActual:\\n{}\", name, original, expected, optimized_svg);\n")
+        f.write("    }\n")
+        f.write("}\n")
+
+if __name__ == "__main__":
+    fixtures_dir = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/ref/svgo/test/plugins"
+    output_file = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/compatibility_plugins_test.rs"
+    generate_rust_test_file(fixtures_dir, output_file)
+
+    fixtures_dir = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/ref/svgo/test/svgo"
+    output_file = "/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/compatibility_svgo_test.rs"
+    generate_rust_test_file(fixtures_dir, output_file)
+</file>
+
 <file path="README.md">
 # SVGN: A Native Rust SVG Optimizer
 
@@ -19339,151 +19339,6 @@ yarn test           # Run tests with coverage
 yarn lint           # Run ESLint and Prettier
 yarn qa             # Run all quality checks
 ```
-</file>
-
-<file path="svgn/Cargo.toml">
-[package]
-name = "svgn"
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-description = "A high-performance Rust port of SVGO (SVG Optimizer)"
-readme = "../README.md"
-keywords = ["svg", "optimization", "graphics", "xml", "cli"]
-categories = ["graphics", "command-line-utilities", "web-programming"]
-
-[[bin]]
-name = "svgn"
-path = "src/bin/svgn.rs"
-
-[dependencies]
-once_cell = { workspace = true }
-# XML parsing
-quick-xml = { workspace = true }
-
-# CSS parsing  
-cssparser = { workspace = true }
-selectors = { workspace = true }
-
-# CLI
-clap = { workspace = true }
-
-# Configuration and serialization
-serde = { workspace = true }
-serde_json = { workspace = true }
-toml = { workspace = true }
-
-# Path processing
-lyon = { workspace = true }
-
-# Optional: SVG utilities
-usvg = { version = "0.42", optional = true }
-
-# Error handling
-thiserror = { workspace = true }
-
-# Regular expressions
-regex = { workspace = true }
-
-# URL encoding
-urlencoding = { workspace = true }
-
-# Ordered maps
-indexmap = { workspace = true }
-
-# WASM support
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { workspace = true }
-js-sys = { workspace = true }
-
-[features]
-default = []
-usvg-utils = ["dep:usvg"]
-
-[dev-dependencies]
-criterion = { workspace = true }
-
-[[bench]]
-name = "optimization"
-harness = false
-</file>
-
-<file path=".gitignore">
-*.pdb
-**/*.rs.bk
-**/mutants.out*/
-.idea/
-debug
-ref/
-ref/svgo/
-target/
-</file>
-
-<file path="Cargo.toml">
-# this_file: Cargo.toml
-
-[workspace]
-members = ["svgn"]
-default-members = ["svgn"]
-resolver = "2"
-
-[workspace.package]
-version = "0.1.0"
-edition = "2021"
-authors = ["Adam Twardoch <adam@twardoch.com>"]
-license = "MIT"
-repository = "https://github.com/twardoch/svgn"
-homepage = "https://github.com/twardoch/svgn"
-
-[workspace.dependencies]
-# Core dependencies
-clap = { version = "4.4", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-anyhow = "1.0"
-thiserror = "1.0"
-
-# XML parsing
-quick-xml = "0.31"
-roxmltree = "0.20"
-
-# CSS parsing
-cssparser = "0.31"
-selectors = "0.25"
-lightningcss = "1.0.0-alpha.67"
-
-# Utils
-regex = "1.10"
-indexmap = "2.0"
-base64 = "0.22"
-urlencoding = "2.1"
-once_cell = "1.19.0"
-toml = "0.8"
-
-# Path processing
-lyon = "1.0"
-
-# Optional: SVG utilities
-usvg = { version = "0.42" }
-
-# Dev dependencies
-assert_cmd = "2.0"
-predicates = "3.0"
-tempfile = "3.8"
-criterion = "0.5"
-
-# WASM support
-wasm-bindgen = "0.2"
-js-sys = "0.3"
-
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-panic = "abort"
 </file>
 
 <file path="svgn/src/plugins/convert_one_stop_gradients.rs">
@@ -20548,6 +20403,152 @@ mod tests {
         assert!(result.is_err());
     }
 }
+</file>
+
+<file path="svgn/Cargo.toml">
+[package]
+name = "svgn"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "A high-performance Rust port of SVGO (SVG Optimizer)"
+readme = "../README.md"
+keywords = ["svg", "optimization", "graphics", "xml", "cli"]
+categories = ["graphics", "command-line-utilities", "web-programming"]
+
+[[bin]]
+name = "svgn"
+path = "src/bin/svgn.rs"
+
+[dependencies]
+once_cell = { workspace = true }
+# XML parsing
+quick-xml = { workspace = true }
+
+# CSS parsing  
+cssparser = { workspace = true }
+selectors = { workspace = true }
+
+# CLI
+clap = { workspace = true }
+
+# Configuration and serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+
+# Path processing
+lyon = { workspace = true }
+
+# Optional: SVG utilities
+usvg = { version = "0.42", optional = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Regular expressions
+regex = { workspace = true }
+
+# URL encoding
+urlencoding = { workspace = true }
+
+# Ordered maps
+indexmap = { workspace = true }
+
+# WASM support
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+
+[features]
+default = []
+usvg-utils = ["dep:usvg"]
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "optimization"
+harness = false
+</file>
+
+<file path=".gitignore">
+*.pdb
+**/*.rs.bk
+**/mutants.out*/
+.idea/
+debug
+ref/
+ref/svgo/
+target/
+ref/svgo
+</file>
+
+<file path="Cargo.toml">
+# this_file: Cargo.toml
+
+[workspace]
+members = ["svgn"]
+default-members = ["svgn"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Adam Twardoch <adam@twardoch.com>"]
+license = "MIT"
+repository = "https://github.com/twardoch/svgn"
+homepage = "https://github.com/twardoch/svgn"
+
+[workspace.dependencies]
+# Core dependencies
+clap = { version = "4.4", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# XML parsing
+quick-xml = "0.31"
+roxmltree = "0.20"
+
+# CSS parsing
+cssparser = "0.31"
+selectors = "0.25"
+lightningcss = "1.0.0-alpha.67"
+
+# Utils
+regex = "1.10"
+indexmap = "2.0"
+base64 = "0.22"
+urlencoding = "2.1"
+once_cell = "1.19.0"
+toml = "0.8"
+
+# Path processing
+lyon = "1.0"
+
+# Optional: SVG utilities
+usvg = { version = "0.42" }
+
+# Dev dependencies
+assert_cmd = "2.0"
+predicates = "3.0"
+tempfile = "3.8"
+criterion = "0.5"
+
+# WASM support
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
 </file>
 
 <file path="docs/index.md">
@@ -21948,46 +21949,43 @@ mod tests {
 </file>
 
 <file path="CHANGELOG.md">
+# svgn Changelog
+
+## Initial Testing and Setup (2025-07-03)
 - Ran `yarn test` in `ref/svgo`.
 - Documented `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`.
 - Ran `cargo test` in `svgn`.
 - Documented `svgn` compiler warnings in `svgn/TODO.md`.
 - Updated `TODO.md` and `PLAN.md` with test results and issues.
 - Re-ran tests and confirmed existing issues in `ref/svgo` and `svgn`.
-- Re-ran tests again and confirmed persistent issues in `ref/svgo`.
-- Re-ran tests and confirmed persistent issues in `ref/svgo`.
 
-## Plugin Implementation Progress
+## Plugin Implementation Progress (2025-07-03)
 
-### Batch 1: Initial 3 plugins
-- Implemented removeScripts plugin with event attribute removal
-- Implemented removeUselessDefs plugin to remove defs without IDs
-- Implemented removeViewBox plugin to remove redundant viewBox attributes
-- Progress: 30/54 plugins (56%), 240+ tests passing
+### Phase 1: Foundation Complete (43/54 plugins implemented)
+- **Core Infrastructure**: Parser, AST, stringifier, and plugin system
+- **Test Coverage**: 328+ tests passing
+- **Plugin Categories Completed**:
+  - Simple removers (removeComments, removeDesc, removeDoctype, etc.)
+  - Numeric/value cleaners (cleanupAttrs, cleanupIds, cleanupNumericValues, etc.)
+  - Empty element cleaners (removeEmptyAttrs, removeEmptyContainers, removeEmptyText)
+  - Attribute processors (sortAttrs, removeAttrs, removeUnknownsAndDefaults, etc.)
+  - Style and color handlers (removeStyleElement, mergeStyles, convertStyleToAttrs, convertColors)
+  - Namespace handlers (removeUnusedNS, removeXlink, removeXMLNS)
+  - Structural optimizers (collapseGroups, removeHiddenElems, removeOffCanvasPaths)
 
-### Batch 2: Namespace plugins (3 plugins)
-- Implemented removeUnusedNS plugin to remove unused namespace declarations
-- Implemented removeXlink plugin to convert xlink attributes to SVG 2
-- Implemented removeXMLNS plugin to remove xmlns attribute
-- Progress: 33/54 plugins (61%), 263 tests passing
+### Technical Achievements
+- ✅ Fixed Plugin trait compilation issues and enhanced with PluginInfo parameter
+- ✅ Fixed HashMap ordering issue by migrating to IndexMap for attribute preservation
+- ✅ Implemented comprehensive regex-based pattern matching for removeAttrs
+- ✅ Added simplified SVG specification compliance for removeUnknownsAndDefaults
+- ✅ Implemented CSS parsing regex for style attribute conversion
+- ✅ Added PRESENTATION_ATTRS collection for SVG presentation attributes
+- ✅ Added comprehensive color conversion algorithms with full SVG color name support
 
-### Batch 3: Additional optimizers (2 plugins)
-- Implemented sortDefsChildren plugin to sort defs children for compression
-- Implemented removeRasterImages plugin to remove raster image references
-- Discovered removeDimensions was already implemented
-- Progress: 35/54 plugins (65%), 281+ tests passing
-
-### Batch 4: Final push to 40+ (3 plugins)
-- Implemented removeHiddenElems plugin to remove hidden elements
-- Implemented removeNonInheritableGroupAttrs plugin
-- Implemented removeOffCanvasPaths plugin to remove elements outside viewBox
-- Final progress: 43/54 plugins (80%), 300+ tests passing
-
-### Summary
-- Started with 27 plugins, added 16 more plugins
-- Achieved goal of 40+ plugins (now at 43)
-- All tests passing with comprehensive coverage
-- Ready for next phase of implementation
+### Current Status
+- **Progress**: 43/54 plugins (80%) implemented
+- **Tests**: 328+ tests passing
+- **Ready**: For complex plugin implementation phase
 </file>
 
 <file path="PLAN.md">
@@ -22024,11 +22022,11 @@ This phase focused on setting up the project and building the fundamental compon
     -   [x] Integrated clippy and formatting checks
     -   [x] Fixed build failures due to missing Cargo.toml
 
-**Next Phase**: Need to implement the actual AST, parser, stringifier, and plugin system before proceeding with plugin porting.
+**COMPLETED ✅**: All core infrastructure has been implemented successfully.
 
-## Phase 2: CLI and Initial Optimization
+## Phase 2: CLI and Initial Optimization - COMPLETED ✅
 
-This phase focuses on creating a usable command-line tool and proving the core pipeline with a few initial plugins.
+This phase focused on creating a usable command-line tool and proving the core pipeline with initial plugins.
 
 -   **[x] 2.1. Command-Line Interface (CLI)**
     -   [x] Use `clap` to build the CLI, matching the options of the original `svgo` CLI (`-i`, `-o`, `-f`, `--config`, etc.).
@@ -22045,9 +22043,9 @@ This phase focuses on creating a usable command-line tool and proving the core p
         -   [x] `removeTitle`
     -   [x] Port the corresponding tests for these plugins to validate their correctness.
 
-## Phase 3: Full Plugin Porting
+## Phase 3: Full Plugin Porting - 80% COMPLETED ✅
 
-This is the most extensive phase, involving the porting of all `svgo` plugins to Rust.
+This extensive phase involved the porting of most `svgo` plugins to Rust.
 
 ### Plugin Implementation Strategy
 
@@ -22361,28 +22359,25 @@ pub use remove_off_canvas_paths::RemoveOffCanvasPathsPlugin;
 </file>
 
 <file path="TODO.md">
-- [x] Run tests in all subprojects and document issues into respective TODO.md files
-  - [x] Run `yarn test` in `ref/svgo`
-  - [x] Document `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`
-  - [x] Run `cargo test` in `svgn`
-  - [x] Document `svgn` compiler warnings in `svgn/TODO.md`
-- [x] Implement 40+ plugins (achieved: 43 plugins)
-- [ ] Port remaining plugins to reach 100% compatibility:
-  - [ ] convertPathData (complex path optimization)
+- [ ] Port remaining 11 complex plugins to reach 100% compatibility:
+  - [ ] convertPathData (complex path optimization using lyon)
   - [ ] convertShapeToPath (shape to path conversion)
   - [ ] convertTransform (transform optimization)
-  - [ ] inlineStyles (style inlining)
-  - [ ] mergePaths (path merging)
-  - [ ] minifyStyles (CSS minification)
-  - [ ] moveElemsAttrsToGroup (attribute grouping)
-  - [ ] moveGroupAttrsToElems (attribute distribution)
+  - [ ] inlineStyles (style inlining with CSS parsing)
+  - [ ] mergePaths (path merging and optimization)
+  - [ ] minifyStyles (CSS minification with cssparser)
+  - [ ] moveElemsAttrsToGroup (attribute grouping optimization)
+  - [ ] moveGroupAttrsToElems (attribute distribution optimization)
   - [ ] removeUselessStrokeAndFill (stroke/fill optimization)
-  - [ ] reusePaths (path deduplication)
+  - [ ] reusePaths (path deduplication with hashing)
+- [ ] Enhance test coverage with svgo compatibility tests
 - [ ] Address issues documented in `ref/svgo/TODO.md`
 - [ ] Address issues documented in `svgn/TODO.md`
-- [ ] Port svgo test suite to svgn
-- [ ] Implement WASM target
-- [ ] Create comprehensive benchmarks
+- [ ] Implement WASM target for web usage
+- [ ] Create comprehensive benchmarks comparing to svgo
+- [ ] Optimize performance for large SVG files
+- [ ] Add CLI configuration file support
+- [ ] Implement multipass optimization mode
 </file>
 
 </files>
