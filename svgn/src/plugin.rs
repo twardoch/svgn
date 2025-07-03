@@ -51,6 +51,7 @@ impl From<std::io::Error> for PluginError {
 }
 
 /// Information passed to plugins during optimization
+#[derive(Default)]
 pub struct PluginInfo {
     /// Path to the current SVG file (if available)
     pub path: Option<String>,
@@ -150,7 +151,7 @@ impl PluginRegistry {
 
     /// Get a plugin by name (mutable)
     pub fn get_mut(&mut self, name: &str) -> Option<&mut dyn Plugin> {
-        self.plugins.iter_mut().find(|p| p.name() == name).map(|p| p.as_mut())
+        self.plugins.iter_mut().find(|p| p.name() == name).map(|p| &mut **p)
     }
 
     /// Get all registered plugin names
@@ -294,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_apply_unknown_plugin() {
-        let registry = PluginRegistry::new();
+        let mut registry = PluginRegistry::new();
         let mut document = Document::new();
         let configs = vec![PluginConfig::new("unknown".to_string())];
 
