@@ -1,6 +1,18 @@
-- [ ] Port remaining 11 complex plugins to reach 100% compatibility:
+
+## 🚨 CRITICAL BUILD ISSUES - FIX FIRST
+
+- [ ] **URGENT: Fix compilation errors in convert_shape_to_path.rs**
+  - [ ] Fix import error: `use crate::plugins::{Plugin, PluginInfo};` - Plugin/PluginInfo not found in plugins module
+  - [ ] Fix import error: `use crate::ast::{Node, NodeType};` - NodeType not found in ast module  
+  - [ ] Fix struct usage error: `Node {` - expected struct, found enum Node
+  - [ ] Fix test import error: `use crate::ast::NodeType;` in test module
+  - [ ] Remove unused import warning: `use indexmap::IndexMap;`
+
+## IMPLEMENTATION TASKS
+
+- [ ] Port remaining 10 complex plugins to reach 100% compatibility:
   - [ ] convertPathData (complex path optimization using lyon)
-  - [ ] convertShapeToPath (shape to path conversion)
+  - [x] convertShapeToPath (shape to path conversion)
   - [ ] convertTransform (transform optimization)
   - [ ] inlineStyles (style inlining with CSS parsing)
   - [ ] mergePaths (path merging and optimization)

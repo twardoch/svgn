@@ -1,281 +1,319 @@
 // this_file: svgn/src/plugins/convert_shape_to_path.rs
 
-use crate::ast::{Node, NodeType};
-use crate::plugins::{Plugin, PluginInfo};
-use indexmap::IndexMap;
+//! Convert basic shapes to path elements
+//!
+//! This plugin converts rect, line, polyline, polygon, circle and ellipse elements
+//! to path elements for better optimization potential.
+
+use crate::ast::{Document, Node, Element};
+use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::sync::LazyLock;
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ConvertShapeToPathParams {
-    /// Whether to convert circles and ellipses to paths using arc commands
-    #[serde(default = "default_false")]
-    pub convert_arcs: bool,
-    /// Precision for floating point numbers in path data
-    #[serde(default)]
-    pub float_precision: Option<u8>,
-}
-
-fn default_false() -> bool {
-    false
-}
-
-impl Default for ConvertShapeToPathParams {
-    fn default() -> Self {
-        Self {
-            convert_arcs: false,
-            float_precision: None,
-        }
-    }
-}
 
 static NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?").unwrap()
 });
 
-pub struct ConvertShapeToPath {
-    params: ConvertShapeToPathParams,
-}
+/// Plugin that converts basic shapes to path elements
+pub struct ConvertShapeToPathPlugin;
 
-impl ConvertShapeToPath {
-    pub fn new(params: ConvertShapeToPathParams) -> Self {
-        Self { params }
+impl Plugin for ConvertShapeToPathPlugin {
+    fn name(&self) -> &'static str {
+        "convertShapeToPath"
     }
-
-    /// Parse a coordinate value, returning None if it's not a valid number (e.g., percentage)
-    fn parse_coord(value: &str) -> Option<f64> {
-        // Skip if contains non-numeric characters that indicate units or percentages
-        if value.contains('%') || value.contains("px") || value.contains("pt") {
-            return None;
-        }
-        value.parse().ok()
+    
+    fn description(&self) -> &'static str {
+        "Converts basic shapes to more compact path form"
     }
-
-    /// Convert a rectangle to a path
-    fn convert_rect(&self, node: &mut Node) -> bool {
-        let attrs = &node.attributes;
+    
+    fn apply(&mut self, document: &mut Document, _plugin_info: &PluginInfo, params: Option<&Value>) -> PluginResult<()> {
+        // Parse parameters
+        let convert_arcs = params
+            .and_then(|v| v.get("convertArcs"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         
-        // Don't convert rectangles with rounded corners
-        if attrs.contains_key("rx") || attrs.contains_key("ry") {
-            return false;
-        }
-
-        // Extract required attributes
-        let width_str = attrs.get("width")?;
-        let height_str = attrs.get("height")?;
+        let float_precision = params
+            .and_then(|v| v.get("floatPrecision"))
+            .and_then(|v| v.as_u64())
+            .map(|p| p as u8);
         
-        let x = Self::parse_coord(attrs.get("x").unwrap_or("0"))?;
-        let y = Self::parse_coord(attrs.get("y").unwrap_or("0"))?;
-        let width = Self::parse_coord(width_str)?;
-        let height = Self::parse_coord(height_str)?;
-
-        // Build path data: M x y H x+width V y+height H x z
-        let path_data = format!(
-            "M{} {}H{}V{}H{}z",
-            format_number(x, self.params.float_precision),
-            format_number(y, self.params.float_precision),
-            format_number(x + width, self.params.float_precision),
-            format_number(y + height, self.params.float_precision),
-            format_number(x, self.params.float_precision)
-        );
-
-        // Update node
-        node.name = "path".to_string();
-        node.attributes.insert("d".to_string(), path_data);
-        node.attributes.remove("x");
-        node.attributes.remove("y");
-        node.attributes.remove("width");
-        node.attributes.remove("height");
-
-        true
-    }
-
-    /// Convert a line to a path
-    fn convert_line(&self, node: &mut Node) -> bool {
-        let attrs = &node.attributes;
+        // Process root element
+        convert_shapes_in_element(&mut document.root, convert_arcs, float_precision);
         
-        let x1 = Self::parse_coord(attrs.get("x1").unwrap_or("0"))?;
-        let y1 = Self::parse_coord(attrs.get("y1").unwrap_or("0"))?;
-        let x2 = Self::parse_coord(attrs.get("x2").unwrap_or("0"))?;
-        let y2 = Self::parse_coord(attrs.get("y2").unwrap_or("0"))?;
-
-        // Build path data: M x1 y1 L x2 y2
-        let path_data = format!(
-            "M{} {} {} {}",
-            format_number(x1, self.params.float_precision),
-            format_number(y1, self.params.float_precision),
-            format_number(x2, self.params.float_precision),
-            format_number(y2, self.params.float_precision)
-        );
-
-        // Update node
-        node.name = "path".to_string();
-        node.attributes.insert("d".to_string(), path_data);
-        node.attributes.remove("x1");
-        node.attributes.remove("y1");
-        node.attributes.remove("x2");
-        node.attributes.remove("y2");
-
-        true
-    }
-
-    /// Convert polyline or polygon to a path
-    fn convert_poly(&self, node: &mut Node) -> bool {
-        let attrs = &node.attributes;
-        let is_polygon = node.name == "polygon";
-        
-        let points_str = attrs.get("points")?;
-        
-        // Extract all numbers from the points string
-        let coords: Vec<f64> = NUMBER_REGEX
-            .find_iter(points_str)
-            .filter_map(|m| m.as_str().parse().ok())
-            .collect();
-
-        // Need at least 2 coordinate pairs (4 numbers)
-        if coords.len() < 4 {
-            // Remove the node by marking it for deletion
-            node.node_type = NodeType::Text; // Mark as invalid
-            return false;
-        }
-
-        // Build path data
-        let mut path_data = String::new();
-        
-        for (i, chunk) in coords.chunks(2).enumerate() {
-            if chunk.len() == 2 {
-                if i == 0 {
-                    path_data.push_str(&format!(
-                        "M{} {}",
-                        format_number(chunk[0], self.params.float_precision),
-                        format_number(chunk[1], self.params.float_precision)
-                    ));
-                } else {
-                    path_data.push_str(&format!(
-                        " {} {}",
-                        format_number(chunk[0], self.params.float_precision),
-                        format_number(chunk[1], self.params.float_precision)
-                    ));
-                }
-            }
-        }
-
-        // Add closing command for polygons
-        if is_polygon {
-            path_data.push('z');
-        }
-
-        // Update node
-        node.name = "path".to_string();
-        node.attributes.insert("d".to_string(), path_data);
-        node.attributes.remove("points");
-
-        true
-    }
-
-    /// Convert circle to a path using arc commands
-    fn convert_circle(&self, node: &mut Node) -> bool {
-        if !self.params.convert_arcs {
-            return false;
-        }
-
-        let attrs = &node.attributes;
-        
-        let cx = Self::parse_coord(attrs.get("cx").unwrap_or("0"))?;
-        let cy = Self::parse_coord(attrs.get("cy").unwrap_or("0"))?;
-        let r = Self::parse_coord(attrs.get("r").unwrap_or("0"))?;
-
-        // Build path data using two arc commands
-        let path_data = format!(
-            "M{} {}A{} {} 0 1 0 {} {}A{} {} 0 1 0 {} {}z",
-            format_number(cx, self.params.float_precision),
-            format_number(cy - r, self.params.float_precision),
-            format_number(r, self.params.float_precision),
-            format_number(r, self.params.float_precision),
-            format_number(cx, self.params.float_precision),
-            format_number(cy + r, self.params.float_precision),
-            format_number(r, self.params.float_precision),
-            format_number(r, self.params.float_precision),
-            format_number(cx, self.params.float_precision),
-            format_number(cy - r, self.params.float_precision)
-        );
-
-        // Update node
-        node.name = "path".to_string();
-        node.attributes.insert("d".to_string(), path_data);
-        node.attributes.remove("cx");
-        node.attributes.remove("cy");
-        node.attributes.remove("r");
-
-        true
-    }
-
-    /// Convert ellipse to a path using arc commands
-    fn convert_ellipse(&self, node: &mut Node) -> bool {
-        if !self.params.convert_arcs {
-            return false;
-        }
-
-        let attrs = &node.attributes;
-        
-        let cx = Self::parse_coord(attrs.get("cx").unwrap_or("0"))?;
-        let cy = Self::parse_coord(attrs.get("cy").unwrap_or("0"))?;
-        let rx = Self::parse_coord(attrs.get("rx").unwrap_or("0"))?;
-        let ry = Self::parse_coord(attrs.get("ry").unwrap_or("0"))?;
-
-        // Build path data using two arc commands
-        let path_data = format!(
-            "M{} {}A{} {} 0 1 0 {} {}A{} {} 0 1 0 {} {}z",
-            format_number(cx, self.params.float_precision),
-            format_number(cy - ry, self.params.float_precision),
-            format_number(rx, self.params.float_precision),
-            format_number(ry, self.params.float_precision),
-            format_number(cx, self.params.float_precision),
-            format_number(cy + ry, self.params.float_precision),
-            format_number(rx, self.params.float_precision),
-            format_number(ry, self.params.float_precision),
-            format_number(cx, self.params.float_precision),
-            format_number(cy - ry, self.params.float_precision)
-        );
-
-        // Update node
-        node.name = "path".to_string();
-        node.attributes.insert("d".to_string(), path_data);
-        node.attributes.remove("cx");
-        node.attributes.remove("cy");
-        node.attributes.remove("rx");
-        node.attributes.remove("ry");
-
-        true
+        Ok(())
     }
 }
 
-impl Plugin for ConvertShapeToPath {
-    fn process_node(&mut self, node: &mut Node, _info: &PluginInfo) {
-        if node.node_type != NodeType::Element {
-            return;
-        }
-
-        match node.name.as_str() {
-            "rect" => {
-                self.convert_rect(node);
-            }
-            "line" => {
-                self.convert_line(node);
-            }
-            "polyline" | "polygon" => {
-                self.convert_poly(node);
-            }
-            "circle" => {
-                self.convert_circle(node);
-            }
-            "ellipse" => {
-                self.convert_ellipse(node);
-            }
-            _ => {}
+/// Recursively convert shapes in an element and its children
+fn convert_shapes_in_element(element: &mut Element, convert_arcs: bool, float_precision: Option<u8>) {
+    // Process child elements
+    for child in &mut element.children {
+        if let Node::Element(child_element) = child {
+            convert_shapes_in_element(child_element, convert_arcs, float_precision);
         }
     }
+    
+    // Convert current element if it's a shape
+    convert_shape_element(element, convert_arcs, float_precision);
+}
+
+/// Convert a shape element to a path if applicable
+fn convert_shape_element(element: &mut Element, convert_arcs: bool, float_precision: Option<u8>) {
+    match element.name.as_str() {
+        "rect" => convert_rect(element, float_precision),
+        "line" => convert_line(element, float_precision),
+        "polyline" => convert_polyline(element, float_precision),
+        "polygon" => convert_polygon(element, float_precision),
+        "circle" if convert_arcs => convert_circle(element, float_precision),
+        "ellipse" if convert_arcs => convert_ellipse(element, float_precision),
+        _ => {}
+    }
+}
+
+/// Parse a coordinate value, returning None if it's not a valid number
+fn parse_coord(value: &str) -> Option<f64> {
+    // Skip if contains non-numeric characters that indicate units or percentages
+    if value.contains('%') || value.contains("px") || value.contains("pt") {
+        return None;
+    }
+    value.parse().ok()
+}
+
+/// Convert a rectangle to a path
+fn convert_rect(element: &mut Element, float_precision: Option<u8>) {
+    // Don't convert rectangles with rounded corners
+    if element.has_attr("rx") || element.has_attr("ry") {
+        return;
+    }
+
+    // Extract required attributes
+    let width_str = match element.attr("width") {
+        Some(w) => w,
+        None => return,
+    };
+    let height_str = match element.attr("height") {
+        Some(h) => h,
+        None => return,
+    };
+    
+    let x = match parse_coord(element.attr("x").map_or("0", |v| v)) {
+        Some(x) => x,
+        None => return,
+    };
+    let y = match parse_coord(element.attr("y").map_or("0", |v| v)) {
+        Some(y) => y,
+        None => return,
+    };
+    let width = match parse_coord(width_str) {
+        Some(w) => w,
+        None => return,
+    };
+    let height = match parse_coord(height_str) {
+        Some(h) => h,
+        None => return,
+    };
+
+    // Build path data: M x y H x+width V y+height H x z
+    let path_data = format!(
+        "M{} {}H{}V{}H{}z",
+        format_number(x, float_precision),
+        format_number(y, float_precision),
+        format_number(x + width, float_precision),
+        format_number(y + height, float_precision),
+        format_number(x, float_precision)
+    );
+
+    // Update element
+    element.name = "path".to_string();
+    element.set_attr("d".to_string(), path_data);
+    element.remove_attr("x");
+    element.remove_attr("y");
+    element.remove_attr("width");
+    element.remove_attr("height");
+}
+
+/// Convert a line to a path
+fn convert_line(element: &mut Element, float_precision: Option<u8>) {
+    let x1 = match parse_coord(element.attr("x1").map_or("0", |v| v)) {
+        Some(x) => x,
+        None => return,
+    };
+    let y1 = match parse_coord(element.attr("y1").map_or("0", |v| v)) {
+        Some(y) => y,
+        None => return,
+    };
+    let x2 = match parse_coord(element.attr("x2").map_or("0", |v| v)) {
+        Some(x) => x,
+        None => return,
+    };
+    let y2 = match parse_coord(element.attr("y2").map_or("0", |v| v)) {
+        Some(y) => y,
+        None => return,
+    };
+
+    // Build path data: M x1 y1 L x2 y2
+    let path_data = format!(
+        "M{} {} {} {}",
+        format_number(x1, float_precision),
+        format_number(y1, float_precision),
+        format_number(x2, float_precision),
+        format_number(y2, float_precision)
+    );
+
+    // Update element
+    element.name = "path".to_string();
+    element.set_attr("d".to_string(), path_data);
+    element.remove_attr("x1");
+    element.remove_attr("y1");
+    element.remove_attr("x2");
+    element.remove_attr("y2");
+}
+
+/// Convert polyline to a path
+fn convert_polyline(element: &mut Element, float_precision: Option<u8>) {
+    convert_poly(element, false, float_precision);
+}
+
+/// Convert polygon to a path
+fn convert_polygon(element: &mut Element, float_precision: Option<u8>) {
+    convert_poly(element, true, float_precision);
+}
+
+/// Convert polyline or polygon to a path
+fn convert_poly(element: &mut Element, is_polygon: bool, float_precision: Option<u8>) {
+    let points_str = match element.attr("points") {
+        Some(p) => p,
+        None => return,
+    };
+    
+    // Extract all numbers from the points string
+    let coords: Vec<f64> = NUMBER_REGEX
+        .find_iter(points_str)
+        .filter_map(|m| m.as_str().parse().ok())
+        .collect();
+
+    // Need at least 2 coordinate pairs (4 numbers)
+    if coords.len() < 4 {
+        // Remove the element by removing all its children and marking name as empty
+        element.clear_children();
+        element.name = "g".to_string(); // Convert to empty group that will be removed by other plugins
+        element.attributes.clear();
+        return;
+    }
+
+    // Build path data
+    let mut path_data = String::new();
+    
+    for (i, chunk) in coords.chunks(2).enumerate() {
+        if chunk.len() == 2 {
+            if i == 0 {
+                path_data.push_str(&format!(
+                    "M{} {}",
+                    format_number(chunk[0], float_precision),
+                    format_number(chunk[1], float_precision)
+                ));
+            } else {
+                path_data.push_str(&format!(
+                    " {} {}",
+                    format_number(chunk[0], float_precision),
+                    format_number(chunk[1], float_precision)
+                ));
+            }
+        }
+    }
+
+    // Add closing command for polygons
+    if is_polygon {
+        path_data.push('z');
+    }
+
+    // Update element
+    element.name = "path".to_string();
+    element.set_attr("d".to_string(), path_data);
+    element.remove_attr("points");
+}
+
+/// Convert circle to a path using arc commands
+fn convert_circle(element: &mut Element, float_precision: Option<u8>) {
+    let cx = match parse_coord(element.attr("cx").map_or("0", |v| v)) {
+        Some(x) => x,
+        None => return,
+    };
+    let cy = match parse_coord(element.attr("cy").map_or("0", |v| v)) {
+        Some(y) => y,
+        None => return,
+    };
+    let r = match parse_coord(element.attr("r").map_or("0", |v| v)) {
+        Some(r) => r,
+        None => return,
+    };
+
+    // Build path data using two arc commands
+    let path_data = format!(
+        "M{} {}A{} {} 0 1 0 {} {}A{} {} 0 1 0 {} {}z",
+        format_number(cx, float_precision),
+        format_number(cy - r, float_precision),
+        format_number(r, float_precision),
+        format_number(r, float_precision),
+        format_number(cx, float_precision),
+        format_number(cy + r, float_precision),
+        format_number(r, float_precision),
+        format_number(r, float_precision),
+        format_number(cx, float_precision),
+        format_number(cy - r, float_precision)
+    );
+
+    // Update element
+    element.name = "path".to_string();
+    element.set_attr("d".to_string(), path_data);
+    element.remove_attr("cx");
+    element.remove_attr("cy");
+    element.remove_attr("r");
+}
+
+/// Convert ellipse to a path using arc commands
+fn convert_ellipse(element: &mut Element, float_precision: Option<u8>) {
+    let cx = match parse_coord(element.attr("cx").map_or("0", |v| v)) {
+        Some(x) => x,
+        None => return,
+    };
+    let cy = match parse_coord(element.attr("cy").map_or("0", |v| v)) {
+        Some(y) => y,
+        None => return,
+    };
+    let rx = match parse_coord(element.attr("rx").map_or("0", |v| v)) {
+        Some(r) => r,
+        None => return,
+    };
+    let ry = match parse_coord(element.attr("ry").map_or("0", |v| v)) {
+        Some(r) => r,
+        None => return,
+    };
+
+    // Build path data using two arc commands
+    let path_data = format!(
+        "M{} {}A{} {} 0 1 0 {} {}A{} {} 0 1 0 {} {}z",
+        format_number(cx, float_precision),
+        format_number(cy - ry, float_precision),
+        format_number(rx, float_precision),
+        format_number(ry, float_precision),
+        format_number(cx, float_precision),
+        format_number(cy + ry, float_precision),
+        format_number(rx, float_precision),
+        format_number(ry, float_precision),
+        format_number(cx, float_precision),
+        format_number(cy - ry, float_precision)
+    );
+
+    // Update element
+    element.name = "path".to_string();
+    element.set_attr("d".to_string(), path_data);
+    element.remove_attr("cx");
+    element.remove_attr("cy");
+    element.remove_attr("rx");
+    element.remove_attr("ry");
 }
 
 /// Format a number with optional precision
@@ -305,60 +343,56 @@ fn format_number(value: f64, precision: Option<u8>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::NodeType;
+    use crate::ast::Element;
+    use indexmap::IndexMap;
 
-    fn create_element(name: &str, attrs: Vec<(&str, &str)>) -> Node {
+    fn create_element(name: &str, attrs: Vec<(&str, &str)>) -> Element {
         let mut attributes = IndexMap::new();
         for (key, value) in attrs {
             attributes.insert(key.to_string(), value.to_string());
         }
         
-        Node {
-            node_type: NodeType::Element,
+        Element {
             name: name.to_string(),
             attributes,
             children: vec![],
-            parent: None,
-            text: None,
+            namespaces: Default::default(),
         }
     }
 
     #[test]
     fn test_convert_rect_basic() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("rect", vec![
+        let mut element = create_element("rect", vec![
             ("width", "32"),
             ("height", "32"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_rect(&mut element, None);
 
-        assert_eq!(node.name, "path");
-        assert_eq!(node.attributes.get("d").unwrap(), "M0 0H32V32H0z");
-        assert!(!node.attributes.contains_key("width"));
-        assert!(!node.attributes.contains_key("height"));
+        assert_eq!(element.name, "path");
+        assert_eq!(element.attr("d").unwrap(), "M0 0H32V32H0z");
+        assert!(!element.has_attr("width"));
+        assert!(!element.has_attr("height"));
     }
 
     #[test]
     fn test_convert_rect_with_position() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("rect", vec![
+        let mut element = create_element("rect", vec![
             ("x", "20"),
             ("y", "10"),
             ("width", "50"),
             ("height", "40"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_rect(&mut element, None);
 
-        assert_eq!(node.name, "path");
-        assert_eq!(node.attributes.get("d").unwrap(), "M20 10H70V50H20z");
+        assert_eq!(element.name, "path");
+        assert_eq!(element.attr("d").unwrap(), "M20 10H70V50H20z");
     }
 
     #[test]
     fn test_rect_with_rounded_corners_not_converted() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("rect", vec![
+        let mut element = create_element("rect", vec![
             ("x", "10"),
             ("y", "10"),
             ("width", "50"),
@@ -366,117 +400,81 @@ mod tests {
             ("rx", "4"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_rect(&mut element, None);
 
         // Should not be converted
-        assert_eq!(node.name, "rect");
-        assert!(node.attributes.contains_key("rx"));
+        assert_eq!(element.name, "rect");
+        assert!(element.has_attr("rx"));
     }
 
     #[test]
     fn test_convert_line() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("line", vec![
+        let mut element = create_element("line", vec![
             ("x1", "10"),
             ("y1", "10"),
             ("x2", "50"),
             ("y2", "20"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_line(&mut element, None);
 
-        assert_eq!(node.name, "path");
-        assert_eq!(node.attributes.get("d").unwrap(), "M10 10 50 20");
-        assert!(!node.attributes.contains_key("x1"));
-        assert!(!node.attributes.contains_key("y1"));
-        assert!(!node.attributes.contains_key("x2"));
-        assert!(!node.attributes.contains_key("y2"));
+        assert_eq!(element.name, "path");
+        assert_eq!(element.attr("d").unwrap(), "M10 10 50 20");
+        assert!(!element.has_attr("x1"));
+        assert!(!element.has_attr("y1"));
+        assert!(!element.has_attr("x2"));
+        assert!(!element.has_attr("y2"));
     }
 
     #[test]
     fn test_convert_polyline() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("polyline", vec![
+        let mut element = create_element("polyline", vec![
             ("points", "10,80 20,50 50,20 80,10"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_polyline(&mut element, None);
 
-        assert_eq!(node.name, "path");
-        assert_eq!(node.attributes.get("d").unwrap(), "M10 80 20 50 50 20 80 10");
-        assert!(!node.attributes.contains_key("points"));
+        assert_eq!(element.name, "path");
+        assert_eq!(element.attr("d").unwrap(), "M10 80 20 50 50 20 80 10");
+        assert!(!element.has_attr("points"));
     }
 
     #[test]
     fn test_convert_polygon() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("polygon", vec![
+        let mut element = create_element("polygon", vec![
             ("points", "20 10 50 40 30 20"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_polygon(&mut element, None);
 
-        assert_eq!(node.name, "path");
-        assert_eq!(node.attributes.get("d").unwrap(), "M20 10 50 40 30 20z");
-        assert!(!node.attributes.contains_key("points"));
+        assert_eq!(element.name, "path");
+        assert_eq!(element.attr("d").unwrap(), "M20 10 50 40 30 20z");
+        assert!(!element.has_attr("points"));
     }
 
     #[test]
-    fn test_convert_circle_without_arcs() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams::default());
-        let mut node = create_element("circle", vec![
+    fn test_convert_circle() {
+        let mut element = create_element("circle", vec![
             ("cx", "50"),
             ("cy", "50"),
             ("r", "25"),
         ]);
 
-        plugin.process_node(&mut node, &PluginInfo::default());
+        convert_circle(&mut element, None);
 
-        // Should not be converted without convert_arcs
-        assert_eq!(node.name, "circle");
-        assert!(node.attributes.contains_key("r"));
-    }
-
-    #[test]
-    fn test_convert_circle_with_arcs() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams {
-            convert_arcs: true,
-            float_precision: None,
-        });
-        let mut node = create_element("circle", vec![
-            ("cx", "50"),
-            ("cy", "50"),
-            ("r", "25"),
-        ]);
-
-        plugin.process_node(&mut node, &PluginInfo::default());
-
-        assert_eq!(node.name, "path");
-        assert_eq!(node.attributes.get("d").unwrap(), "M50 25A25 25 0 1 0 50 75A25 25 0 1 0 50 25z");
-        assert!(!node.attributes.contains_key("cx"));
-        assert!(!node.attributes.contains_key("cy"));
-        assert!(!node.attributes.contains_key("r"));
+        assert_eq!(element.name, "path");
+        assert_eq!(element.attr("d").unwrap(), "M50 25A25 25 0 1 0 50 75A25 25 0 1 0 50 25z");
+        assert!(!element.has_attr("cx"));
+        assert!(!element.has_attr("cy"));
+        assert!(!element.has_attr("r"));
     }
 
     #[test]
     fn test_precision_formatting() {
-        let mut plugin = ConvertShapeToPath::new(ConvertShapeToPathParams {
-            convert_arcs: false,
-            float_precision: Some(3),
-        });
-        let mut node = create_element("rect", vec![
-            ("x", "10.123456"),
-            ("y", "20.987654"),
-            ("width", "30.5"),
-            ("height", "40.25"),
-        ]);
-
-        plugin.process_node(&mut node, &PluginInfo::default());
-
-        assert_eq!(node.name, "path");
-        // Should round to 3 decimal places
-        let d = node.attributes.get("d").unwrap();
-        assert!(d.contains("10.123"));
-        assert!(d.contains("20.988"));
+        assert_eq!(format_number(10.123456, Some(3)), "10.123");
+        assert_eq!(format_number(20.987654, Some(3)), "20.988");
+        assert_eq!(format_number(30.0, Some(3)), "30");
+        assert_eq!(format_number(40.5, None), "40.5");
+        assert_eq!(format_number(50.0, None), "50");
     }
 }
