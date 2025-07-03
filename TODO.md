@@ -52,6 +52,25 @@
   - Issue: `transform="translate(0,0)"` not being removed
   - Affects: `test_default_preset_pipeline`
 
+### Critical Plugin Implementation Issue - BLOCKER
+- [ ] **URGENT: Fix convertPathData plugin missing implementation** (Issue #404)
+  - **Problem**: CLI fails with "Plugin error: Invalid configuration: Unknown plugin: convertPathData"
+  - **Root Cause**: The `convertPathData` plugin is listed in the default preset but not implemented
+  - **Impact**: Prevents processing of complex SVGs with path elements in default configuration
+  - **Test Case**: Complex SVG with gradients, filters, and path elements fails to process
+  - **Implementation Requirements**:
+    1. **Plugin Registration**: Add `convertPathData` to plugin registry in `svgn/src/plugins/mod.rs`
+    2. **Plugin Implementation**: Create `svgn/src/plugins/convert_path_data.rs` with:
+       - Path parsing and normalization (absolute vs relative coordinates)
+       - Geometric optimization (remove redundant segments, simplify curves)
+       - Lyon integration for advanced path operations
+       - Parameter configuration for optimization level
+    3. **Default Preset Update**: Ensure plugin is properly included in default preset
+    4. **Testing**: Add comprehensive tests for path optimization scenarios
+  - **Complexity**: HIGH - Requires lyon crate integration and complex geometric algorithms
+  - **Priority**: CRITICAL - Blocks basic CLI functionality with default settings
+  - **Workaround**: Temporarily disable `convertPathData` in default preset until implementation complete
+
 ### Code Quality Issues - HIGH PRIORITY
 - [ ] Fix 27 Clippy warnings
   - Collapsible if statements (2 warnings)
