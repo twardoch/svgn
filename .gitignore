@@ -4,4 +4,5 @@
 .idea/
 debug
 ref/
-target
+ref/svgo/
+target/
