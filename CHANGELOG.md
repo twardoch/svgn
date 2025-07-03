@@ -408,3 +408,24 @@ Completed plugins (9 total):
 - Structural Optimizers batch started (1/4 plugins complete)
 - Milestone: Reached 50% plugin implementation progress
 - All tests passing with robust group optimization capabilities
+
+## [0.1.14] - 2025-07-03
+
+### Added
+- ✅ Set up Jekyll+Markdown structure for GitHub Pages documentation in `docs/` folder.
+  - Created `_layouts`, `_includes`, `assets/css` directories.
+  - Configured `_config.yml` with `jekyll-theme-minimal`.
+  - Created `_layouts/default.html` and `assets/css/style.css`.
+  - Copied `SPEC.md` to `docs/index.md` and added Jekyll front matter.
+- ✅ Fixed Git submodule configuration for `ref/svgo`.
+  - Removed incorrect Git index entry.
+  - Re-added `ref/svgo` as a proper Git submodule.
+  - Initialized and updated the submodule.
+
+### Technical Notes
+- Ensures documentation is easily publishable on GitHub Pages.
+- Resolves previous issues with `ref/svgo` submodule.
+
+### Progress Summary
+- Documentation infrastructure is now in place.
+- Git repository is correctly configured with submodules.

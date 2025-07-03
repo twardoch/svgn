@@ -234,9 +234,9 @@ This final phase focuses on preparing the project for public use.
     -   [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions.
 
 -   **[ ] 6.2. User Documentation**
-    -   [ ] Create user-friendly documentation in the `docs/` directory.
-    -   [ ] This will include guides on how to use the CLI, the Rust library, and the WASM module.
-    -   [ ] Provide a detailed reference for all configuration options and plugins.
+    -   [x] Create user-friendly documentation in the `docs/` directory.
+    -   [x] This will include guides on how to use the CLI, the Rust library, and the WASM module.
+    -   [x] Provide a detailed reference for all configuration options and plugins.
 
 -   **[ ] 6.3. Release**
     -   [ ] Publish the `svgn` crate to `crates.io`.

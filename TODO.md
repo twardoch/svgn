@@ -85,10 +85,12 @@ This is a flat task list derived from PLAN.md. Tasks are organized by priority a
 
 ## Phase 6: Documentation and Release
 
+- [ ] Prepare a Jekyll+Markdown structure that will serve as the documentation on Github Pages (via main branch, docs folder setup)
+
 - [ ] Write comprehensive `rustdoc` comments for all public APIs, structs, and functions
-- [ ] Create user-friendly documentation in the `docs/` directory
-- [ ] Include guides on how to use the CLI, the Rust library, and the WASM module
-- [ ] Provide a detailed reference for all configuration options and plugins
+- [x] Create user-friendly documentation in the `docs/` directory
+- [x] Include guides on how to use the CLI, the Rust library, and the WASM module
+- [x] Provide a detailed reference for all configuration options and plugins
 - [ ] Publish the `svgn` crate to `crates.io`
 - [ ] Publish the WASM package to `npm`
 - [ ] Create a GitHub release with release notes

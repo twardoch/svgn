@@ -234,6 +234,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::RemoveDeprecatedAttrsPlugin);
     registry.register(crate::plugins::ConvertEllipseToCirclePlugin);
     registry.register(crate::plugins::CollapseGroupsPlugin);
+    registry.register(crate::plugins::ConvertOneStopGradientsPlugin);
     
     registry
 }
