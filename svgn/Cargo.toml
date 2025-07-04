@@ -35,6 +35,9 @@ toml = { workspace = true }
 # Path processing
 lyon = { workspace = true }
 
+# Matrix operations
+nalgebra = { workspace = true }
+
 # Optional: SVG utilities
 usvg = { version = "0.42", optional = true }
 

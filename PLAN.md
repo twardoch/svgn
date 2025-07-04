@@ -2,36 +2,29 @@
 
 ## Executive Summary
 
-SVGN is a high-performance Rust port of SVGO that has achieved 91% plugin implementation. This plan outlines the focused path to achieve complete SVGO v4.0.0 compatibility.
+SVGN is a high-performance Rust port of SVGO that has achieved 93% plugin implementation. This plan outlines the focused path to achieve complete SVGO v4.0.0 compatibility.
 
 **Current Status (2025-07-04):**
-- ✅ **49/54 plugins** fully implemented and functional (91%)
+- ✅ **50/54 plugins** fully implemented and functional (93%)
 - ✅ **convertPathData** fully implemented 
 - ✅ **removeUselessStrokeAndFill** fully implemented (was incorrectly listed as missing)
 - ✅ **removeAttributesBySelector** fixed and enabled (CSS parsing issue resolved)
-- ❌ **5 plugins** missing for 100% parity
+- ✅ **convertTransform** fully implemented (critical default preset plugin)
+- ❌ **4 plugins** missing for 100% parity
 - ✅ **Full CLI compatibility** achieved
-- ✅ **359 tests passing** (100% success rate)
+- ✅ **25 tests passing** (100% success rate)
 
-**Path to 100% Parity:** Implement 5 missing plugins = 5 total tasks
+**Path to 100% Parity:** Implement 4 missing plugins = 4 total tasks
 
 ## 1. Critical Missing Plugins (Priority: IMMEDIATE)
 
 ### Phase 1A: Default Preset Plugins (Highest Impact)
-These 5 plugins are in SVGO's default preset and required for preset compatibility:
+These 4 plugins are in SVGO's default preset and required for preset compatibility:
 
-#### 1.1 convertTransform (2 weeks - HIGH)  
-- **Impact:** Critical - in SVGO default preset position 28/35
-- **Complexity:** High - matrix math and decomposition
-- **Dependencies:** Add `nalgebra` crate
-- **Implementation:**
-  - Parse transform strings into matrices
-  - Multiply consecutive transforms
-  - Convert matrices to shorter translate/scale/rotate forms
-  - Optimize precision and remove redundant transforms
+**NOTE:** `convertTransform` was originally listed here but has been completed (2025-07-04). The remaining 4 plugins are:
 
-#### 1.2 inlineStyles (1.5 weeks - HIGH)
-- **Impact:** Critical - in SVGO default preset position 10/35  
+#### 1.1 inlineStyles (1.5 weeks - HIGH)
+- **Impact:** Critical - in SVGO default preset position 9/35  
 - **Complexity:** High - requires CSS engine
 - **Dependencies:** Add `lightningcss` or `css` crate
 - **Implementation:**
@@ -40,20 +33,28 @@ These 5 plugins are in SVGO's default preset and required for preset compatibili
   - Match selectors to SVG elements
   - Apply cascade rules and convert to attributes
 
-#### 1.3 mergePaths (1 week - MEDIUM)
-- **Impact:** Critical - in SVGO default preset position 31/35
+#### 1.2 mergePaths (1 week - MEDIUM)
+- **Impact:** Critical - in SVGO default preset position 29/35
 - **Complexity:** Medium - path concatenation and style matching
 - **Implementation:**
   - Group paths by identical style attributes
   - Check DOM adjacency for mergeable paths
   - Concatenate path data strings correctly
 
-#### 1.4 moveElemsAttrsToGroup + moveGroupAttrsToElems (1 week - MEDIUM)
-- **Impact:** Critical - in SVGO default preset positions 24-25/35
+#### 1.3 moveElemsAttrsToGroup (0.5 weeks - MEDIUM)
+- **Impact:** Critical - in SVGO default preset position 22/35
 - **Complexity:** Medium - DOM analysis and inheritance
 - **Implementation:**
   - Analyze attributes across sibling elements
-  - Move common inheritable attributes to/from groups
+  - Move common inheritable attributes to groups
+  - Calculate size reduction benefits
+
+#### 1.4 moveGroupAttrsToElems (0.5 weeks - MEDIUM)
+- **Impact:** Critical - in SVGO default preset position 23/35
+- **Complexity:** Medium - DOM analysis and inheritance  
+- **Implementation:**
+  - Analyze attributes across sibling elements
+  - Move common inheritable attributes from groups
   - Calculate size reduction benefits
 
 ### Phase 1B: Standalone Plugins (Lower Priority)
@@ -76,7 +77,14 @@ These 5 plugins are in SVGO's default preset and required for preset compatibili
 
 ## 2. Remaining Missing Plugins (Priority: IMMEDIATE)
 
-With `removeAttributesBySelector` now fixed, only 5 plugins remain to achieve 100% SVGO parity:
+With `convertTransform` now completed, only 4 plugins remain to achieve 100% SVGO parity:
+
+1. **inlineStyles** - Critical default preset plugin (position 9/35)
+2. **mergePaths** - Critical default preset plugin (position 29/35)  
+3. **moveElemsAttrsToGroup** - Critical default preset plugin (position 22/35)
+4. **moveGroupAttrsToElems** - Critical default preset plugin (position 23/35)
+
+All 4 remaining plugins are in SVGO's default preset, making them the highest priority for achieving complete compatibility.
 
 ## 3. Infrastructure Improvements (Priority: MEDIUM)
 
@@ -117,7 +125,7 @@ Target SVGO preset: 35 plugins
 - `convertShapeToPath`
 - `convertEllipseToCircle`
 - `sortDefsChildren`
-- Plus the 5 missing plugins when implemented
+- Plus the 4 missing plugins when implemented
 
 ## 5. Code Quality & Testing (Priority: LOW)
 
@@ -140,31 +148,30 @@ Target SVGO preset: 35 plugins
 - Complete cross-platform packaging
 - Implement git tag-based versioning
 
-## 6. Implementation Timeline (7-9 weeks)
+## 6. Implementation Timeline (6-8 weeks)
 
-### Weeks 1-4: Critical Plugins (Phase 1A)
-- Week 1: `removeAttributesBySelector` fix + `convertTransform` start
-- Week 2: `convertTransform` completion
-- Week 3: `inlineStyles`
-- Week 4: `mergePaths` + `moveElemsAttrsToGroup` + `moveGroupAttrsToElems`
+### Weeks 1-3: Critical Plugins (Phase 1A)
+- Week 1: `inlineStyles` implementation (highest priority)
+- Week 2: `mergePaths` implementation  
+- Week 3: `moveElemsAttrsToGroup` + `moveGroupAttrsToElems` implementation
 
-### Weeks 5-6: Standalone Plugins (Phase 1B)  
-- Week 5: `applyTransforms` + `reusePaths`
-- Week 6: Default preset alignment + testing
+### Weeks 4-5: Standalone Plugins (Phase 1B)  
+- Week 4: `applyTransforms` + `reusePaths` 
+- Week 5: Default preset alignment + testing
 
-### Weeks 7-8: Infrastructure & Polish
-- Week 7: Parser/stringifier enhancements
-- Week 8: Architecture improvements + code quality
+### Weeks 6-7: Infrastructure & Polish
+- Week 6: Parser/stringifier enhancements
+- Week 7: Architecture improvements + code quality
 
-### Week 9: Final Testing & Release
-- Week 9: Complete test suite compatibility + documentation + release preparation
+### Week 8: Final Testing & Release
+- Week 8: Complete test suite compatibility + documentation + release preparation
 
 ## 7. Success Metrics
 
 ### Plugin Parity
 - **Target:** 54/54 plugins (100%)
-- **Current:** 49/54 plugins (91%)
-- **Remaining:** 5 plugins = 5 tasks
+- **Current:** 50/54 plugins (93%)
+- **Remaining:** 4 plugins = 4 tasks
 
 ### Test Compatibility
 - **Target:** 100% SVGO test suite passing
@@ -194,10 +201,12 @@ Target SVGO preset: 35 plugins
 
 ## 9. Conclusion
 
-SVGN is extremely close to 100% SVGO parity with only 5 remaining tasks:
-- 5 missing plugins (5 critical for default preset)
+SVGN is extremely close to 100% SVGO parity with only 4 remaining tasks:
+- 4 missing plugins (4 critical for default preset)
 - All existing plugins now functional
 
 The path is clear and well-defined. With focused execution on the critical default preset plugins first, SVGN will achieve complete SVGO compatibility while maintaining its significant performance advantages.
 
-**Next Action:** Begin with `convertTransform` implementation as the highest-priority missing plugin for default preset compatibility.
+**Next Action:** Begin with `inlineStyles` implementation as the highest-priority missing plugin for default preset compatibility.
+
+**Latest Update:** `convertTransform` plugin completed successfully with full mathematical foundation established using nalgebra.

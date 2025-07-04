@@ -4,8 +4,8 @@
 set -e
 
 {
-    echo "Generating code snapsht in ./llms.txt ..."
-    uvx codetoprompt --output llms.txt --exclude "*.svg,.specstory,*.md,*.txt" .
+    echo "Generating code snapshot in ./llms.txt ..."
+    uvx codetoprompt --compress --output llms.txt --exclude "*.svg,.specstory,*.md,*.txt,ref,testdata,*.lock" .
 
     echo "Building the svgn project..."
     # Build the project in release mode for optimized binaries

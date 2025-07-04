@@ -47,8 +47,23 @@ check_tools() {
         exit 1
     fi
 
+    if ! npx svgo --version >/dev/null 2>&1; then
+        error "svgo not found. Please install svgo with 'npm install -g svgo'."
+        exit 1
+    fi
+
+    if ! command -v bc >/dev/null 2>&1; then
+        error "bc (basic calculator) not found. Please install bc (e.g., 'apt install bc' or 'brew install bc')."
+        exit 1
+    fi
+
+    if [[ ! -f "./target/release/svgn" ]]; then
+        error "./target/release/svgn not found. Please build with 'cargo build --release'."
+        exit 1
+    fi
+
     if ! ./target/release/svgn --version >/dev/null 2>&1; then
-        error "./target/release/svgn not found or not executable. Please build with 'cargo build --release'."
+        error "./target/release/svgn not executable or failed to run. Please build with 'cargo build --release'."
         exit 1
     fi
 
@@ -105,21 +120,30 @@ benchmark_tool() {
             local start_time=$(date +%s.%N)
             if eval "$tool_cmd \"$svg_file\" > \"$output_file\" 2>/dev/null"; then
                 local end_time=$(date +%s.%N)
-                local file_time=$(echo "$end_time - $start_time" | bc -l)
-                iteration_time=$(echo "$iteration_time + $file_time" | bc -l)
+                local file_time=$(echo "$end_time - $start_time" | bc -l 2>/dev/null || echo "0")
+                iteration_time=$(echo "$iteration_time + $file_time" | bc -l 2>/dev/null || echo "$iteration_time")
                 ((successful_files++))
             else
                 ((failed_files++))
             fi
         done
 
-        total_time=$(echo "$total_time + $iteration_time" | bc -l)
+        total_time=$(echo "$total_time + $iteration_time" | bc -l 2>/dev/null || echo "$total_time")
         log "    Iteration time: ${iteration_time}s"
     done
 
-    local avg_time=$(echo "scale=6; $total_time / $ITERATIONS" | bc -l)
-    local avg_per_file=$(echo "scale=6; $avg_time / ${#files[@]}" | bc -l)
+    local avg_time="0"
+    local avg_per_file="0"
 
+    if [[ "$ITERATIONS" -gt 0 ]] && [[ "$total_time" != "0" ]]; then
+        avg_time=$(echo "scale=6; $total_time / $ITERATIONS" | bc -l 2>/dev/null || echo "0")
+    fi
+
+    if [[ "${#files[@]}" -gt 0 ]] && [[ "$avg_time" != "0" ]]; then
+        avg_per_file=$(echo "scale=6; $avg_time / ${#files[@]}" | bc -l 2>/dev/null || echo "0")
+    fi
+
+    log "  $tool_name completed: total_time=$total_time, avg_time=$avg_time, avg_per_file=$avg_per_file, successful=$successful_files, failed=$failed_files"
     echo "$tool_name,$avg_time,$avg_per_file,$successful_files,$failed_files"
 }
 
@@ -136,12 +160,12 @@ run_benchmark() {
 
     # Benchmark npx svgo
     local svgo_result
-    svgo_result=$(benchmark_tool "npx_svgo" "npx svgo --input" "${test_files[@]}")
+    svgo_result=$(benchmark_tool "svgo" "bunx --bun svgo -i" "${test_files[@]}")
     echo "$svgo_result" >>"$results_file"
 
     # Benchmark our svgn
     local svgn_result
-    svgn_result=$(benchmark_tool "svgn" "./target/release/svgn" "${test_files[@]}")
+    svgn_result=$(benchmark_tool "svgn" "./target/release/svgn -i " "${test_files[@]}")
     echo "$svgn_result" >>"$results_file"
 
     # Display results
@@ -152,7 +176,12 @@ run_benchmark() {
 
     while IFS=',' read -r tool total_time per_file success failed; do
         if [[ "$tool" != "Tool" ]]; then # Skip header
-            printf "%-12s %-15.6f %-15.6f %-15s %-15s\n" "$tool" "$total_time" "$per_file" "$success" "$failed"
+            # Validate that total_time and per_file are numeric
+            if [[ "$total_time" =~ ^[0-9]+\.?[0-9]*$ ]] && [[ "$per_file" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+                printf "%-12s %-15.6f %-15.6f %-15s %-15s\n" "$tool" "$total_time" "$per_file" "$success" "$failed"
+            else
+                printf "%-12s %-15s %-15s %-15s %-15s\n" "$tool" "$total_time" "$per_file" "$success" "$failed"
+            fi
         fi
     done <"$results_file"
 

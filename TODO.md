@@ -1,18 +1,9 @@
 # SVGN TODO List
 
-## Phase 1A: Critical Default Preset Plugins (Weeks 1-4)
+## Phase 1A: Critical Default Preset Plugins (Weeks 1-3)
 
-### 1.1 convertTransform (2 weeks)
-- [ ] Add nalgebra dependency for matrix operations
-- [ ] Create plugin file: `svgn/src/plugins/convert_transform.rs`
-- [ ] Parse transform strings into matrices
-- [ ] Implement matrix multiplication
-- [ ] Convert matrices to shorter translate/scale/rotate forms
-- [ ] Optimize precision and remove redundant transforms
-- [ ] Support all 12 SVGO parameters
-- [ ] Add comprehensive test suite
+### 1.1 inlineStyles (1.5 weeks) - CURRENT PRIORITY
 
-### 1.2 inlineStyles (1.5 weeks)
 - [ ] Add lightningcss or css crate dependency
 - [ ] Create plugin file: `svgn/src/plugins/inline_styles.rs`
 - [ ] Parse CSS from `<style>` elements
@@ -24,7 +15,8 @@
 - [ ] Support all 4 SVGO parameters
 - [ ] Add test suite
 
-### 1.3 mergePaths (1 week)
+### 1.2 mergePaths (1 week)
+
 - [ ] Create plugin file: `svgn/src/plugins/merge_paths.rs`
 - [ ] Group paths by identical style attributes
 - [ ] Check DOM adjacency for mergeable paths
@@ -32,7 +24,8 @@
 - [ ] Support force, floatPrecision, noSpaceAfterFlags parameters
 - [ ] Add test suite
 
-### 1.4 moveElemsAttrsToGroup (0.5 weeks)
+### 1.3 moveElemsAttrsToGroup (0.5 weeks)
+
 - [ ] Create plugin file: `svgn/src/plugins/move_elems_attrs_to_group.rs`
 - [ ] Analyze attributes across sibling elements
 - [ ] Identify inheritable SVG attributes
@@ -41,7 +34,8 @@
 - [ ] Move attributes and remove from children
 - [ ] Add test suite
 
-### 1.5 moveGroupAttrsToElems (0.5 weeks)
+### 1.4 moveGroupAttrsToElems (0.5 weeks)
+
 - [ ] Create plugin file: `svgn/src/plugins/move_group_attrs_to_elems.rs`
 - [ ] Identify groups that only provide attributes
 - [ ] Distribute inheritable attributes to children
@@ -49,9 +43,10 @@
 - [ ] Remove empty groups after distribution
 - [ ] Add test suite
 
-## Phase 1B: Standalone Plugins (Weeks 5-6)
+## Phase 1B: Standalone Plugins (Weeks 4-5)
 
-### 1.6 applyTransforms (1 week)
+### 1.5 applyTransforms (1 week)
+
 - [ ] Create plugin file: `svgn/src/plugins/apply_transforms.rs`
 - [ ] Parse transform matrices from elements
 - [ ] Apply transform matrices to path coordinates
@@ -61,7 +56,8 @@
 - [ ] Support transformPrecision and applyTransformsStroked parameters
 - [ ] Add test suite
 
-### 1.7 reusePaths (1 week)
+### 1.6 reusePaths (1 week)
+
 - [ ] Create plugin file: `svgn/src/plugins/reuse_paths.rs`
 - [ ] Hash path content for duplicate detection
 - [ ] Create `<defs>` and `<use>` elements
@@ -71,17 +67,10 @@
 
 ## Phase 2: Completed Tasks ✅
 
-### 2.1 removeAttributesBySelector ✅ COMPLETED
-- [x] Add selectors crate dependency (was already present)
-- [x] Fix CSS selector parsing in `svgn/src/plugins/remove_attributes_by_selector.rs`
-- [x] Re-enable plugin in registry (`svgn/src/plugin.rs`)
-- [x] Uncomment in mod.rs
-- [x] Verify plugin functionality via CLI
-- [x] Plugin now functional and available
-
-## Phase 3: Infrastructure (Weeks 7-8)
+## Phase 3: Infrastructure (Weeks 6-7)
 
 ### 3.1 Parser Enhancements (1 week)
+
 - [ ] Fix XML entity expansion (Issue #201)
 - [ ] Parse `<!ENTITY>` declarations in DOCTYPE
 - [ ] Build entity table during parsing
@@ -101,6 +90,7 @@
 - [ ] Use metadata throughout optimization pipeline
 
 ### 3.2 Stringifier Enhancements (0.5 weeks)
+
 - [ ] Fix XML declaration support (Issue #206)
 - [ ] Add XML declaration output based on DocumentMetadata
 - [ ] Update stringifier in `svgn/src/stringifier.rs`
@@ -110,6 +100,7 @@
 - [ ] Handle public/system identifiers
 
 ### 3.3 Architecture Improvements (1 week)
+
 - [ ] Implement visitor pattern (Issue #213)
 - [ ] Create Visitor trait with enter/exit methods
 - [ ] Support for different node types
@@ -126,6 +117,7 @@
 - [ ] External plugin interface
 
 ### 3.4 Plugin-Specific Fixes (0.5 weeks)
+
 - [ ] Fix cleanupEnableBackground style handling (Issue #225)
 - [ ] Parse enable-background from style attributes
 - [ ] Merge logic with attribute handling
@@ -135,9 +127,10 @@
 - [ ] Skip ID minification for SVGs with only `<defs>`
 - [ ] Detect SVGs containing only defs
 
-## Phase 4: Default Preset Alignment (Week 6)
+## Phase 4: Default Preset Alignment (Week 5)
 
 ### 4.1 Update Default Configuration
+
 - [ ] Add missing plugins to default preset configuration
 - [ ] Add `removeDeprecatedAttrs`
 - [ ] Add `mergeStyles`
@@ -152,9 +145,10 @@
 - [ ] Update plugin registry order to match SVGO preset order
 - [ ] Test default preset compatibility
 
-## Phase 5: Quality & Testing (Weeks 8-9)
+## Phase 5: Quality & Testing (Weeks 6-8)
 
 ### 5.1 Code Quality (0.5 weeks)
+
 - [ ] Fix all Clippy warnings (27 warnings)
 - [ ] Fix collapsible if statements (2)
 - [ ] Fix needless borrows (2)
@@ -169,6 +163,7 @@
 - [ ] Fix minor formatting issues in benches/optimization.rs
 
 ### 5.2 Testing (1 week)
+
 - [ ] Port remaining SVGO test fixtures
 - [ ] Port all missing plugin test files from `/ref/svgo/test/plugins/`
 - [ ] Implement Rust test cases for new plugins
@@ -183,10 +178,12 @@
 - [ ] Add property-based tests
 
 ### 5.3 CLI Completion (0.5 weeks)
+
 - [ ] Add support for .js config files (currently only .json and .toml)
 - [ ] Implement base64 encoding for datauri output (currently placeholder)
 
 ### 5.4 Build & Distribution (1 week)
+
 - [ ] Complete cross-platform build scripts (Issue #410)
 - [ ] Fix macOS universal binary build (Issue #412)
 - [ ] Create Linux packaging (.deb, .rpm, .AppImage)
@@ -198,6 +195,7 @@
 - [ ] Update set-cargo-version.sh script
 
 ### 5.5 Documentation Updates (0.5 weeks)
+
 - [ ] Update docs/plugins.md
 - [ ] Add new plugin documentation
 - [ ] Update implementation status
@@ -214,21 +212,24 @@
 ## Success Metrics
 
 ### Plugin Parity
-- [ ] Achieve 54/54 plugins implemented (currently 49/54)
-- [x] Fix 1 disabled plugin (removeAttributesBySelector) ✅ COMPLETED
-- [ ] Implement 5 remaining missing plugins
+
+- [ ] Achieve 54/54 plugins implemented (currently 50/54 - 93% complete)
+- [ ] Implement 4 remaining missing plugins (inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems)
 
 ### Test Compatibility
+
 - [ ] Achieve 100% SVGO test suite passing (currently 93.75%)
 - [ ] Port all remaining test fixtures
 - [ ] Verify identical optimization results
 
 ### Performance
+
 - [ ] Maintain 2-3x performance advantage over SVGO
 - [ ] Ensure new plugins don't degrade performance
 - [ ] Complete benchmark suite
 
 ### API Compatibility
+
 - [ ] Maintain 100% CLI drop-in replacement capability
 - [ ] Support all SVGO configuration options
 - [ ] Match parameter names and behaviors exactly
