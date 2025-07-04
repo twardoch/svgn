@@ -145,7 +145,7 @@ pub fn optimize(input: &str, options: OptimizeOptions) -> OptimizeResult<Optimiz
     // Get or create plugin registry
     let mut registry = options
         .registry
-        .unwrap_or_else(|| crate::plugin::create_default_registry());
+        .unwrap_or_else(crate::plugin::create_default_registry);
 
     // Apply optimization passes
     let mut passes = 0;

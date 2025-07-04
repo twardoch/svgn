@@ -1,47 +1,128 @@
 # SVGN TODO List
 
+## Immediate Build Fixes ✅ COMPLETED (2025-07-04)
+
+- [x] Fixed unresolved import `crate::test_utils` in remove_useless_stroke_and_fill.rs
+- [x] Fixed function call with wrong arguments in convert_path_data.rs test
+- [x] Removed unused import `Node` in convert_transform.rs
+- [x] Fixed Document Display trait issues in remove_useless_stroke_and_fill.rs tests
+- [x] Suppressed dead code warning for `transform_precision` field
+
+## Phase 0 – Clippy Compliance Sprint ✅ MAJOR PROGRESS (2025-07-04)
+
+### Core Library Fixes Completed ✅
+- [x] Fixed redundant closures in optimizer.rs and inline_styles files
+- [x] Replaced `map_or` chains with `is_none_or`/`is_some_and` (multiple files)
+- [x] Fixed manual strip usage in inline_styles.rs (2 fixes)
+- [x] Removed needless borrows and op_ref issues (multiple files) 
+- [x] Fixed len_zero issues (`len() >= 1` → `!is_empty()`)
+- [x] Added missing `optimize_default` export to lib.rs
+- [x] Fixed CLI argument conflicts needless borrows
+
+### Remaining Test/Bench Fixes (Non-blocking)
+- [ ] C01 Remove illegal `#[cfg(disabled)]` attribute (remove_useless_stroke_and_fill.rs:319)
+- [ ] C02 Collapse nested `if` in remove_useless_stroke_and_fill.rs:115-118  
+- [ ] C04 Fix `only_used_in_recursion` warnings or allow (remove_useless_stroke_and_fill.rs:68,240)
+- [ ] C05 Prefix unused param `_plugin_info` (convert_path_data.rs:37)
+- [ ] C06 Replace `while let Some(ch)` loop with `for` (convert_path_data.rs:208)
+- [ ] C08 Refactor `optimize_path_data` signature to fewer args (<8) (convert_path_data.rs:357)
+- [ ] C09 Replace `.get(0)` with `.first()` in convert_transform.rs:149-209  
+- [ ] C10 Use `*=` instead of manual `=` `*` (convert_transform.rs:260)
+- [ ] C11 Replace `len() >= 1` in convert_transform.rs:341-346
+- [ ] Additional test-specific clippy fixes identified
+- [ ] Ensure `cargo clippy -- -D warnings` runs clean
+
+### Status
+- ✅ **Core development unblocked** - 347 tests passing, library functionality working
+- ⚠️ **CI still requires full clippy compliance** but development can proceed
+
+
 ## Phase 1A: Critical Default Preset Plugins (Weeks 1-3)
 
 ### 1.1 inlineStyles (1.5 weeks) - CURRENT PRIORITY
 
-- [ ] Add lightningcss or css crate dependency
-- [ ] Create plugin file: `svgn/src/plugins/inline_styles.rs`
-- [ ] Parse CSS from `<style>` elements
-- [ ] Implement CSS specificity calculation
-- [ ] Match CSS selectors to SVG elements
-- [ ] Apply cascade rules and inheritance
-- [ ] Convert CSS properties to SVG attributes
-- [ ] Handle media queries and pseudo-classes
-- [ ] Support all 4 SVGO parameters
-- [ ] Add test suite
+#### Phase 1A.1: Foundation Setup (2 days) ✅ COMPLETED
+- [x] ✅ Verify lightningcss dependency (already configured in workspace)
+- [x] Create plugin file: `svgn/src/plugins/inline_styles.rs` 
+- [x] Set up basic plugin structure with SVGO parameter parsing
+- [x] Define `InlineStylesParams` struct with 4 SVGO parameters:
+  - [x] `onlyMatchedOnce: bool` (default: true)
+  - [x] `removeMatchedSelectors: bool` (default: true) 
+  - [x] `useMqs: bool` (default: true)
+  - [x] `usePseudos: bool` (default: true)
+
+#### Phase 1A.2: CSS Processing Engine (3 days) ✅ COMPLETED
+- [x] Implement CSS parsing using lightningcss StyleSheet
+- [x] Create CSS rule extraction from `<style>` elements
+- [ ] Build media query filtering logic (for `useMqs` parameter) - TODO
+- [ ] Implement pseudo-class filtering (for `usePseudos` parameter) - TODO
+- [x] Add CSS rule validation and error handling
+
+#### Phase 1A.3: SVG DOM Integration (3 days)
+- [x] Implement custom Element trait for selectors crate ✅ COMPLETED
+- [ ] Create SVG element matching infrastructure - IN PROGRESS
+- [ ] Build CSS selector to SVG element matching engine
+- [ ] Implement CSS specificity calculation and cascade resolution
+- [ ] Add support for class and ID attribute matching
+
+#### Phase 1A.4: CSS-to-SVG Conversion (2 days)
+- [ ] Create CSS property to SVG attribute mapping
+- [ ] Implement declaration merging with `!important` handling
+- [ ] Build attribute value conversion (colors, units, etc.)
+- [ ] Add conflict resolution for existing attributes
+
+#### Phase 1A.5: Cleanup and Optimization (2 days)  
+- [ ] Implement matched selector removal (for `removeMatchedSelectors`)
+- [ ] Add unused class/ID attribute cleanup
+- [ ] Implement `onlyMatchedOnce` optimization logic
+- [ ] Remove empty `<style>` elements after processing
+
+#### Phase 1A.6: Testing and Validation (3 days)
+- [ ] Create comprehensive test suite with SVGO compatibility tests
+- [ ] Add edge case testing (nested styles, complex selectors, etc.)
+- [ ] Implement regression tests against SVGO reference output  
+- [ ] Add performance benchmarking
+- [x] Register plugin in mod.rs and plugin registry ✅ COMPLETED
+
+#### ⚠️ Fallback Strategy (If inlineStyles complexity exceeds estimates)
+- [ ] **Incremental MVP:** Implement basic CSS rule inlining without full specificity
+- [ ] **Fallback Approach:** Use regex-based CSS parsing for complex selectors
+- [ ] **Milestone Gates:** Define 80% functionality checkpoint before full implementation
+- [ ] **Alternative Timeline:** Extend to 2.5 weeks if full CSS specification support needed
 
 ### 1.2 mergePaths (1 week)
 
+#### Phase 1A.2: Implementation Steps
 - [ ] Create plugin file: `svgn/src/plugins/merge_paths.rs`
-- [ ] Group paths by identical style attributes
-- [ ] Check DOM adjacency for mergeable paths
-- [ ] Concatenate path data strings correctly
-- [ ] Support force, floatPrecision, noSpaceAfterFlags parameters
-- [ ] Add test suite
+- [ ] Implement path grouping by style attribute fingerprinting
+- [ ] Build DOM adjacency detection for mergeable path elements
+- [ ] Create path data concatenation with proper moveTo insertion
+- [ ] Add SVGO parameter support: `force`, `floatPrecision`, `noSpaceAfterFlags`
+- [ ] Implement size optimization analysis (merge vs. separate paths)
+- [ ] Handle edge cases: transforms, markers, animations
+- [ ] Add comprehensive test suite with SVGO compatibility validation
 
 ### 1.3 moveElemsAttrsToGroup (0.5 weeks)
 
+#### Phase 1A.3: Implementation Steps
 - [ ] Create plugin file: `svgn/src/plugins/move_elems_attrs_to_group.rs`
-- [ ] Analyze attributes across sibling elements
-- [ ] Identify inheritable SVG attributes
-- [ ] Calculate size reduction benefit
-- [ ] Create `<g>` wrapper when beneficial
-- [ ] Move attributes and remove from children
-- [ ] Add test suite
+- [ ] Implement SVG presentation attribute inheritance analysis
+- [ ] Build sibling element grouping detection algorithm
+- [ ] Create size optimization calculator (group overhead vs. savings)
+- [ ] Implement `<g>` wrapper creation with attribute consolidation
+- [ ] Add proper handling of transforms, styles, and presentation attributes
+- [ ] Create test suite with inheritance rule validation
 
 ### 1.4 moveGroupAttrsToElems (0.5 weeks)
 
+#### Phase 1A.4: Implementation Steps  
 - [ ] Create plugin file: `svgn/src/plugins/move_group_attrs_to_elems.rs`
-- [ ] Identify groups that only provide attributes
-- [ ] Distribute inheritable attributes to children
-- [ ] Handle attribute conflicts (child overrides)
-- [ ] Remove empty groups after distribution
-- [ ] Add test suite
+- [ ] Implement group analysis for attribute-only containers
+- [ ] Build attribute distribution logic with conflict resolution
+- [ ] Add size benefit analysis for group removal optimization
+- [ ] Handle edge cases: nested groups, mixed content, transforms
+- [ ] Implement empty group cleanup after attribute distribution
+- [ ] Create comprehensive test suite with SVGO compatibility checks
 
 ## Phase 1B: Standalone Plugins (Weeks 4-5)
 
@@ -209,27 +290,32 @@
 - [ ] Update feature list
 - [ ] Add migration guide links
 
-## Success Metrics
+## Success Metrics & Definition of Done
 
-### Plugin Parity
-
+### **Plugin Parity (Primary Goal)**
 - [ ] Achieve 54/54 plugins implemented (currently 50/54 - 93% complete)
-- [ ] Implement 4 remaining missing plugins (inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems)
+- [x] Fix 1 disabled plugin (removeAttributesBySelector) ✅ COMPLETED
+- [x] Implement convertTransform plugin ✅ COMPLETED (2025-07-04)
+- [ ] Implement 4 remaining missing plugins:
+  - [ ] **inlineStyles** - Full CSS specificity and cascade support (IN PROGRESS - Foundation & CSS Processing complete)
+  - [ ] **mergePaths** - Path concatenation with style matching
+  - [ ] **moveElemsAttrsToGroup** - Attribute inheritance optimization
+  - [ ] **moveGroupAttrsToElems** - Reverse attribute distribution
 
-### Test Compatibility
+### **Quality Gates**
+- [ ] **100% SVGO Output Compatibility:** Bit-for-bit identical output for test cases
+- [ ] **Performance Benchmark:** Maintain 2-3x speed advantage over SVGO
+- [ ] **Test Coverage:** 367+ tests passing with new plugin integration
+- [ ] **CLI Compatibility:** All SVGO parameters and options supported
 
-- [ ] Achieve 100% SVGO test suite passing (currently 93.75%)
-- [ ] Port all remaining test fixtures
-- [ ] Verify identical optimization results
+### **Acceptance Criteria**
+- [ ] **Default Preset Complete:** All 35 SVGO default preset plugins implemented
+- [ ] **Parameter Compatibility:** All plugin parameters match SVGO specifications
+- [ ] **Edge Case Handling:** Complex CSS, nested transforms, and mixed content scenarios
+- [ ] **Documentation Complete:** Plugin documentation and usage examples
 
-### Performance
-
-- [ ] Maintain 2-3x performance advantage over SVGO
-- [ ] Ensure new plugins don't degrade performance
-- [ ] Complete benchmark suite
-
-### API Compatibility
-
-- [ ] Maintain 100% CLI drop-in replacement capability
-- [ ] Support all SVGO configuration options
-- [ ] Match parameter names and behaviors exactly
+### **Release Readiness**
+- [ ] **Code Quality:** All clippy warnings resolved, comprehensive error handling
+- [ ] **Integration Testing:** Multi-plugin interaction validation
+- [ ] **Community Validation:** Beta testing feedback incorporated
+- [ ] **Version Management:** Git tags and release automation configured

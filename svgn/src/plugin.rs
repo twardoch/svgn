@@ -265,6 +265,7 @@ pub fn create_default_registry() -> PluginRegistry {
     registry.register(crate::plugins::RemoveOffCanvasPathsPlugin);
     registry.register(crate::plugins::ConvertShapeToPathPlugin);
     registry.register(crate::plugins::ConvertTransformPlugin);
+    registry.register(crate::plugins::InlineStylesPlugin);
     registry.register(crate::plugins::MinifyStylesPlugin);
     registry.register(crate::plugins::ConvertPathDataPlugin);
     registry.register(crate::plugins::RemoveUselessTransformsPlugin);

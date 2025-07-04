@@ -1,176 +1,67 @@
 Generating code snapshot in ./llms.txt ...
-╭────── CodeToPrompt ───────╮
-│ Configuration for this    │
-│ run:                      │
-│ Root Directory:           │
-│ /Users/adam/Developer/vcs │
-│ /github.twardoch/pub/svgn │
-│ Include Patterns: ['*']   │
-│ Exclude Patterns:         │
-│ ['*.svg', '.specstory',   │
-│ '*.md', '*.txt', 'ref',   │
-│ 'testdata', '*.lock']     │
-│ Respect .gitignore: True  │
-│ Show Line Numbers: False  │
-│ Count Tokens: True        │
-│ Compress Code: True       │
-│ Max Tokens: Unlimited     │
-│ Tree Depth: 5             │
-│ Output Format: default    │
-│ Interactive Mode: False   │
-╰───────────────────────────╯
+╭───────────────────────────── CodeToPrompt ──────────────────────────────╮
+│ Configuration for this run:                                             │
+│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn      │
+│ Include Patterns: ['*']                                                 │
+│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref',       │
+│ 'testdata', '*.lock']                                                   │
+│ Respect .gitignore: True                                                │
+│ Show Line Numbers: False                                                │
+│ Count Tokens: True                                                      │
+│ Compress Code: True                                                     │
+│ Max Tokens: Unlimited                                                   │
+│ Tree Depth: 5                                                           │
+│ Output Format: default                                                  │
+│ Interactive Mode: False                                                 │
+╰─────────────────────────────────────────────────────────────────────────╯
 
-╭─── Processing Complete ───╮
-│ Summary:                  │
-│ Files Processed: 98       │
-│ Total Tokens: 66,797      │
-│ Output Destination:       │
-│ llms.txt                  │
-│                           │
-│ Top 3 Files by Tokens:    │
-│   -                       │
-│ svgn/src/collections.rs   │
-│ (5,362 tokens)            │
-│   -                       │
-│ svgn/src/plugins/remove_u │
-│ nknowns_and_defaults.rs   │
-│ (4,955 tokens)            │
-│   -                       │
-│ svgn/src/plugins/cleanup_ │
-│ list_of_values.rs (3,957  │
-│ tokens)                   │
-│                           │
-│ Top 5 Extensions by       │
-│ Tokens:                   │
-│   - .rs (50,909 tokens)   │
-│   - .sh (6,130 tokens)    │
-│   - .yml (2,940 tokens)   │
-│   - .bak (2,786 tokens)   │
-│   - .cmd (2,652 tokens)   │
-╰───────────────────────────╯
+╭──────────────────────── Processing Complete ────────────────────────╮
+│ Summary:                                                            │
+│ Files Processed: 104                                                │
+│ Total Tokens: 67,127                                                │
+│ Output Destination: llms.txt                                        │
+│                                                                     │
+│ Top 3 Files by Tokens:                                              │
+│   - svgn/src/collections.rs (5,362 tokens)                          │
+│   - svgn/src/plugins/remove_unknowns_and_defaults.rs (4,955 tokens) │
+│   - svgn/src/plugins/cleanup_list_of_values.rs (3,957 tokens)       │
+│                                                                     │
+│ Top 5 Extensions by Tokens:                                         │
+│   - .rs (51,230 tokens)                                             │
+│   - .sh (6,130 tokens)                                              │
+│   - .yml (2,940 tokens)                                             │
+│   - .bak (2,786 tokens)                                             │
+│   - .cmd (2,652 tokens)                                             │
+╰─────────────────────────────────────────────────────────────────────╯
 Building the svgn project...
-   Compiling simba v0.9.0
-   Compiling nalgebra v0.33.2
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
-warning: unexpected `cfg` condition name: `disabled`
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:319:7
-    |
-319 | #[cfg(disabled)] // TODO: Fix test_utils dependency 
-    |       ^^^^^^^^
-    |
-    = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
-    = help: consider using a Cargo feature instead
-    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
-             [lints.rust]
-             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(disabled)'] }
-    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(disabled)");` to the top of the `build.rs`
-    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
-    = note: `#[warn(unexpected_cfgs)]` on by default
-
-warning: unused variable: `plugin_info`
-  --> svgn/src/plugins/convert_path_data.rs:37:9
-   |
-37 |         plugin_info: &PluginInfo,
-   |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_plugin_info`
-   |
-   = note: `#[warn(unused_variables)]` on by default
-
-warning: unused variable: `cmd`
-   --> svgn/src/plugins/convert_path_data.rs:664:24
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                        ^^^ help: if this is intentional, prefix it with an underscore: `_cmd`
-
-warning: unused variable: `current_x`
-   --> svgn/src/plugins/convert_path_data.rs:664:43
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_x`
-
-warning: unused variable: `current_y`
-   --> svgn/src/plugins/convert_path_data.rs:664:59
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_y`
-
-warning: `svgn` (lib) generated 5 warnings
-    Finished `release` profile [optimized] target(s) in 1m 12s
+    Finished `release` profile [optimized] target(s) in 2m 25s
 Running tests...
-warning: unexpected `cfg` condition name: `disabled`
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:319:7
-    |
-319 | #[cfg(disabled)] // TODO: Fix test_utils dependency 
-    |       ^^^^^^^^
-    |
-    = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
-    = help: consider using a Cargo feature instead
-    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
-             [lints.rust]
-             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(disabled)'] }
-    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(disabled)");` to the top of the `build.rs`
-    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
-    = note: `#[warn(unexpected_cfgs)]` on by default
+   Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.44s
+     Running unittests src/lib.rs (target/debug/deps/svgn-427c3a642d0a455f)
 
-warning: unused variable: `plugin_info`
-  --> svgn/src/plugins/convert_path_data.rs:37:9
-   |
-37 |         plugin_info: &PluginInfo,
-   |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_plugin_info`
-   |
-   = note: `#[warn(unused_variables)]` on by default
-
-warning: unused variable: `cmd`
-   --> svgn/src/plugins/convert_path_data.rs:664:24
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                        ^^^ help: if this is intentional, prefix it with an underscore: `_cmd`
-
-warning: unused variable: `current_x`
-   --> svgn/src/plugins/convert_path_data.rs:664:43
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_x`
-
-warning: unused variable: `current_y`
-   --> svgn/src/plugins/convert_path_data.rs:664:59
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_y`
-
-warning: unused import: `Node`
-   --> svgn/src/plugins/convert_transform.rs:476:41
-    |
-476 |     use crate::ast::{Document, Element, Node};
-    |                                         ^^^^
-    |
-    = note: `#[warn(unused_imports)]` on by default
-
-warning: `svgn` (lib) generated 5 warnings
-warning: `svgn` (lib test) generated 6 warnings (5 duplicates) (run `cargo fix --lib -p svgn --tests` to apply 1 suggestion)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
-     Running unittests src/lib.rs (target/debug/deps/svgn-9d67be36cd4c1afa)
-
-running 342 tests
-test config::tests::test_default_config ... ok
+running 347 tests
 test ast::tests::test_element_creation ... ok
-test ast::tests::test_child_operations ... ok
-test optimizer::tests::test_optimization_info ... ok
+test config::tests::test_default_config ... ok
 test config::tests::test_default_preset ... ok
+test ast::tests::test_child_operations ... ok
 test config::tests::test_plugin_management ... ok
-test optimizer::tests::test_datauri_encoding ... ok
+test optimizer::tests::test_optimization_info ... ok
 test ast::tests::test_whitespace_detection ... ok
+test optimizer::tests::test_datauri_encoding ... ok
 test ast::tests::test_attribute_operations ... ok
-test parser::tests::test_parse_empty_element ... ok
-test parser::tests::test_parse_invalid_xml ... ok
 test config::tests::test_json_parsing ... ok
-test optimizer::tests::test_optimize_with_config ... ok
+test parser::tests::test_parse_invalid_xml ... ok
+test parser::tests::test_parse_empty_element ... ok
 test config::tests::test_config_serialization ... ok
 test parser::tests::test_parse_simple_svg ... ok
 test parser::tests::test_parse_with_comments ... ok
-test optimizer::tests::test_optimize_simple_svg ... ok
-test parser::tests::test_parse_with_namespaces ... ok
+test optimizer::tests::test_optimize_with_config ... ok
 test parser::tests::test_parse_with_text ... ok
+test optimizer::tests::test_optimize_simple_svg ... ok
 test plugin::tests::test_apply_plugins ... ok
+test parser::tests::test_parse_with_namespaces ... ok
 test plugin::tests::test_apply_unknown_plugin ... ok
 test plugin::tests::test_plugin_config ... ok
 test plugin::tests::test_plugin_registry ... ok
@@ -182,12 +73,12 @@ test plugins::add_attributes_to_svg_element::tests::test_invalid_params ... ok
 test plugins::add_attributes_to_svg_element::tests::test_missing_params ... ok
 test plugins::add_attributes_to_svg_element::tests::test_non_svg_element ... ok
 test plugins::add_attributes_to_svg_element::tests::test_validate_params ... ok
-test plugins::add_classes_to_svg_element::tests::test_add_multiple_classes ... ok
 test plugins::add_classes_to_svg_element::tests::test_add_classes_to_existing ... ok
+test plugins::add_classes_to_svg_element::tests::test_add_multiple_classes ... ok
 test plugins::add_classes_to_svg_element::tests::test_add_single_class ... ok
 test plugins::add_classes_to_svg_element::tests::test_duplicate_classes ... ok
-test plugins::add_classes_to_svg_element::tests::test_invalid_class_name_type ... ok
 test plugins::add_classes_to_svg_element::tests::test_empty_class_names ... ok
+test plugins::add_classes_to_svg_element::tests::test_invalid_class_name_type ... ok
 test plugins::add_classes_to_svg_element::tests::test_invalid_params ... ok
 test plugins::add_classes_to_svg_element::tests::test_missing_params ... ok
 test plugins::add_classes_to_svg_element::tests::test_non_svg_element ... ok
@@ -198,29 +89,29 @@ test plugins::cleanup_ids::tests::test_preserve_ids ... ok
 test plugins::cleanup_ids::tests::test_skip_with_scripts ... ok
 test plugins::cleanup_list_of_values::tests::test_plugin_name_and_description ... ok
 test plugins::cleanup_list_of_values::tests::test_preserves_non_list_attributes ... ok
-test plugins::cleanup_enable_background::tests::test_keep_non_matching ... ok
 test plugins::cleanup_enable_background::tests::test_cleanup_with_filter ... ok
+test plugins::cleanup_enable_background::tests::test_keep_non_matching ... ok
 test plugins::cleanup_enable_background::tests::test_simplify_mask_pattern ... ok
+test plugins::cleanup_numeric_values::tests::test_cleans_viewbox ... ok
 test plugins::cleanup_ids::tests::test_minify_ids ... ok
 test plugins::cleanup_ids::tests::test_remove_unused_ids ... ok
-test plugins::cleanup_numeric_values::tests::test_cleans_viewbox ... ok
 test plugins::cleanup_attrs::tests::test_cleanup_newlines ... ok
 test plugins::cleanup_attrs::tests::test_cleanup_spaces ... ok
 test plugins::cleanup_numeric_values::tests::test_plugin_name_and_description ... ok
 test plugins::cleanup_list_of_values::tests::test_configurable_precision ... ok
-test plugins::cleanup_list_of_values::tests::test_handles_comma_separated_values ... ok
-test plugins::cleanup_list_of_values::tests::test_configurable_leading_zero ... ok
-test plugins::cleanup_list_of_values::tests::test_rounds_points_list ... ok
-test plugins::cleanup_list_of_values::tests::test_rounds_viewbox ... ok
-test plugins::cleanup_list_of_values::tests::test_handles_mixed_separators ... ok
-test plugins::cleanup_list_of_values::tests::test_handles_enable_background_with_new ... ok
-test plugins::cleanup_list_of_values::tests::test_rounds_text_positioning ... ok
 test plugins::cleanup_list_of_values::tests::test_rounds_stroke_dasharray ... ok
+test plugins::cleanup_list_of_values::tests::test_configurable_leading_zero ... ok
+test plugins::cleanup_list_of_values::tests::test_handles_comma_separated_values ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_points_list ... ok
+test plugins::cleanup_list_of_values::tests::test_handles_enable_background_with_new ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_viewbox ... ok
 test plugins::cleanup_list_of_values::tests::test_converts_units_in_lists ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_text_positioning ... ok
+test plugins::cleanup_list_of_values::tests::test_handles_mixed_separators ... ok
 test plugins::collapse_groups::tests::test_collapse_empty_group ... ok
 test plugins::collapse_groups::tests::test_concatenate_transforms ... ok
-test plugins::collapse_groups::tests::test_nested_groups ... ok
 test plugins::collapse_groups::tests::test_move_attributes_to_single_child ... ok
+test plugins::collapse_groups::tests::test_nested_groups ... ok
 test plugins::collapse_groups::tests::test_preserve_group_with_id ... ok
 test plugins::collapse_groups::tests::test_preserve_group_with_multiple_children ... ok
 test plugins::convert_colors::tests::test_convert_to_short_hex ... ok
@@ -231,8 +122,8 @@ test plugins::convert_ellipse_to_circle::tests::test_default_zero_values ... ok
 test plugins::convert_ellipse_to_circle::tests::test_keep_unequal_radii ... ok
 test plugins::convert_one_stop_gradients::tests::test_apply_with_empty_document ... ok
 test plugins::convert_ellipse_to_circle::tests::test_nested_ellipses ... ok
-test plugins::convert_one_stop_gradients::tests::test_extract_gradient_id ... ok
 test plugins::convert_one_stop_gradients::tests::test_apply_with_no_gradients ... ok
+test plugins::convert_one_stop_gradients::tests::test_extract_gradient_id ... ok
 test plugins::convert_one_stop_gradients::tests::test_plugin_creation ... ok
 test plugins::convert_path_data::tests::test_format_number ... ok
 test plugins::convert_path_data::tests::test_optimize_removes_useless_lineto ... ok
@@ -241,85 +132,90 @@ test plugins::convert_path_data::tests::test_parse_simple_path ... ok
 test plugins::convert_shape_to_path::tests::test_convert_circle ... ok
 test plugins::convert_shape_to_path::tests::test_convert_line ... ok
 test plugins::convert_shape_to_path::tests::test_convert_rect_basic ... ok
-test plugins::convert_shape_to_path::tests::test_convert_rect_with_position ... ok
 test plugins::cleanup_numeric_values::tests::test_preserves_non_numeric_values ... ok
-test plugins::cleanup_numeric_values::tests::test_configurable_default_px ... ok
+test plugins::cleanup_numeric_values::tests::test_rounds_decimal_values ... ok
+test plugins::cleanup_numeric_values::tests::test_configurable_leading_zero ... ok
 test plugins::cleanup_numeric_values::tests::test_preserves_version_attribute ... ok
 test plugins::cleanup_numeric_values::tests::test_configurable_precision ... ok
-test plugins::cleanup_numeric_values::tests::test_rounds_decimal_values ... ok
-test plugins::cleanup_numeric_values::tests::test_converts_units_to_px ... ok
-test plugins::cleanup_numeric_values::tests::test_configurable_leading_zero ... ok
+test plugins::cleanup_numeric_values::tests::test_configurable_default_px ... ok
 test plugins::cleanup_numeric_values::tests::test_removes_leading_zeros ... ok
+test plugins::cleanup_numeric_values::tests::test_converts_units_to_px ... ok
 test plugins::cleanup_numeric_values::tests::test_removes_default_px_units ... ok
+test plugins::convert_shape_to_path::tests::test_convert_rect_with_position ... ok
 test plugins::convert_shape_to_path::tests::test_precision_formatting ... ok
 test plugins::convert_shape_to_path::tests::test_rect_with_rounded_corners_not_converted ... ok
 test plugins::convert_transform::tests::test_remove_useless_transforms ... ok
-test plugins::merge_styles::tests::test_merge_styles ... ok
 test plugins::merge_styles::tests::test_merge_styles_with_media ... ok
+test plugins::merge_styles::tests::test_merge_styles ... ok
 test plugins::merge_styles::tests::test_remove_empty_styles ... ok
 test plugins::convert_transform::tests::test_plugin_removes_identity_transform ... ok
-test plugins::convert_transform::tests::test_parse_transform_string ... ok
 test plugins::convert_transform::tests::test_plugin_optimizes_transform ... ok
-test plugins::convert_shape_to_path::tests::test_convert_polyline ... ok
+test plugins::convert_transform::tests::test_parse_transform_string ... ok
 test plugins::convert_shape_to_path::tests::test_convert_polygon ... ok
+test plugins::convert_shape_to_path::tests::test_convert_polyline ... ok
 test plugins::convert_colors::tests::test_rgb_to_hex ... ok
 test plugins::convert_colors::tests::test_color_params ... ok
+test plugins::convert_colors::tests::test_color_name_to_hex ... ok
 test plugins::prefix_ids::tests::test_apply_with_custom_config ... ok
-test plugins::prefix_ids::tests::test_apply_with_href ... ok
 test plugins::prefix_ids::tests::test_apply_with_ids ... ok
+test plugins::prefix_ids::tests::test_apply_with_href ... ok
 test plugins::prefix_ids::tests::test_escape_identifier_name ... ok
-test plugins::minify_styles::tests::test_empty_style_element_removal ... ok
 test plugins::minify_styles::tests::test_complex_css_minification ... ok
-test plugins::minify_styles::tests::test_minify_css_basic ... ok
 test plugins::minify_styles::tests::test_minify_style_element ... ok
 test plugins::minify_styles::tests::test_minify_css_with_comments ... ok
+test plugins::minify_styles::tests::test_minify_css_basic ... ok
 test plugins::minify_styles::tests::test_minify_css_preserve_comments ... ok
-test plugins::minify_styles::tests::test_minify_css_block ... ok
-test plugins::minify_styles::tests::test_minify_css_block_trailing_semicolon ... ok
 test plugins::minify_styles::tests::test_style_attribute_minification ... ok
 test plugins::minify_styles::tests::test_preserve_important ... ok
-test plugins::convert_colors::tests::test_color_name_to_hex ... ok
+test plugins::minify_styles::tests::test_minify_css_block ... ok
+test plugins::minify_styles::tests::test_empty_style_element_removal ... ok
+test plugins::minify_styles::tests::test_minify_css_block_trailing_semicolon ... ok
 test plugins::prefix_ids::tests::test_plugin_creation ... ok
 test plugins::prefix_ids::tests::test_prefix_id ... ok
 test plugins::prefix_ids::tests::test_prefix_reference ... ok
+test plugins::prefix_ids::tests::test_generate_prefix ... ok
 test plugins::remove_attributes_by_selector::tests::test_invalid_selector ... ok
 test plugins::remove_attributes_by_selector::tests::test_element_name_selector ... ok
 test plugins::remove_attributes_by_selector::tests::test_multiple_attributes_removal ... ok
 test plugins::remove_attributes_by_selector::tests::test_single_attribute_removal ... ok
 test plugins::remove_attributes_by_selector::tests::test_multiple_selectors ... ok
-test plugins::remove_attrs::tests::test_plugin_name_and_description ... ok
 test plugins::remove_attrs::tests::test_no_attrs_parameter_error ... ok
+test plugins::remove_attrs::tests::test_plugin_name_and_description ... ok
+test plugins::remove_attrs::tests::test_element_specific_removal ... ok
 test plugins::remove_comments::tests::test_remove_comments ... ok
-test plugins::prefix_ids::tests::test_generate_prefix ... ok
+test plugins::remove_attrs::tests::test_value_specific_removal ... ok
 test plugins::remove_deprecated_attrs::tests::test_animation_attribute_target ... ok
 test plugins::remove_deprecated_attrs::tests::test_keep_xml_lang_without_lang ... ok
 test plugins::remove_deprecated_attrs::tests::test_remove_unsafe_attributes ... ok
 test plugins::remove_deprecated_attrs::tests::test_remove_xml_lang_when_lang_exists ... ok
-test plugins::remove_desc::tests::test_remove_any ... ok
 test plugins::remove_desc::tests::test_remove_empty_desc ... ok
+test plugins::remove_attrs::tests::test_nested_elements ... ok
 test plugins::remove_attrs::tests::test_custom_separator ... ok
-test plugins::remove_desc::tests::test_preserve_custom_desc ... ok
-test plugins::remove_desc::tests::test_remove_standard_desc ... ok
+test plugins::remove_desc::tests::test_remove_any ... ok
 test plugins::remove_dimensions::tests::test_create_viewbox_from_dimensions ... ok
-test plugins::remove_attrs::tests::test_element_specific_removal ... ok
+test plugins::remove_attrs::tests::test_preserve_current_color ... ok
 test plugins::remove_dimensions::tests::test_decimal_dimensions ... ok
-test plugins::remove_dimensions::tests::test_invalid_dimensions_ignored ... ok
 test plugins::remove_dimensions::tests::test_missing_dimension_ignored ... ok
+test plugins::remove_dimensions::tests::test_invalid_dimensions_ignored ... ok
+test plugins::remove_desc::tests::test_remove_standard_desc ... ok
+test plugins::remove_desc::tests::test_preserve_custom_desc ... ok
 test plugins::remove_dimensions::tests::test_nested_svg_elements ... ok
+test plugins::remove_attrs::tests::test_simple_attribute_removal ... ok
 test plugins::remove_dimensions::tests::test_no_dimensions_no_change ... ok
-test plugins::remove_dimensions::tests::test_only_processes_svg_elements ... ok
 test plugins::remove_dimensions::tests::test_plugin_creation ... ok
+test plugins::remove_dimensions::tests::test_only_processes_svg_elements ... ok
 test plugins::remove_dimensions::tests::test_remove_dimensions_with_existing_viewbox ... ok
-test plugins::remove_attrs::tests::test_value_specific_removal ... ok
 test plugins::remove_dimensions::tests::test_zero_dimensions ... ok
 test plugins::remove_doctype::tests::test_empty_document ... ok
 test plugins::remove_doctype::tests::test_remove_doctype ... ok
+test plugins::remove_attrs::tests::test_preserve_current_color_case_insensitive ... ok
 test plugins::remove_editors_ns_data::tests::test_apply_preserves_normal_content ... ok
 test plugins::remove_editors_ns_data::tests::test_apply_removes_editor_content ... ok
 test plugins::remove_editors_ns_data::tests::test_apply_with_additional_namespaces ... ok
 test plugins::remove_editors_ns_data::tests::test_plugin_creation ... ok
 test plugins::remove_editors_ns_data::tests::test_collect_editor_prefixes ... ok
 test plugins::remove_editors_ns_data::tests::test_remove_editor_attributes ... ok
+test plugins::prefix_ids::tests::test_get_basename ... ok
 test plugins::remove_editors_ns_data::tests::test_should_remove_element ... ok
 test plugins::remove_elements_by_attr::tests::test_apply_no_config_does_nothing ... ok
 test plugins::remove_elements_by_attr::tests::test_apply_recursive ... ok
@@ -327,25 +223,22 @@ test plugins::remove_elements_by_attr::tests::test_apply_removes_by_class ... ok
 test plugins::remove_elements_by_attr::tests::test_apply_removes_by_id ... ok
 test plugins::remove_elements_by_attr::tests::test_parse_config_mixed ... ok
 test plugins::remove_elements_by_attr::tests::test_parse_config_multiple_classes ... ok
-test plugins::remove_attrs::tests::test_nested_elements ... ok
+test plugins::remove_attrs::tests::test_regex_pattern_removal ... ok
 test plugins::remove_elements_by_attr::tests::test_parse_config_multiple_ids ... ok
 test plugins::remove_elements_by_attr::tests::test_parse_config_single_class ... ok
 test plugins::remove_elements_by_attr::tests::test_parse_config_single_id ... ok
 test plugins::remove_elements_by_attr::tests::test_plugin_creation ... ok
-test plugins::remove_attrs::tests::test_simple_attribute_removal ... ok
 test plugins::remove_elements_by_attr::tests::test_should_remove_element_by_class ... ok
 test plugins::remove_elements_by_attr::tests::test_should_remove_element_by_id ... ok
 test plugins::remove_empty_attrs::tests::test_nested_elements ... ok
 test plugins::remove_empty_attrs::tests::test_no_attributes ... ok
-test plugins::remove_attrs::tests::test_preserve_current_color ... ok
 test plugins::remove_empty_attrs::tests::test_plugin_name_and_description ... ok
 test plugins::remove_empty_attrs::tests::test_preserves_conditional_processing_attrs ... ok
 test plugins::remove_empty_attrs::tests::test_removes_empty_attributes ... ok
-test plugins::remove_empty_containers::tests::test_keeps_non_container_elements ... ok
 test plugins::remove_empty_containers::tests::test_plugin_name_and_description ... ok
+test plugins::remove_empty_containers::tests::test_keeps_non_container_elements ... ok
 test plugins::remove_empty_containers::tests::test_preserves_elements_in_switch ... ok
 test plugins::remove_empty_containers::tests::test_preserves_g_with_filter ... ok
-test plugins::remove_attrs::tests::test_preserve_current_color_case_insensitive ... ok
 test plugins::remove_empty_containers::tests::test_preserves_mask_with_id ... ok
 test plugins::remove_empty_containers::tests::test_preserves_pattern_with_attributes ... ok
 test plugins::remove_empty_containers::tests::test_preserves_svg_root ... ok
@@ -362,7 +255,7 @@ test plugins::remove_empty_text::tests::test_preserves_tref_with_href ... ok
 test plugins::remove_empty_text::tests::test_removes_empty_text ... ok
 test plugins::remove_empty_text::tests::test_removes_empty_tspan ... ok
 test plugins::remove_empty_text::tests::test_removes_tref_without_href ... ok
-test plugins::remove_attrs::tests::test_regex_pattern_removal ... ok
+test plugins::remove_attrs::tests::test_multiple_attribute_removal ... ok
 test plugins::remove_hidden_elems::tests::test_config_display_none_disabled ... ok
 test plugins::remove_hidden_elems::tests::test_nested_hidden_elements ... ok
 test plugins::remove_hidden_elems::tests::test_plugin_name_and_description ... ok
@@ -370,6 +263,7 @@ test plugins::remove_hidden_elems::tests::test_remove_display_none ... ok
 test plugins::remove_hidden_elems::tests::test_remove_empty_groups ... ok
 test plugins::remove_hidden_elems::tests::test_remove_empty_path ... ok
 test plugins::remove_hidden_elems::tests::test_remove_opacity_zero ... ok
+test plugins::convert_style_to_attrs::tests::test_preserve_existing_attributes ... ok
 test plugins::remove_hidden_elems::tests::test_remove_visibility_hidden ... ok
 test plugins::remove_hidden_elems::tests::test_remove_zero_radius_circle ... ok
 test plugins::remove_hidden_elems::tests::test_remove_zero_radius_ellipse ... ok
@@ -378,56 +272,53 @@ test plugins::remove_hidden_elems::tests::test_zero_line ... ok
 test plugins::remove_metadata::tests::test_remove_metadata ... ok
 test plugins::remove_non_inheritable_group_attrs::tests::test_empty_group ... ok
 test plugins::remove_non_inheritable_group_attrs::tests::test_nested_groups ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_all_non_inheritable_attrs ... ok
 test plugins::remove_non_inheritable_group_attrs::tests::test_only_affects_groups ... ok
 test plugins::remove_non_inheritable_group_attrs::tests::test_plugin_name_and_description ... ok
-test plugins::remove_non_inheritable_group_attrs::tests::test_all_non_inheritable_attrs ... ok
-test plugins::prefix_ids::tests::test_get_basename ... ok
-test plugins::remove_attrs::tests::test_multiple_attribute_removal ... ok
-test plugins::remove_off_canvas_paths::tests::test_nested_elements ... ok
 test plugins::remove_non_inheritable_group_attrs::tests::test_remove_non_inheritable_attrs ... ok
-test plugins::remove_off_canvas_paths::tests::test_no_viewbox_no_removal ... ok
+test plugins::remove_off_canvas_paths::tests::test_nested_elements ... ok
 test plugins::remove_off_canvas_paths::tests::test_plugin_name_and_description ... ok
+test plugins::remove_off_canvas_paths::tests::test_no_viewbox_no_removal ... ok
 test plugins::remove_off_canvas_paths::tests::test_remove_circle_outside_viewbox ... ok
-test plugins::remove_off_canvas_paths::tests::test_remove_polygon_outside_viewbox ... ok
 test plugins::remove_off_canvas_paths::tests::test_remove_line_outside_viewbox ... ok
+test plugins::remove_off_canvas_paths::tests::test_remove_polygon_outside_viewbox ... ok
 test plugins::remove_off_canvas_paths::tests::test_remove_rect_outside_viewbox ... ok
 test plugins::remove_off_canvas_paths::tests::test_viewbox_with_offset ... ok
 test plugins::remove_raster_images::tests::test_plugin_name_and_description ... ok
 test plugins::remove_scripts::tests::test_plugin_name_and_description ... ok
 test plugins::remove_scripts::tests::test_normal_anchor_preserved ... ok
 test plugins::remove_scripts::tests::test_javascript_url_in_anchor ... ok
-test plugins::remove_scripts::tests::test_remove_event_attributes ... ok
 test plugins::remove_scripts::tests::test_remove_script_elements ... ok
+test plugins::remove_scripts::tests::test_remove_event_attributes ... ok
 test plugins::remove_scripts::tests::test_xlink_href_with_javascript ... ok
 test plugins::remove_style_element::tests::test_remove_multiple_style_elements ... ok
-test plugins::convert_style_to_attrs::tests::test_preserve_existing_attributes ... ok
 test plugins::remove_title::tests::test_remove_title ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_plugin_name_and_description ... ok
 test plugins::remove_style_element::tests::test_remove_style_elements ... ok
 test plugins::remove_unknowns_and_defaults::tests::test_configuration_options ... ok
-test plugins::remove_unknowns_and_defaults::tests::test_plugin_name_and_description ... ok
-test plugins::remove_unknowns_and_defaults::tests::test_preserves_aria_attributes ... ok
-test plugins::remove_unknowns_and_defaults::tests::test_preserves_data_attributes ... ok
-test plugins::remove_unknowns_and_defaults::tests::test_preserves_id_elements_from_default_removal ... ok
-test plugins::remove_unknowns_and_defaults::tests::test_preserves_namespaced_attributes ... ok
 test plugins::convert_colors::tests::test_convert_rgb_to_hex_function ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_aria_attributes ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_id_elements_from_default_removal ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_data_attributes ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_namespaced_attributes ... ok
 test plugins::remove_unknowns_and_defaults::tests::test_removes_default_values ... ok
 test plugins::remove_unknowns_and_defaults::tests::test_removes_unknown_attributes ... ok
 test plugins::remove_unknowns_and_defaults::tests::test_removes_unknown_elements ... ok
-test plugins::remove_unknowns_and_defaults::tests::test_role_attribute_handling ... ok
-test plugins::remove_unused_ns::tests::test_mixed_used_and_unused_namespaces ... ok
+test plugins::remove_raster_images::tests::test_preserve_non_image_elements ... ok
 test plugins::remove_raster_images::tests::test_case_sensitivity ... ok
 test plugins::remove_raster_images::tests::test_preserve_svg_images ... ok
-test plugins::remove_raster_images::tests::test_preserve_non_image_elements ... ok
-test plugins::remove_unused_ns::tests::test_nested_element_namespace_usage ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_role_attribute_handling ... ok
 test plugins::remove_raster_images::tests::test_remove_gif_image ... ok
 test plugins::remove_raster_images::tests::test_remove_png_image ... ok
 test plugins::remove_raster_images::tests::test_remove_jpeg_image ... ok
-test plugins::remove_unused_ns::tests::test_no_namespaces_to_remove ... ok
+test plugins::remove_unused_ns::tests::test_mixed_used_and_unused_namespaces ... ok
 test plugins::remove_raster_images::tests::test_nested_images ... ok
 test plugins::remove_raster_images::tests::test_url_with_path ... ok
+test plugins::remove_unused_ns::tests::test_nested_element_namespace_usage ... ok
+test plugins::remove_raster_images::tests::test_remove_data_uri_images ... ok
+test plugins::remove_unused_ns::tests::test_no_namespaces_to_remove ... ok
 test plugins::remove_unused_ns::tests::test_plugin_name_and_description ... ok
 test plugins::remove_unused_ns::tests::test_preserve_used_namespace_in_attributes ... ok
-test plugins::remove_raster_images::tests::test_remove_data_uri_images ... ok
 test plugins::remove_unused_ns::tests::test_preserve_used_namespace_in_element_name ... ok
 test plugins::remove_unused_ns::tests::test_remove_all_unused_namespaces ... ok
 test plugins::remove_unused_ns::tests::test_remove_unused_namespace ... ok
@@ -438,6 +329,13 @@ test plugins::remove_useless_defs::tests::test_preserve_elements_with_id ... ok
 test plugins::remove_useless_defs::tests::test_preserve_style_elements ... ok
 test plugins::remove_useless_defs::tests::test_remove_elements_without_id ... ok
 test plugins::remove_useless_defs::tests::test_remove_empty_defs ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_preserve_with_id ... ok
+test plugins::convert_style_to_attrs::tests::test_convert_style_to_attrs ... ok
+test plugins::convert_style_to_attrs::tests::test_complex_css_parsing ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_remove_fill_none ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_remove_stroke_none ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_remove_zero_opacity ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_skip_with_style_element ... ok
 test plugins::remove_useless_transforms::tests::test_is_useless_transform ... ok
 test plugins::remove_useless_transforms::tests::test_preserve_non_identity_transform ... ok
 test plugins::remove_useless_transforms::tests::test_remove_identity_scale ... ok
@@ -453,15 +351,15 @@ test plugins::remove_view_box::tests::test_pattern_element ... ok
 test plugins::remove_view_box::tests::test_plugin_name_and_description ... ok
 test plugins::remove_view_box::tests::test_remove_redundant_viewbox ... ok
 test plugins::remove_xlink::tests::test_convert_xlink_href_to_href ... ok
-test plugins::remove_xlink::tests::test_convert_xlink_title_to_title_element ... ok
 test plugins::remove_xlink::tests::test_convert_xlink_show_to_target ... ok
-test plugins::remove_xlink::tests::test_plugin_name_and_description ... ok
+test plugins::remove_xlink::tests::test_convert_xlink_title_to_title_element ... ok
 test plugins::remove_xlink::tests::test_include_legacy_option ... ok
+test plugins::remove_xlink::tests::test_plugin_name_and_description ... ok
 test plugins::remove_xlink::tests::test_preserve_existing_href ... ok
 test plugins::remove_xlink::tests::test_preserve_legacy_elements ... ok
 test plugins::remove_xml_proc_inst::tests::test_preserve_other_pi ... ok
-test plugins::remove_xmlns::tests::test_complex_nested_structure ... ok
 test plugins::remove_xml_proc_inst::tests::test_remove_xml_declaration ... ok
+test plugins::remove_xmlns::tests::test_complex_nested_structure ... ok
 test plugins::remove_xmlns::tests::test_ignore_non_svg_elements ... ok
 test plugins::remove_xmlns::tests::test_no_xmlns_attribute ... ok
 test plugins::remove_xmlns::tests::test_plugin_name_and_description ... ok
@@ -491,18 +389,16 @@ test stringifier::tests::test_stringify_pretty ... ok
 test stringifier::tests::test_stringify_simple_element ... ok
 test stringifier::tests::test_stringify_with_comment ... ok
 test stringifier::tests::test_stringify_with_text ... ok
-test plugins::convert_style_to_attrs::tests::test_convert_style_to_attrs ... ok
-test plugins::convert_style_to_attrs::tests::test_complex_css_parsing ... ok
 
-test result: ok. 342 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 347 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
-     Running unittests src/bin/svgn.rs (target/debug/deps/svgn-dc17aa5a2928dee2)
+     Running unittests src/bin/svgn.rs (target/debug/deps/svgn-9d824e1677c63e85)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/fixture_tests.rs (target/debug/deps/fixture_tests-4297f01a9c53f252)
+     Running tests/fixture_tests.rs (target/debug/deps/fixture_tests-61dec97e88c6a136)
 
 running 5 tests
 test test_remove_empty_attrs_fixture ... ok
@@ -511,9 +407,9 @@ test test_multipass_optimization ... ok
 test test_cleanup_attrs_fixture ... ok
 test test_convert_colors_fixture ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
 
-     Running tests/integration_test.rs (target/debug/deps/integration_test-d8d13492ecdd2c46)
+     Running tests/integration_test.rs (target/debug/deps/integration_test-5ec61ae03a75a53e)
 
 running 4 tests
 test test_error_handling_invalid_svg ... ok
@@ -521,37 +417,37 @@ test test_pretty_print_formatting ... ok
 test test_full_optimization_pipeline ... ok
 test test_default_preset_pipeline ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
 
-     Running tests/plugins.rs (target/debug/deps/plugins-28eda0053931a015)
+     Running tests/plugins.rs (target/debug/deps/plugins-13b20166ef7d5b9d)
 
 running 5 tests
-test test_remove_title_01 ... ok
-test test_remove_comments_03_no_preserve ... ok
 test test_remove_comments_02_preserve_legal ... ok
 test test_remove_metadata_01 ... ok
 test test_remove_comments_01 ... ok
+test test_remove_title_01 ... ok
+test test_remove_comments_03_no_preserve ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/svgo_compatibility_tests.rs (target/debug/deps/svgo_compatibility_tests-538fd4bc5dbdc59d)
+     Running tests/svgo_compatibility_tests.rs (target/debug/deps/svgo_compatibility_tests-2060e6f4702013dd)
 
 running 16 tests
 test test_optimization_info ... ok
-test test_remove_metadata ... ok
 test test_remove_comments_basic ... ok
-test test_remove_empty_attrs ... ok
 test test_remove_title ... ok
 test test_remove_comments_preserve_legal ... ok
+test test_remove_metadata ... ok
+test test_remove_empty_attrs ... ok
 test test_convert_ellipse_to_circle ... ok
 test test_pretty_print_vs_minified ... ok
-test test_remove_dimensions_with_viewbox ... ok
-test test_multiple_plugins_pipeline ... ok
-test test_multipass_optimization ... ok
 test test_error_resilience ... ok
+test test_multiple_plugins_pipeline ... ok
+test test_remove_dimensions_with_viewbox ... ok
+test test_multipass_optimization ... ok
 test test_plugin_with_params ... ok
-test test_cleanup_ids_minification ... ok
 test test_cleanup_attrs_basic ... ok
+test test_cleanup_ids_minification ... ok
 test test_convert_colors_basic ... ok
 
 test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
@@ -564,69 +460,6 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 Running linter (clippy)...
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
-error: unexpected `cfg` condition name: `disabled`
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:319:7
-    |
-319 | #[cfg(disabled)] // TODO: Fix test_utils dependency 
-    |       ^^^^^^^^
-    |
-    = help: expected names are: `docsrs`, `feature`, and `test` and 31 more
-    = help: consider using a Cargo feature instead
-    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
-             [lints.rust]
-             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(disabled)'] }
-    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(disabled)");` to the top of the `build.rs`
-    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
-    = note: `-D unexpected-cfgs` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[allow(unexpected_cfgs)]`
-
-error: this `if` statement can be collapsed
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:115:9
-    |
-115 | /         if params.remove_none {
-116 | |             if self.should_remove_element(element, &current_styles) {
-117 | |                 nodes_to_remove.push(element as *mut Element);
-118 | |             }
-119 | |         }
-    | |_________^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
-    = note: `-D clippy::collapsible-if` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
-help: collapse nested if block
-    |
-115 ~         if params.remove_none && self.should_remove_element(element, &current_styles) {
-116 +             nodes_to_remove.push(element as *mut Element);
-117 +         }
-    |
-
-error: unused variable: `plugin_info`
-  --> svgn/src/plugins/convert_path_data.rs:37:9
-   |
-37 |         plugin_info: &PluginInfo,
-   |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_plugin_info`
-   |
-   = note: `-D unused-variables` implied by `-D warnings`
-   = help: to override `-D warnings` add `#[allow(unused_variables)]`
-
-error: unused variable: `cmd`
-   --> svgn/src/plugins/convert_path_data.rs:664:24
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                        ^^^ help: if this is intentional, prefix it with an underscore: `_cmd`
-
-error: unused variable: `current_x`
-   --> svgn/src/plugins/convert_path_data.rs:664:43
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_x`
-
-error: unused variable: `current_y`
-   --> svgn/src/plugins/convert_path_data.rs:664:59
-    |
-664 | fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
-    |                                                           ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_current_y`
-
 error: redundant closure
    --> svgn/src/optimizer.rs:148:25
     |
@@ -637,203 +470,32 @@ error: redundant closure
     = note: `-D clippy::redundant-closure` implied by `-D warnings`
     = help: to override `-D warnings` add `#[allow(clippy::redundant_closure)]`
 
-error: parameter is only used in recursion
-  --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:68:29
-   |
-68 |     fn has_style_or_script(&self, element: &Element) -> bool {
-   |                             ^^^^
-   |
-note: parameter used here
-  --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:75:20
-   |
-75 |                 if self.has_style_or_script(child_elem) {
-   |                    ^^^^
-   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#only_used_in_recursion
-   = note: `-D clippy::only-used-in-recursion` implied by `-D warnings`
-   = help: to override `-D warnings` add `#[allow(clippy::only_used_in_recursion)]`
-
 error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:165:36
+   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:187:20
     |
-165 |         let should_remove_stroke = stroke.map_or(true, |s| s == "none")
-    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+187 |                 if parent_stroke.map_or(false, |s| s != "none") {
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
     = note: `-D clippy::unnecessary-map-or` implied by `-D warnings`
     = help: to override `-D warnings` add `#[allow(clippy::unnecessary_map_or)]`
-help: use is_none_or instead
-    |
-165 -         let should_remove_stroke = stroke.map_or(true, |s| s == "none")
-165 +         let should_remove_stroke = stroke.is_none_or(|s| s == "none")
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:166:16
-    |
-166 |             || stroke_opacity.map_or(false, |op| op == "0")
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
 help: use is_some_and instead
     |
-166 -             || stroke_opacity.map_or(false, |op| op == "0")
-166 +             || stroke_opacity.is_some_and(|op| op == "0")
+187 -                 if parent_stroke.map_or(false, |s| s != "none") {
+187 +                 if parent_stroke.is_some_and(|s| s != "none") {
     |
 
 error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:167:16
+   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:219:16
     |
-167 |             || stroke_width.map_or(false, |w| w == "0");
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-167 -             || stroke_width.map_or(false, |w| w == "0");
-167 +             || stroke_width.is_some_and(|w| w == "0");
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:171:30
-    |
-171 |             let can_remove = stroke_width.map_or(true, |w| w == "0") || marker_end.is_none();
-    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_none_or instead
-    |
-171 -             let can_remove = stroke_width.map_or(true, |w| w == "0") || marker_end.is_none();
-171 +             let can_remove = stroke_width.is_none_or(|w| w == "0") || marker_end.is_none();
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:188:20
-    |
-188 |                 if parent_stroke.map_or(false, |s| s != "none") {
-    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-188 -                 if parent_stroke.map_or(false, |s| s != "none") {
-188 +                 if parent_stroke.is_some_and(|s| s != "none") {
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:203:34
-    |
-203 |         let should_remove_fill = fill.map_or(false, |f| f == "none")
-    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-203 -         let should_remove_fill = fill.map_or(false, |f| f == "none")
-203 +         let should_remove_fill = fill.is_some_and(|f| f == "none")
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:204:16
-    |
-204 |             || fill_opacity.map_or(false, |op| op == "0");
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-204 -             || fill_opacity.map_or(false, |op| op == "0");
-204 +             || fill_opacity.is_some_and(|op| op == "0");
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:220:16
-    |
-220 |             if fill.map_or(true, |f| f != "none") {
+219 |             if fill.map_or(true, |f| f != "none") {
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
 help: use is_none_or instead
     |
-220 -             if fill.map_or(true, |f| f != "none") {
-220 +             if fill.is_none_or(|f| f != "none") {
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:234:25
-    |
-234 |         let no_stroke = stroke.map_or(true, |s| s == "none") || element.attributes.get("stroke").map_or(false, |s| s == "none");
-    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_none_or instead
-    |
-234 -         let no_stroke = stroke.map_or(true, |s| s == "none") || element.attributes.get("stroke").map_or(false, |s| s == "none");
-234 +         let no_stroke = stroke.is_none_or(|s| s == "none") || element.attributes.get("stroke").map_or(false, |s| s == "none");
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:234:65
-    |
-234 |         let no_stroke = stroke.map_or(true, |s| s == "none") || element.attributes.get("stroke").map_or(false, |s| s == "none");
-    |                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-234 -         let no_stroke = stroke.map_or(true, |s| s == "none") || element.attributes.get("stroke").map_or(false, |s| s == "none");
-234 +         let no_stroke = stroke.map_or(true, |s| s == "none") || element.attributes.get("stroke").is_some_and(|s| s == "none");
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:235:23
-    |
-235 |         let no_fill = fill.map_or(false, |f| f == "none") || element.attributes.get("fill").map_or(false, |f| f == "none");
-    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-235 -         let no_fill = fill.map_or(false, |f| f == "none") || element.attributes.get("fill").map_or(false, |f| f == "none");
-235 +         let no_fill = fill.is_some_and(|f| f == "none") || element.attributes.get("fill").map_or(false, |f| f == "none");
-    |
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:235:62
-    |
-235 |         let no_fill = fill.map_or(false, |f| f == "none") || element.attributes.get("fill").map_or(false, |f| f == "none");
-    |                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use is_some_and instead
-    |
-235 -         let no_fill = fill.map_or(false, |f| f == "none") || element.attributes.get("fill").map_or(false, |f| f == "none");
-235 +         let no_fill = fill.map_or(false, |f| f == "none") || element.attributes.get("fill").is_some_and(|f| f == "none");
-    |
-
-error: parameter is only used in recursion
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:240:32
-    |
-240 |     fn remove_marked_elements(&self, element: &mut Element, nodes_to_remove: &[*mut Element]) {
-    |                                ^^^^
-    |
-note: parameter used here
-   --> svgn/src/plugins/remove_useless_stroke_and_fill.rs:253:17
-    |
-253 |                 self.remove_marked_elements(child_elem, nodes_to_remove);
-    |                 ^^^^
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#only_used_in_recursion
-
-error: this `map_or` can be simplified
-   --> svgn/src/plugins/remove_attributes_by_selector.rs:184:9
-    |
-184 |         self.element.attributes.get("id").map_or(false, |v| v == &id.0)
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
-help: use a standard comparison instead
-    |
-184 -         self.element.attributes.get("id").map_or(false, |v| v == &id.0)
-184 +         self.element.attributes.get("id") == Some(&id.0)
+219 -             if fill.map_or(true, |f| f != "none") {
+219 +             if fill.is_none_or(|f| f != "none") {
     |
 
 error: taken reference of right operand
@@ -863,194 +525,134 @@ help: try removing the `&ref` part
 206 +         if !matches!(ns, NamespaceConstraint::Specific(url) if url.0.is_empty()) && !matches!(ns, NamespaceConstraint::Any) {
     |
 
-error: this function has too many arguments (8/7)
-   --> svgn/src/plugins/convert_path_data.rs:95:1
-    |
-95  | / fn optimize_paths_in_element(
-96  | |     element: &mut Element,
-97  | |     float_precision: u8,
-98  | |     transform_precision: u8,
-...   |
-103 | |     negative_extra_space: bool,
-104 | | ) -> PluginResult<()> {
-    | |_____________________^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
-    = note: `-D clippy::too-many-arguments` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
-
-error: this loop could be written as a `for` loop
-   --> svgn/src/plugins/convert_path_data.rs:208:5
-    |
-208 |     while let Some(ch) = chars.next() {
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `for ch in chars`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_on_iterator
-    = note: `-D clippy::while-let-on-iterator` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[allow(clippy::while_let_on_iterator)]`
-
-error: this function has too many arguments (8/7)
-   --> svgn/src/plugins/convert_path_data.rs:357:1
-    |
-357 | / fn optimize_path_data(
-358 | |     path_data: &str,
-359 | |     float_precision: u8,
-360 | |     _transform_precision: u8,
-...   |
-365 | |     negative_extra_space: bool,
-366 | | ) -> Result<String, String> {
-    | |___________________________^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
-
 error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:404:40
+   --> svgn/src/plugins/convert_path_data.rs:666:16
     |
-404 |                 if !cmd.is_absolute && cmd.params.len() >= 1 {
-    |                                        ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
+666 |             if params.len() >= 1 {
+    |                ^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!params.is_empty()`
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
     = note: `-D clippy::len-zero` implied by `-D warnings`
     = help: to override `-D warnings` add `#[allow(clippy::len_zero)]`
 
 error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:408:20
+   --> svgn/src/plugins/convert_path_data.rs:671:16
     |
-408 |                 if cmd.params.len() >= 1 {
-    |                    ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:413:40
-    |
-413 |                 if !cmd.is_absolute && cmd.params.len() >= 1 {
-    |                                        ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:417:20
-    |
-417 |                 if cmd.params.len() >= 1 {
-    |                    ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:528:20
-    |
-528 |                 if cmd.params.len() >= 1 {
-    |                    ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:537:20
-    |
-537 |                 if cmd.params.len() >= 1 {
-    |                    ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:682:16
-    |
-682 |             if params.len() >= 1 {
+671 |             if params.len() >= 1 {
     |                ^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!params.is_empty()`
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
 
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:687:16
-    |
-687 |             if params.len() >= 1 {
-    |                ^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!params.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+error: redundant closure
+  --> svgn/src/plugins/inline_styles/inline_styles_selector.rs:49:25
+   |
+49 |         self.parent.map(|p| SvgElementWrapper::new(p))
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `SvgElementWrapper::new`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_closure
 
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:745:16
+error: taken reference of right operand
+   --> svgn/src/plugins/inline_styles/inline_styles_selector.rs:130:71
     |
-745 |             if cmd.params.len() >= 1 {
-    |                ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
+130 | ...                   CaseSensitivity::CaseSensitive => word == &value.0,
+    |                                                         ^^^^^^^^--------
+    |                                                                 |
+    |                                                                 help: use the right value directly: `value.0`
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
 
-error: length comparison to one
-   --> svgn/src/plugins/convert_path_data.rs:750:16
+error: this `map_or` can be simplified
+   --> svgn/src/plugins/inline_styles/inline_styles_selector.rs:183:9
     |
-750 |             if cmd.params.len() >= 1 {
-    |                ^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!cmd.params.is_empty()`
+183 |         self.element.attributes.get("id").map_or(false, |v| v == &id.0)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
+help: use a standard comparison instead
+    |
+183 -         self.element.attributes.get("id").map_or(false, |v| v == &id.0)
+183 +         self.element.attributes.get("id") == Some(&id.0)
+    |
 
-error: accessing first element with `self.data.get(0)`
-   --> svgn/src/plugins/convert_transform.rs:149:26
+error: this `map_or` can be simplified
+   --> svgn/src/plugins/inline_styles/inline_styles_selector.rs:187:9
     |
-149 |                 let tx = self.data.get(0).copied().unwrap_or(0.0);
-    |                          ^^^^^^^^^^^^^^^^ help: try: `self.data.first()`
+187 | /         self.element.attributes.get("class").map_or(false, |classes| {
+188 | |             classes.split_whitespace().any(|c| c == &name.0)
+189 | |         })
+    | |__________^
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
-    = note: `-D clippy::get-first` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[allow(clippy::get_first)]`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
+help: use is_some_and instead
+    |
+187 -         self.element.attributes.get("class").map_or(false, |classes| {
+187 +         self.element.attributes.get("class").is_some_and(|classes| {
+    |
 
-error: accessing first element with `self.data.get(0)`
-   --> svgn/src/plugins/convert_transform.rs:158:26
+error: taken reference of right operand
+   --> svgn/src/plugins/inline_styles/inline_styles_selector.rs:188:48
     |
-158 |                 let sx = self.data.get(0).copied().unwrap_or(1.0);
-    |                          ^^^^^^^^^^^^^^^^ help: try: `self.data.first()`
+188 |             classes.split_whitespace().any(|c| c == &name.0)
+    |                                                ^^^^^-------
+    |                                                     |
+    |                                                     help: use the right value directly: `name.0`
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
 
-error: accessing first element with `self.data.get(0)`
-   --> svgn/src/plugins/convert_transform.rs:167:29
+error: stripping a prefix manually
+   --> svgn/src/plugins/inline_styles.rs:285:26
     |
-167 |                 let angle = self.data.get(0).copied().unwrap_or(0.0) * PI / 180.0;
-    |                             ^^^^^^^^^^^^^^^^ help: try: `self.data.first()`
+285 |         let class_name = &selector[1..];
+    |                          ^^^^^^^^^^^^^^
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+note: the prefix was tested here
+   --> svgn/src/plugins/inline_styles.rs:284:5
+    |
+284 |     if selector.starts_with('.') {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_strip
+    = note: `-D clippy::manual-strip` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_strip)]`
+help: try using the `strip_prefix` method
+    |
+284 ~     if let Some(class_name) = selector.strip_prefix('.') {
+285 ~         if let Some(classes) = element.attributes.get("class") {
+    |
 
-error: accessing first element with `self.data.get(0)`
-   --> svgn/src/plugins/convert_transform.rs:201:29
+error: stripping a prefix manually
+   --> svgn/src/plugins/inline_styles.rs:293:18
     |
-201 |                 let angle = self.data.get(0).copied().unwrap_or(0.0) * PI / 180.0;
-    |                             ^^^^^^^^^^^^^^^^ help: try: `self.data.first()`
+293 |         let id = &selector[1..];
+    |                  ^^^^^^^^^^^^^^
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+note: the prefix was tested here
+   --> svgn/src/plugins/inline_styles.rs:292:5
+    |
+292 |     if selector.starts_with('#') {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_strip
+help: try using the `strip_prefix` method
+    |
+292 ~     if let Some(id) = selector.strip_prefix('#') {
+293 ~         if let Some(elem_id) = element.attributes.get("id") {
+    |
 
-error: accessing first element with `self.data.get(0)`
-   --> svgn/src/plugins/convert_transform.rs:209:29
+error: taken reference of right operand
+   --> svgn/src/plugins/inline_styles.rs:381:29
     |
-209 |                 let angle = self.data.get(0).copied().unwrap_or(0.0) * PI / 180.0;
-    |                             ^^^^^^^^^^^^^^^^ help: try: `self.data.first()`
+381 |                 .filter(|c| c != &used_class)
+    |                             ^^^^^-----------
+    |                                  |
+    |                                  help: use the right value directly: `used_class`
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#op_ref
 
-error: manual implementation of an assign operation
-   --> svgn/src/plugins/convert_transform.rs:260:17
+error: redundant closure
+   --> svgn/src/plugins/inline_styles.rs:583:14
     |
-260 |                 combined_matrix = combined_matrix * transform.to_matrix();
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace it with: `combined_matrix *= transform.to_matrix()`
+583 |         .map(|sel| calculate_parsed_selector_specificity(sel))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `calculate_parsed_selector_specificity`
     |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#assign_op_pattern
-    = note: `-D clippy::assign-op-pattern` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[allow(clippy::assign_op_pattern)]`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_closure
 
-error: length comparison to one
-   --> svgn/src/plugins/convert_transform.rs:341:18
-    |
-341 |                 (transform.data.len() >= 1 && transform.data[0] == 0.0 &&
-    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!transform.data.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: length comparison to one
-   --> svgn/src/plugins/convert_transform.rs:346:18
-    |
-346 |                 (transform.data.len() >= 1 && transform.data[0] == 1.0 &&
-    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!transform.data.is_empty()`
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
-
-error: could not compile `svgn` (lib) due to 45 previous errors
+error: could not compile `svgn` (lib) due to 16 previous errors

@@ -146,7 +146,7 @@ impl Transform {
                 }
             }
             "translate" => {
-                let tx = self.data.get(0).copied().unwrap_or(0.0);
+                let tx = self.data.first().copied().unwrap_or(0.0);
                 let ty = self.data.get(1).copied().unwrap_or(0.0);
                 Matrix3::new(
                     1.0, 0.0, tx,
@@ -155,7 +155,7 @@ impl Transform {
                 )
             }
             "scale" => {
-                let sx = self.data.get(0).copied().unwrap_or(1.0);
+                let sx = self.data.first().copied().unwrap_or(1.0);
                 let sy = self.data.get(1).copied().unwrap_or(sx);
                 Matrix3::new(
                     sx, 0.0, 0.0,
@@ -164,7 +164,7 @@ impl Transform {
                 )
             }
             "rotate" => {
-                let angle = self.data.get(0).copied().unwrap_or(0.0) * PI / 180.0;
+                let angle = self.data.first().copied().unwrap_or(0.0) * PI / 180.0;
                 let cx = self.data.get(1).copied().unwrap_or(0.0);
                 let cy = self.data.get(2).copied().unwrap_or(0.0);
                 
@@ -198,7 +198,7 @@ impl Transform {
                 }
             }
             "skewX" => {
-                let angle = self.data.get(0).copied().unwrap_or(0.0) * PI / 180.0;
+                let angle = self.data.first().copied().unwrap_or(0.0) * PI / 180.0;
                 Matrix3::new(
                     1.0, angle.tan(), 0.0,
                     0.0, 1.0, 0.0,
@@ -206,7 +206,7 @@ impl Transform {
                 )
             }
             "skewY" => {
-                let angle = self.data.get(0).copied().unwrap_or(0.0) * PI / 180.0;
+                let angle = self.data.first().copied().unwrap_or(0.0) * PI / 180.0;
                 Matrix3::new(
                     1.0, 0.0, 0.0,
                     angle.tan(), 1.0, 0.0,
@@ -257,7 +257,7 @@ impl ConvertTransformPlugin {
         if params.collapse_into_one && result.len() > 1 {
             let mut combined_matrix = Matrix3::identity();
             for transform in &result {
-                combined_matrix = combined_matrix * transform.to_matrix();
+                combined_matrix *= transform.to_matrix();
             }
             result = vec![self.matrix_to_transform(combined_matrix, params)];
         }
@@ -338,12 +338,12 @@ impl ConvertTransformPlugin {
         match transform.name.as_str() {
             "translate" => {
                 transform.data.is_empty() || 
-                (transform.data.len() >= 1 && transform.data[0] == 0.0 &&
+                (!transform.data.is_empty() && transform.data[0] == 0.0 &&
                  (transform.data.len() == 1 || transform.data[1] == 0.0))
             }
             "scale" => {
                 transform.data.is_empty() ||
-                (transform.data.len() >= 1 && transform.data[0] == 1.0 &&
+                (!transform.data.is_empty() && transform.data[0] == 1.0 &&
                  (transform.data.len() == 1 || transform.data[1] == 1.0))
             }
             "rotate" => {
@@ -473,7 +473,7 @@ impl Plugin for ConvertTransformPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{Document, Element, Node};
+    use crate::ast::{Document, Element};
     use crate::plugin::{Plugin, PluginInfo};
     use indexmap::IndexMap;
     use serde_json::json;

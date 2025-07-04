@@ -181,7 +181,7 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         id: &<Self::Impl as selectors::SelectorImpl>::Identifier,
         _case_sensitivity: CaseSensitivity,
     ) -> bool {
-        self.element.attributes.get("id").map_or(false, |v| v == &id.0)
+        self.element.attributes.get("id").is_some_and(|v| *v == id.0)
     }
 
     fn has_class(
@@ -190,7 +190,7 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         _case_sensitivity: CaseSensitivity,
     ) -> bool {
         if let Some(class_attr) = self.element.attributes.get("class") {
-            class_attr.split_whitespace().any(|class| class == &name.0)
+            class_attr.split_whitespace().any(|class| class == name.0)
         } else {
             false
         }
@@ -203,7 +203,7 @@ impl<'a> selectors::Element for ElementWrapper<'a> {
         operation: &AttrSelectorOperation<&<Self::Impl as selectors::SelectorImpl>::AttrValue>,
     ) -> bool {
         // We only support no namespace for now
-        if !matches!(ns, NamespaceConstraint::Specific(&ref url) if url.0.is_empty()) && !matches!(ns, NamespaceConstraint::Any) {
+        if !matches!(ns, NamespaceConstraint::Specific(url) if url.0.is_empty()) && !matches!(ns, NamespaceConstraint::Any) {
             return false;
         }
 

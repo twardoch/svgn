@@ -23,6 +23,7 @@ quick-xml = { workspace = true }
 # CSS parsing  
 cssparser = { workspace = true }
 selectors = { workspace = true }
+lightningcss = { workspace = true }
 
 # CLI
 clap = { workspace = true }

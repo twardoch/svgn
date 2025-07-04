@@ -65,6 +65,7 @@ impl RemoveUselessStrokeAndFillPlugin {
         result
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn has_style_or_script(&self, element: &Element) -> bool {
         if element.name == "style" || element.name == "script" {
             return true;
@@ -112,10 +113,8 @@ impl RemoveUselessStrokeAndFillPlugin {
         }
         
         // Remove element if it has no visible stroke or fill
-        if params.remove_none {
-            if self.should_remove_element(element, &current_styles) {
-                nodes_to_remove.push(element as *mut Element);
-            }
+        if params.remove_none && self.should_remove_element(element, &current_styles) {
+            nodes_to_remove.push(element as *mut Element);
         }
         
         current_styles
@@ -162,13 +161,13 @@ impl RemoveUselessStrokeAndFillPlugin {
         let stroke_width = current_styles.get("stroke-width");
         let marker_end = current_styles.get("marker-end");
         
-        let should_remove_stroke = stroke.map_or(true, |s| s == "none")
-            || stroke_opacity.map_or(false, |op| op == "0")
-            || stroke_width.map_or(false, |w| w == "0");
+        let should_remove_stroke = stroke.is_none_or(|s| s == "none")
+            || stroke_opacity.is_some_and(|op| op == "0")
+            || stroke_width.is_some_and(|w| w == "0");
         
         if should_remove_stroke {
             // Check if stroke-width affects marker visibility
-            let can_remove = stroke_width.map_or(true, |w| w == "0") || marker_end.is_none();
+            let can_remove = stroke_width.is_none_or(|w| w == "0") || marker_end.is_none();
             
             if can_remove {
                 // Remove all stroke-related attributes
@@ -185,7 +184,7 @@ impl RemoveUselessStrokeAndFillPlugin {
                 
                 // Set explicit "none" if parent has non-none stroke
                 let parent_stroke = parent_styles.get("stroke");
-                if parent_stroke.map_or(false, |s| s != "none") {
+                if parent_stroke.is_some_and(|s| s != "none") {
                     element.attributes.insert("stroke".to_string(), "none".to_string());
                 }
             }
@@ -200,8 +199,8 @@ impl RemoveUselessStrokeAndFillPlugin {
         let fill = current_styles.get("fill");
         let fill_opacity = current_styles.get("fill-opacity");
         
-        let should_remove_fill = fill.map_or(false, |f| f == "none")
-            || fill_opacity.map_or(false, |op| op == "0");
+        let should_remove_fill = fill.is_some_and(|f| f == "none")
+            || fill_opacity.is_some_and(|op| op == "0");
         
         if should_remove_fill {
             // Remove all fill-related attributes except fill itself
@@ -217,7 +216,7 @@ impl RemoveUselessStrokeAndFillPlugin {
             }
             
             // Set explicit "none" if not already set
-            if fill.map_or(true, |f| f != "none") {
+            if fill.is_none_or(|f| f != "none") {
                 element.attributes.insert("fill".to_string(), "none".to_string());
             }
         }
@@ -231,12 +230,13 @@ impl RemoveUselessStrokeAndFillPlugin {
         let stroke = current_styles.get("stroke");
         let fill = current_styles.get("fill");
         
-        let no_stroke = stroke.map_or(true, |s| s == "none") || element.attributes.get("stroke").map_or(false, |s| s == "none");
-        let no_fill = fill.map_or(false, |f| f == "none") || element.attributes.get("fill").map_or(false, |f| f == "none");
+        let no_stroke = stroke.is_none_or(|s| s == "none") || element.attributes.get("stroke").is_some_and(|s| s == "none");
+        let no_fill = fill.is_some_and(|f| f == "none") || element.attributes.get("fill").is_some_and(|f| f == "none");
         
         no_stroke && no_fill
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn remove_marked_elements(&self, element: &mut Element, nodes_to_remove: &[*mut Element]) {
         element.children.retain(|child| {
             if let Node::Element(child_elem) = child {
@@ -316,10 +316,11 @@ impl RemoveUselessStrokeAndFillPlugin {
     }
 }
 
-#[cfg(disabled)] // TODO: Fix test_utils dependency 
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::parse_svg;
+    use crate::parser::parse_svg;
+    use crate::stringifier::stringify;
 
     #[test]
     fn test_remove_stroke_none() {
@@ -333,7 +334,7 @@ mod tests {
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
         
-        let output = doc.to_string();
+        let output = stringify(&doc).unwrap();
         assert!(!output.contains(r#"stroke="none""#));
         assert!(output.contains(r#"fill="red""#));
     }
@@ -350,7 +351,7 @@ mod tests {
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
         
-        let output = doc.to_string();
+        let output = stringify(&doc).unwrap();
         assert!(output.contains(r#"stroke="blue""#));
         assert!(output.contains(r#"fill="none""#)); // Should keep explicit none
     }
@@ -367,7 +368,7 @@ mod tests {
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
         
-        let output = doc.to_string();
+        let output = stringify(&doc).unwrap();
         assert!(!output.contains("stroke-opacity"));
         assert!(output.contains(r#"fill="none""#));
     }
@@ -384,7 +385,7 @@ mod tests {
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
         
-        let output = doc.to_string();
+        let output = stringify(&doc).unwrap();
         // Should preserve attributes because element has ID
         assert!(output.contains(r#"stroke="none""#));
         assert!(output.contains(r#"fill="none""#));
@@ -403,7 +404,7 @@ mod tests {
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
         
-        let output = doc.to_string();
+        let output = stringify(&doc).unwrap();
         // Should preserve attributes because of style element
         assert!(output.contains(r#"stroke="none""#));
         assert!(output.contains(r#"fill="none""#));

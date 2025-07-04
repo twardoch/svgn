@@ -21,7 +21,7 @@ fn main() {
                 .help("Input files, \"-\" for STDIN")
                 .value_name("INPUT")
                 .num_args(1..)
-                .conflicts_with_all(&["input", "string", "folder"]),
+                .conflicts_with_all(["input", "string", "folder"]),
         )
         .arg(
             Arg::new("input")
@@ -30,7 +30,7 @@ fn main() {
                 .long("input")
                 .value_name("INPUT")
                 .num_args(1..)
-                .conflicts_with_all(&["INPUT", "string", "folder"]),
+                .conflicts_with_all(["INPUT", "string", "folder"]),
         )
         .arg(
             Arg::new("string")
@@ -38,7 +38,7 @@ fn main() {
                 .short('s')
                 .long("string")
                 .value_name("STRING")
-                .conflicts_with_all(&["INPUT", "input", "folder"]),
+                .conflicts_with_all(["INPUT", "input", "folder"]),
         )
         .arg(
             Arg::new("folder")
@@ -46,7 +46,7 @@ fn main() {
                 .short('f')
                 .long("folder")
                 .value_name("FOLDER")
-                .conflicts_with_all(&["INPUT", "input", "string"]),
+                .conflicts_with_all(["INPUT", "input", "string"]),
         )
         .arg(
             Arg::new("output")

@@ -19,6 +19,18 @@ const DEFAULT_FLOAT_PRECISION: u8 = 3;
 /// Default decimal precision for transform values
 const DEFAULT_TRANSFORM_PRECISION: u8 = 5;
 
+/// Configuration for path optimization
+struct PathOptimizationConfig {
+    float_precision: u8,
+    #[allow(dead_code)]
+    transform_precision: u8,
+    remove_useless: bool,
+    collapse_repeated: bool,
+    utilize_absolute: bool,
+    leading_zero: bool,
+    negative_extra_space: bool,
+}
+
 /// Plugin for optimizing path data
 pub struct ConvertPathDataPlugin;
 
@@ -34,7 +46,7 @@ impl Plugin for ConvertPathDataPlugin {
     fn apply(
         &mut self,
         document: &mut Document,
-        plugin_info: &PluginInfo,
+        _plugin_info: &PluginInfo,
         params: Option<&Value>,
     ) -> PluginResult<()> {
         // Parse parameters
@@ -75,9 +87,8 @@ impl Plugin for ConvertPathDataPlugin {
             .and_then(|v| v.as_bool())
             .unwrap_or(true);
 
-        // Process the document
-        optimize_paths_in_element(
-            &mut document.root,
+        // Create config
+        let config = PathOptimizationConfig {
             float_precision,
             transform_precision,
             remove_useless,
@@ -85,7 +96,10 @@ impl Plugin for ConvertPathDataPlugin {
             utilize_absolute,
             leading_zero,
             negative_extra_space,
-        )?;
+        };
+
+        // Process the document
+        optimize_paths_in_element(&mut document.root, &config)?;
 
         Ok(())
     }
@@ -94,27 +108,12 @@ impl Plugin for ConvertPathDataPlugin {
 /// Recursively optimize paths in an element and its children
 fn optimize_paths_in_element(
     element: &mut Element,
-    float_precision: u8,
-    transform_precision: u8,
-    remove_useless: bool,
-    collapse_repeated: bool,
-    utilize_absolute: bool,
-    leading_zero: bool,
-    negative_extra_space: bool,
+    config: &PathOptimizationConfig,
 ) -> PluginResult<()> {
     // Process this element if it's a path
     if element.name == "path" {
         if let Some(d) = element.attr("d") {
-            match optimize_path_data(
-                d,
-                float_precision,
-                transform_precision,
-                remove_useless,
-                collapse_repeated,
-                utilize_absolute,
-                leading_zero,
-                negative_extra_space,
-            ) {
+            match optimize_path_data(d, config) {
                 Ok(optimized) => {
                     element.set_attr("d".to_string(), optimized);
                 }
@@ -129,16 +128,7 @@ fn optimize_paths_in_element(
     // Process children
     for child in &mut element.children {
         if let Node::Element(child_elem) = child {
-            optimize_paths_in_element(
-                child_elem,
-                float_precision,
-                transform_precision,
-                remove_useless,
-                collapse_repeated,
-                utilize_absolute,
-                leading_zero,
-                negative_extra_space,
-            )?;
+            optimize_paths_in_element(child_elem, config)?;
         }
     }
 
@@ -205,7 +195,7 @@ fn parse_path_data(path_data: &str) -> Result<Vec<PathCommand>, String> {
     let mut last_cmd_type = None;
     let mut in_number = false;
 
-    while let Some(ch) = chars.next() {
+    for ch in chars.by_ref() {
         match ch {
             'M' | 'm' | 'L' | 'l' | 'H' | 'h' | 'V' | 'v' | 'C' | 'c' | 'S' | 's' | 'Q' | 'q'
             | 'T' | 't' | 'A' | 'a' | 'Z' | 'z' => {
@@ -356,13 +346,7 @@ fn process_accumulated_params(
 /// Optimize path data string
 fn optimize_path_data(
     path_data: &str,
-    float_precision: u8,
-    _transform_precision: u8,
-    remove_useless: bool,
-    collapse_repeated: bool,
-    utilize_absolute: bool,
-    leading_zero: bool,
-    negative_extra_space: bool,
+    config: &PathOptimizationConfig,
 ) -> Result<String, String> {
     // Parse path data
     let mut commands = parse_path_data(path_data)?;
@@ -401,20 +385,20 @@ fn optimize_path_data(
                 }
             }
             CommandType::HorizontalLineTo => {
-                if !cmd.is_absolute && cmd.params.len() >= 1 {
+                if !cmd.is_absolute && !cmd.params.is_empty() {
                     cmd.params[0] += current_x;
                     cmd.is_absolute = true;
                 }
-                if cmd.params.len() >= 1 {
+                if !cmd.params.is_empty() {
                     current_x = cmd.params[0];
                 }
             }
             CommandType::VerticalLineTo => {
-                if !cmd.is_absolute && cmd.params.len() >= 1 {
+                if !cmd.is_absolute && !cmd.params.is_empty() {
                     cmd.params[0] += current_y;
                     cmd.is_absolute = true;
                 }
-                if cmd.params.len() >= 1 {
+                if !cmd.params.is_empty() {
                     current_y = cmd.params[0];
                 }
             }
@@ -489,16 +473,16 @@ fn optimize_path_data(
     }
 
     // Apply optimizations
-    if remove_useless {
+    if config.remove_useless {
         commands = remove_useless_commands(commands);
     }
 
-    if collapse_repeated {
+    if config.collapse_repeated {
         commands = collapse_repeated_commands(commands);
     }
 
     // Convert back to string
-    stringify_commands(&commands, float_precision, utilize_absolute, leading_zero, negative_extra_space)
+    stringify_commands(&commands, config.float_precision, config.utilize_absolute, config.leading_zero, config.negative_extra_space)
 }
 
 /// Remove useless commands (e.g., LineTo to current position)
@@ -525,7 +509,7 @@ fn remove_useless_commands(mut commands: Vec<PathCommand>) -> Vec<PathCommand> {
                 }
             }
             CommandType::HorizontalLineTo => {
-                if cmd.params.len() >= 1 {
+                if !cmd.params.is_empty() {
                     if (cmd.params[0] - current_x).abs() < f64::EPSILON {
                         keep = false;
                     } else {
@@ -534,7 +518,7 @@ fn remove_useless_commands(mut commands: Vec<PathCommand>) -> Vec<PathCommand> {
                 }
             }
             CommandType::VerticalLineTo => {
-                if cmd.params.len() >= 1 {
+                if !cmd.params.is_empty() {
                     if (cmd.params[0] - current_y).abs() < f64::EPSILON {
                         keep = false;
                     } else {
@@ -661,7 +645,7 @@ fn stringify_commands(
 }
 
 /// Determine if absolute coordinates are more efficient
-fn should_use_absolute(cmd: &PathCommand, current_x: f64, current_y: f64, _precision: u8) -> bool {
+fn should_use_absolute(_cmd: &PathCommand, _current_x: f64, _current_y: f64, _precision: u8) -> bool {
     // For now, always use absolute
     // TODO: Implement size comparison
     true
@@ -679,12 +663,12 @@ fn convert_to_relative(cmd: &PathCommand, current_x: f64, current_y: f64) -> Vec
             }
         }
         CommandType::HorizontalLineTo => {
-            if params.len() >= 1 {
+            if !params.is_empty() {
                 params[0] -= current_x;
             }
         }
         CommandType::VerticalLineTo => {
-            if params.len() >= 1 {
+            if !params.is_empty() {
                 params[0] -= current_y;
             }
         }
@@ -742,12 +726,12 @@ fn update_position(cmd: &PathCommand, current_x: &mut f64, current_y: &mut f64) 
             }
         }
         CommandType::HorizontalLineTo => {
-            if cmd.params.len() >= 1 {
+            if !cmd.params.is_empty() {
                 *current_x = cmd.params[0];
             }
         }
         CommandType::VerticalLineTo => {
-            if cmd.params.len() >= 1 {
+            if !cmd.params.is_empty() {
                 *current_y = cmd.params[0];
             }
         }
@@ -845,7 +829,16 @@ mod tests {
     #[test]
     fn test_optimize_removes_useless_lineto() {
         let path = "M10 10 L10 10 L20 20";
-        let optimized = optimize_path_data(path, 3, 5, true, true, true, true, true).unwrap();
+        let config = PathOptimizationConfig {
+            float_precision: 3,
+            transform_precision: 5,
+            remove_useless: true,
+            collapse_repeated: true,
+            utilize_absolute: true,
+            leading_zero: true,
+            negative_extra_space: true,
+        };
+        let optimized = optimize_path_data(path, &config).unwrap();
         // Should remove the L10 10 as it's the same as current position
         assert!(!optimized.contains("L10 10"));
     }

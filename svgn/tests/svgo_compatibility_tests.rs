@@ -15,7 +15,7 @@ fn test_optimization(
     params: Option<serde_json::Value>,
 ) {
     let mut plugins = Vec::new();
-    let first_plugin = plugin_names.get(0).copied();
+    let first_plugin = plugin_names.first().copied();
     for name in &plugin_names {
         let mut plugin = PluginConfig::new(name.to_string());
         if Some(name) == first_plugin.as_ref() && params.is_some() {

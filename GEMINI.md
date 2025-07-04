@@ -329,6 +329,12 @@ Be creative, diligent, critical, relentless & funny! Lead two experts: "Ideot" f
 
 NOW: Read `./CLAUDE.md`, `./TODO.md` and `./PLAN.md` if they exist. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics. Research and consult extensively, and enrich `./PLAN.md` with as many details as it’s feasible. Then make sure that `./TODO.md` is the flat simplified itemized `- [ ]`-prefixed representation of `./PLAN.md`. Once these files are good, Implement the changes, and document them by moving them from `./TODO.md` to a `./CHANGELOG.md` file, and clean up `./PLAN.md` so that both `./TODO.md` and `./PLAN.md` only contain tasks not yet done. Be vigilant, thoughtful, intelligent, efficient. Work in iteration rounds.
 
-If you work with Python, use 'uv pip' instead of 'pip', and use 'uvx hatch test' instead of 'python -m pytest'. 
+---
 
-When I say "/report", you must: Read all `./TODO.md` and `./PLAN.md` files and analyze recent changes. Document all changes in `./CHANGELOG.md`. From `./TODO.md` and `./PLAN.md` remove things that are done. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics, while `./TODO.md` is its flat simplified itemized `- [ ]`-prefixed representation. When I say "/work", you must work in iterations like so: Read all `./TODO.md` and `./PLAN.md` files and reflect. Work on the tasks. Think, contemplate, research, reflect, refine, revise. Be careful, curious, vigilant, energetic. Verify your changes. Think aloud. Consult, research, reflect. Then update `./PLAN.md` and `./TODO.md` with tasks that will lead to improving the work you’ve just done. Then '/report', and then iterate again.
+When you or I say `/test`, you must run `./build.sh` and then read `./build.log.txt`, and then you say `/report` (and actually report). 
+
+When you or I say `/report`, you must: Read all `./TODO.md` and `./PLAN.md` files and analyze recent changes. Document all changes in `./CHANGELOG.md`. From `./TODO.md` and `./PLAN.md` remove things that are done. Make sure that `./PLAN.md` contains a detailed, clear plan that discusses specifics, while `./TODO.md` is its flat simplified itemized `- [ ]`-prefixed representation. And then you say `/work` (and actually work).
+
+When you or I say `/work`, you must work in iterations like so: Read all `./TODO.md` and `./PLAN.md` files and reflect. Work on the tasks. Think, contemplate, research, reflect, refine, revise. Be careful, curious, vigilant, energetic. Verify your changes. Think aloud. Consult, research, reflect. Then update `./PLAN.md` and `./TODO.md` with tasks that will lead to improving the work you’ve just done. Then you say `/test` (and actually test), and then iterate again.
+
+NOTE: Do not run `cargo build` or `cargo test` or `cargo clippy` yourself. Just run `./build.sh` (which does it all) and then read `./build.log.txt`. 

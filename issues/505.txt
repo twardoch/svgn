@@ -1,0 +1,1 @@
+Now /report and then read the @llms.txt code snapshot, read the @build.log.txt output of @build.sh and then read @PLAN.md and @TODO.md and /work — be extremely diligent, hard-working; review, reflect, refine, revise. 

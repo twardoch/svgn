@@ -186,7 +186,7 @@ fn test_error_handling_invalid_svg() {
     match result {
         Ok(r) => {
             // If it succeeds, it should have attempted to fix the markup
-            assert!(r.data.len() > 0);
+            assert!(!r.data.is_empty());
         }
         Err(_) => {
             // If it fails, that's also acceptable for malformed input
