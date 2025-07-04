@@ -2,7 +2,7 @@
 
 //! Integration tests for svgn
 
-use svgn::config::{Js2SvgOptions, QuoteAttrsStyle};
+use svgn::config::{Js2SvgOptions, QuoteAttrsStyle, LineEnding};
 use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 #[test]
@@ -41,6 +41,8 @@ fn test_full_optimization_pipeline() {
             indent: 2,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,
@@ -123,6 +125,8 @@ fn test_default_preset_pipeline() {
             indent: 2,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,
@@ -203,6 +207,8 @@ fn test_pretty_print_formatting() {
             indent: 2,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,

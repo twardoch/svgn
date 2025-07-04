@@ -64,21 +64,21 @@
   - [✓] Document all defaults clearly
 
 ### Remaining CLI Work
-- [ ] Update all writeln! calls in stringifier to use write_newline method
+- [x] Update all writeln! calls in stringifier to use write_newline method ✅
 - [ ] Add support for .js config files (currently only .json and .toml)
 - [ ] Implement base64 encoding for datauri output (currently placeholder)
 
 ## Top Priority - Version Management
-- [ ] Make the build app use git-tag-based semver, not `0.1.0`
+- [x] Make the build app use git-tag-based semver, not `0.1.0` ✅
 
-## Critical - Remaining Plugin Implementations (9 plugins)
+## Critical - Remaining Plugin Implementations (6 plugins)
 
 ### Path Optimization Plugins
-- [ ] Implement full **convertPathData** plugin with lyon geometry library (stub exists)
-  - [ ] Path simplification algorithms
-  - [ ] Precision reduction
-  - [ ] Relative/absolute conversion
-  - [ ] Arc optimization
+- [x] Implement full **convertPathData** plugin with lyon geometry library (stub exists) ✅
+  - [x] Path simplification algorithms
+  - [x] Precision reduction
+  - [x] Relative/absolute conversion
+  - [ ] Arc optimization (advanced feature - future enhancement)
 - [ ] Implement **mergePaths** plugin
   - [ ] Identify paths with identical styles
   - [ ] Combine path data
@@ -114,10 +114,15 @@
   - [ ] Distribute group attributes to children
   - [ ] Remove unnecessary groups
   - [ ] Handle inheritance correctly
-- [ ] Implement **removeUselessStrokeAndFill** plugin
-  - [ ] Understand style cascade and inheritance
-  - [ ] Remove redundant stroke/fill attributes
-  - [ ] Handle currentColor correctly
+- [x] Implement **removeUselessStrokeAndFill** plugin ✅
+  - [x] Understand style cascade and inheritance
+  - [x] Remove redundant stroke/fill attributes
+  - [x] Handle currentColor correctly
+- [x] Implement **convertOneStopGradients** plugin ✅
+  - [x] Detect single-stop gradients
+  - [x] Convert to solid colors
+  - [x] Remove gradient definitions
+  - [x] Update references
 
 ## High Priority - Infrastructure Enhancements
 

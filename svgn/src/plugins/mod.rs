@@ -1,4 +1,5 @@
 pub mod remove_useless_transforms;
+pub mod remove_useless_stroke_and_fill;
 // this_file: svgn/src/plugins/mod.rs
 
 // Built-in SVG optimization plugins
@@ -97,6 +98,7 @@ pub use remove_scripts::RemoveScriptsPlugin;
 pub use remove_unused_ns::RemoveUnusedNSPlugin;
 pub use remove_useless_defs::RemoveUselessDefsPlugin;
 pub use remove_useless_transforms::RemoveUselessTransformsPlugin;
+pub use remove_useless_stroke_and_fill::RemoveUselessStrokeAndFillPlugin;
 pub use remove_view_box::RemoveViewBoxPlugin;
 pub use remove_xlink::RemoveXlinkPlugin;
 pub use remove_xmlns::RemoveXMLNSPlugin;

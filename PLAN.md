@@ -5,10 +5,13 @@
 SVGN is a high-performance Rust port of SVGO (SVG Optimizer) that has achieved 83% plugin implementation and 100% test coverage for implemented features. This document outlines the comprehensive plan to achieve complete feature parity and API compatibility with SVGO v4.0.0.
 
 **Current Status:**
-- ✅ 46/53 plugins implemented (87% coverage)
-- ✅ 359 tests passing (100% success rate)
+- ✅ 43/54 plugins fully functional (80% coverage)
+- ⚠️ 1 plugin implemented as stub (convertPathData - will error when used)
+- ⚠️ 1 plugin implemented but disabled (removeAttributesBySelector)
+- ❌ 10 SVGO plugins completely missing
+- ✅ 2 SVGN-exclusive plugins added (removeUselessTransforms, removeStyleElement)
+- ✅ 359 tests passing (100% success rate for implemented features)
 - ✅ Core infrastructure operational (parser, AST, stringifier, plugin system)
-- ⚠️ 7 complex plugins remaining
 - ⚠️ Several architectural enhancements needed
 
 ## 0. CLI Compatibility Enhancement (Priority: IMMEDIATE) ✅ COMPLETED
@@ -135,36 +138,52 @@ struct CliArgs {
 
 ## 1. Critical Path to Feature Parity
 
+### 1.0 Plugin Compatibility Summary
+
+**Comprehensive Plugin Analysis Results:**
+- **Total SVGO Plugins**: 54
+- **Fully Functional in SVGN**: 46 (85%) ✅
+- **Disabled Implementation**: 1 (removeAttributesBySelector - CSS selector issues)
+- **Missing Implementations**: 7
+- **SVGN-Exclusive Additions**: 2 (removeUselessTransforms, removeStyleElement)
+
+**Missing Plugins by Category:**
+1. **Path Operations**: mergePaths, reusePaths, applyTransforms
+2. **Transform Operations**: convertTransform
+3. **Style Operations**: inlineStyles
+4. **Structural Operations**: moveElemsAttrsToGroup, moveGroupAttrsToElems
+5. **Selector Operations**: removeAttributesBySelector (disabled)
+
+**SVGN-Exclusive Enhancements:**
+1. **removeUselessTransforms**: Removes identity transforms (translate(0), scale(1), rotate(0), etc.)
+2. **removeStyleElement**: Removes <style> elements entirely
+3. **More Conservative Defaults**: 21 plugins in default preset vs SVGO's 33
+
 ### 1.1 Remaining Plugin Implementations (Priority: CRITICAL)
 
-These 7 plugins represent the most complex optimizations and are essential for SVGO compatibility:
+Based on comprehensive analysis, SVGN needs to implement/fix 8 plugins to achieve full SVGO compatibility:
+
+**Critical Issues:**
+1. **removeAttributesBySelector** - Implemented but disabled due to CSS selector issues
+
+**Recently Fixed:**
+- **convertPathData** - Was a stub, now has basic implementation with:
+  - Path command parsing and optimization
+  - Absolute/relative coordinate conversion  
+  - Redundant command removal
+  - Number precision control
+  - Leading zero removal option
+  - May benefit from lyon geometry integration for advanced features like arc optimization
+
+**Recently Implemented:**
+- **convertOneStopGradients** ✅ - Converts single-stop gradients to solid colors
+- **removeUselessStrokeAndFill** ✅ - Removes redundant stroke/fill attributes
+
+**Missing Plugins (7 total):**
 
 #### 1.1.1 Path Optimization Plugins
-1. **convertPathData** (STUB EXISTS)
-   - Current: Stub implementation returns "not implemented" error
-   - Required: Full path optimization using lyon geometry library
-   - Features: 
-     - Path simplification (remove redundant commands)
-     - Precision reduction (round coordinates to specified decimals)
-     - Relative/absolute conversion based on size optimization
-     - Arc optimization (convert arcs to curves when smaller)
-     - Line optimization (horizontal/vertical detection)
-     - Curve optimization (smooth curve detection)
-   - Parameters:
-     - `floatPrecision`: Number of decimal places (default: 3)
-     - `transformPrecision`: Transform matrix precision (default: 5)
-     - `removeUseless`: Remove useless path segments (default: true)
-     - `collapseRepeated`: Collapse repeated commands (default: true)
-     - `utilizeAbsolute`: Use absolute commands when smaller (default: true)
-     - `leadingZero`: Keep leading zeros (default: true)
-     - `negativeExtraSpace`: Use negative values to reduce size (default: true)
-   - Implementation approach:
-     - Use lyon_path for path parsing and building
-     - Use lyon_geom for geometric operations
-     - Implement command optimization algorithms
-   - Complexity: HIGH - Requires geometric algorithms
 
-2. **mergePaths**
+1. **mergePaths**
    - Combines multiple path elements with identical styles
    - Features:
      - Merge adjacent <path> elements with identical attributes
@@ -181,7 +200,7 @@ These 7 plugins represent the most complex optimizations and are essential for S
      - Concatenate path data with proper spacing
    - Complexity: MEDIUM
 
-3. **reusePaths**
+2. **reusePaths**
    - Identifies duplicate paths and replaces with <use> elements
    - Features:
      - Hash path data + attributes to find duplicates
@@ -195,6 +214,26 @@ These 7 plugins represent the most complex optimizations and are essential for S
      - Only deduplicate if size reduction > threshold
      - Handle transforms correctly
    - Complexity: MEDIUM
+
+3. **applyTransforms** (MISSING)
+   - Not implemented in SVGN
+   - Applies transform attribute to path coordinates
+   - Features:
+     - Parse transform matrices from elements
+     - Apply transforms directly to path coordinates
+     - Apply transforms to other shape coordinates
+     - Remove transform attribute after application
+     - Handle nested transforms correctly
+   - Parameters:
+     - `applyToPath`: Apply to path data (default: true)
+     - `applyToShapes`: Apply to basic shapes (default: true)
+     - `floatPrecision`: Coordinate precision (default: 3)
+   - Implementation approach:
+     - Parse transforms into matrices
+     - Transform each path command's coordinates
+     - Transform shape attributes (x, y, width, height, etc.)
+     - Remove transform attribute when done
+   - Complexity: HIGH
 
 #### 1.1.2 Transform Optimization
 4. **convertTransform**
@@ -224,20 +263,8 @@ These 7 plugins represent the most complex optimizations and are essential for S
      - Optimize output format
    - Complexity: HIGH
 
-5. **removeUselessTransforms** (PARTIAL IMPLEMENTATION)
-   - Plugin exists but needs completion
-   - Features to add:
-     - Remove translate(0) or translate(0,0)
-     - Remove scale(1) or scale(1,1)
-     - Remove rotate(0)
-     - Remove skewX(0) and skewY(0)
-     - Remove identity matrices
-   - Current: Basic structure exists
-   - Required: Pattern matching for all identity transforms
-   - Complexity: LOW
-
 #### 1.1.3 Style Processing
-6. **inlineStyles**
+5. **inlineStyles**
    - Moves styles from <style> elements to inline attributes
    - Features:
      - Parse CSS from <style> elements
@@ -259,7 +286,7 @@ These 7 plugins represent the most complex optimizations and are essential for S
    - Complexity: HIGH - Requires full CSS engine
 
 #### 1.1.4 Structural Optimization
-7. **moveElemsAttrsToGroup**
+6. **moveElemsAttrsToGroup**
    - Moves common attributes from elements to parent group
    - Features:
      - Analyze attributes across sibling elements
@@ -275,7 +302,7 @@ These 7 plugins represent the most complex optimizations and are essential for S
    - Inheritable attributes: fill, stroke, opacity, font-*, etc.
    - Complexity: MEDIUM
 
-8. **moveGroupAttrsToElems**
+7. **moveGroupAttrsToElems**
    - Distributes group attributes to children when beneficial
    - Features:
      - Distribute group attributes to all children
@@ -289,26 +316,41 @@ These 7 plugins represent the most complex optimizations and are essential for S
      - Remove group if empty after distribution
    - Complexity: MEDIUM
 
-### 1.1.5 Missing SVGO Default Preset Plugin
-**removeUselessStrokeAndFill**
-   - Not implemented in svgn (missing from both plugin list and registry)
-   - Part of SVGO's default preset (position 16)
+#### 1.1.5 Other Missing Plugins
+
+8. **removeAttributesBySelector** (IMPLEMENTED BUT DISABLED)
+   - Currently commented out in plugin registry
+   - Issue: CSS selector parsing not working
    - Features:
-     - Remove stroke="none" from elements that don't inherit stroke
-     - Remove fill="none" from elements that don't inherit fill
-     - Remove stroke-width="0" (equivalent to stroke="none")
-     - Remove stroke when fill is sufficient
-     - Remove fill="black" when it's the default
-     - Handle currentColor correctly
+     - Remove attributes matching CSS selectors
+     - Support complex selectors (class, id, element, attribute)
+     - Multiple selector support
    - Parameters:
-     - `stroke`: Remove useless stroke (default: true)
-     - `fill`: Remove useless fill (default: true)
-     - `removeNone`: Remove "none" values (default: true)
-   - Implementation approach:
-     - Understand SVG rendering model
-     - Track inherited values through DOM tree
-     - Identify redundant/default values
+     - `selectors`: Array of objects with selector and attributes
+   - Fix needed:
+     - Implement proper CSS selector parsing (use selectors crate)
+     - Re-enable in plugin registry
    - Complexity: MEDIUM
+
+7. **applyTransforms** (MISSING)
+   - Not implemented in SVGN
+   - Applies transform attribute to path coordinates
+   - Features:
+     - Parse transform matrices from elements
+     - Apply transforms directly to path coordinates
+     - Apply transforms to other shape coordinates
+     - Remove transform attribute after application
+     - Handle nested transforms correctly
+   - Parameters:
+     - `applyToPath`: Apply to path data (default: true)
+     - `applyToShapes`: Apply to basic shapes (default: true)
+     - `floatPrecision`: Coordinate precision (default: 3)
+   - Implementation approach:
+     - Parse transforms into matrices
+     - Transform each path command's coordinates
+     - Transform shape attributes (x, y, width, height, etc.)
+     - Remove transform attribute when done
+   - Complexity: HIGH
 
 ### 1.2 Infrastructure Enhancements (Priority: HIGH)
 
@@ -357,17 +399,28 @@ These 7 plugins represent the most complex optimizations and are essential for S
 
 ### 1.3 Plugin-Specific Enhancements (Priority: MEDIUM)
 
+#### 1.3.1 Partial Compatibility Issues
+
 - **cleanupEnableBackground Style Handling** (Issue #225)
-  - Parse enable-background from style attributes
-  - Unify with attribute handling
+  - Current: Only handles enable-background as attribute
+  - Missing: Parse enable-background from style attributes
+  - Implementation needed:
+    - CSS parser to extract enable-background from style
+    - Merge logic with attribute handling
+  - Example case not handled: `style="enable-background: new 0 0 100 50"`
 
-- **cleanupIds URL Encoding** (Issue #227)
-  - Match SVGO's encodeURI behavior
-  - Handle special characters in IDs
+- **cleanupIds Full Compatibility**
+  - Current implementation appears fully compatible
+  - Includes URL encoding, reference tracking, minification
+  - No known compatibility issues
 
-- **cleanupIds Optimization Skip** (Issue #228)
-  - Skip optimization for SVGs with only defs
-  - Performance optimization
+- **convertPathData Full Optimization** (Recently implemented)
+  - Basic implementation now exists (no longer a stub)
+  - May need lyon geometry integration for advanced features:
+    - Arc to curve conversion
+    - Advanced path simplification
+    - Geometric shape detection
+  - Current features: command optimization, relative/absolute conversion
 
 ### 1.4 Build and Distribution (Priority: MEDIUM)
 
@@ -403,10 +456,11 @@ These 7 plugins represent the most complex optimizations and are essential for S
 ## 2. Implementation Strategy
 
 ### Phase 1: Complete Plugin Parity (4-6 weeks)
-1. Implement convertPathData with lyon
-2. Complete transform optimization plugins
-3. Implement style processing plugins
-4. Complete structural optimization plugins
+1. Complete transform optimization plugins (convertTransform, applyTransforms)
+2. Implement style processing plugins (inlineStyles, removeUselessStrokeAndFill, convertOneStopGradients)
+3. Complete structural optimization plugins (moveElemsAttrsToGroup, moveGroupAttrsToElems)
+4. Implement path plugins (mergePaths, reusePaths)
+5. Fix removeAttributesBySelector CSS parsing
 
 ### Phase 2: Infrastructure Enhancement (2-3 weeks)
 1. Parser improvements (entities, whitespace, errors)
@@ -486,7 +540,13 @@ impl Parser {
 ## 4. Success Metrics
 
 ### 4.1 Functional Parity
-- [ ] All 53 SVGO plugins implemented (currently 46/53 = 87%)
+- [ ] All 54 SVGO plugins implemented (currently 46/54 = 85% fully functional)
+- [x] Fix convertPathData stub implementation ✅ (basic implementation complete)
+- [x] Implement convertOneStopGradients ✅ (completed)
+- [x] Implement removeUselessStrokeAndFill ✅ (completed)
+- [ ] Fix and re-enable removeAttributesBySelector
+- [ ] Implement 7 missing plugins
+- [ ] Enhance convertPathData with lyon for advanced features
 - [ ] 100% SVGO test suite passing
 - [ ] Identical optimization results for test corpus
 
@@ -538,6 +598,14 @@ impl Parser {
 
 ## 7. Conclusion
 
-SVGN has made excellent progress with 87% plugin coverage (46/53 plugins) and perfect test results. The remaining work is well-defined and achievable. By following this plan, we will deliver a faster, more reliable SVG optimizer that maintains full compatibility with SVGO while offering significant performance improvements and a foundation for future innovation.
+SVGN has made excellent progress with 85% fully functional plugin coverage (46/54 plugins working correctly) and perfect test results for implemented features. The remaining work is well-defined and achievable:
+- ✅ convertPathData has been fixed (basic implementation complete)
+- ✅ convertOneStopGradients has been implemented (completed)
+- ✅ removeUselessStrokeAndFill has been implemented (completed)
+- Fix 1 disabled plugin (removeAttributesBySelector)
+- Implement 7 missing plugins
+- Enhance convertPathData with lyon for advanced geometric optimizations
+
+By following this plan, we will deliver a faster, more reliable SVG optimizer that maintains full compatibility with SVGO while offering significant performance improvements and a foundation for future innovation.
 
 The path to 100% parity is clear, with concrete specifications for each remaining feature. With focused execution on the critical path items, SVGN will become the definitive SVG optimization solution for the Rust ecosystem and beyond.

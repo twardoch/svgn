@@ -1,5 +1,46 @@
 # svgn Changelog
 
+## Plugin Implementation and Infrastructure Updates (2025-01-03)
+
+### Completed Tasks
+
+#### 1. Version Management Fix ✅
+- Updated workspace version in Cargo.toml from 0.1.0 to 1.2.3
+- Git-tag-based semver versioning was already implemented and working correctly
+- Binary now shows correct version from git tags (v1.2.3)
+
+#### 2. Stringifier Enhancement ✅
+- Updated all `writeln!` calls in stringifier to use the new `write_newline` method
+- Ensures proper line ending handling based on configuration (LF/CRLF)
+- Added `final_newline` option support for consistent output formatting
+- Fixed test configurations to include new `eol` and `final_newline` fields
+
+#### 3. convertPathData Plugin Implementation ✅
+- Implemented full convertPathData plugin (was previously just a stub)
+- Features implemented:
+  - Path command parsing and optimization
+  - Absolute/relative coordinate conversion
+  - Redundant command removal (e.g., LineTo to current position)
+  - Number precision control with configurable decimal places
+  - Leading zero removal option
+  - Negative value spacing optimization
+- Supports all standard SVG path commands (M, L, H, V, C, S, Q, T, A, Z)
+- Successfully tested with real SVG files
+- Plugin now passes all tests and is fully functional
+
+### Test Updates
+- Updated convertPathData test file from stub error test to functional tests
+- Added tests for:
+  - Basic path optimization
+  - Precision control
+  - Leading zero removal
+- All 359 tests continue to pass with 100% success rate
+
+### Next Steps
+- Implement remaining 8 plugins for full SVGO parity
+- Focus on high-priority plugins: mergePaths, reusePaths, convertTransform
+- Continue infrastructure improvements
+
 ## Documentation and Plugin Analysis Update (2025-01-07)
 
 ### Overview

@@ -19,7 +19,7 @@ In `svgn`, plugins are implemented as Rust functions or structs that operate on 
 
 `svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. 
 
-The default preset currently includes all implemented plugins that are part of SVGO's default preset. Note that some complex plugins from SVGO's default preset (convertPathData, convertTransform, inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems) are not yet implemented and are temporarily excluded from the default configuration.
+The default preset currently includes most implemented plugins but is more conservative than SVGO's default preset. SVGN includes 21 plugins in its default preset compared to SVGO's 35 plugins. Several complex plugins from SVGO's default preset (convertTransform, inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems, removeUselessStrokeAndFill) are not yet implemented and are excluded from the default configuration.
 
 ### SVGO v4 Default Preset Order
 
@@ -48,7 +48,7 @@ The SVGO v4 default preset runs plugins in this specific order:
 22. moveElemsAttrsToGroup (not yet implemented)
 23. moveGroupAttrsToElems (not yet implemented)
 24. collapseGroups
-25. convertPathData (stub implementation)
+25. convertPathData (✅ fully implemented)
 26. convertTransform (not yet implemented)
 27. removeEmptyAttrs
 28. removeEmptyContainers
@@ -95,6 +95,7 @@ The following `svgo` plugins have been successfully ported to `svgn`:
 -   **`collapseGroups`**: Collapses useless groups (`<g>`)
 -   **`convertEllipseToCircle`**: Converts `<ellipse>` to `<circle>` when possible
 -   **`convertOneStopGradients`**: Converts single-stop gradients to solid colors
+-   **`convertPathData`**: Optimizes path data, converts coordinates, removes redundant commands
 -   **`convertShapeToPath`**: Converts basic shapes to `<path>` elements
 -   **`removeHiddenElems`**: Removes hidden elements (display:none, visibility:hidden)
 -   **`removeNonInheritableGroupAttrs`**: Removes non-inheritable group attributes
@@ -123,12 +124,13 @@ The following `svgo` plugins have been successfully ported to `svgn`:
 
 These complex plugins require additional work:
 
--   **`convertPathData`**: Complex path optimization (stub implementation exists)
+-   **`applyTransforms`**: Applies transform matrices to path coordinates and shapes
 -   **`convertTransform`**: Transform matrix optimization and simplification
 -   **`inlineStyles`**: Inline styles from `<style>` elements to style attributes
 -   **`mergePaths`**: Merge multiple paths into one
 -   **`moveElemsAttrsToGroup`**: Move common attributes to parent group
 -   **`moveGroupAttrsToElems`**: Move group attributes to child elements
+-   **`removeUselessStrokeAndFill`**: Removes useless stroke and fill attributes
 -   **`reusePaths`**: Replace duplicate paths with `<use>` elements
 
 Note: `removeRasterImages` and `removeScripts` are actually implemented in svgn.

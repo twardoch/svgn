@@ -23,7 +23,7 @@ description: "SVGN vs. SVGO: A detailed comparison"
 | **Binary Size**     | Native executables can be larger due to static linking, but WASM output can be compact. | Smaller package size, but requires Node.js runtime. |
 | **Use Cases**       | High-performance backend services, desktop applications, CLI tools, WASM in browsers. | Web development workflows, build tools, Node.js applications, browser-based optimization (with bundling). |
 | **CLI Compatibility** | Full drop-in replacement for SVGO CLI with identical syntax and behavior. | Original implementation. |
-| **Plugin Support**  | 46/53 plugins implemented (87% coverage). | All 53 plugins available. |
+| **Plugin Support**  | 46/53 plugins implemented (87% coverage), 1 disabled due to CSS parsing. | All 53 plugins available. |
 
 ## Functional Parity
 
@@ -46,13 +46,13 @@ description: "SVGN vs. SVGO: A detailed comparison"
 - Transform handlers (removeUselessTransforms)
 
 **Not Yet Implemented (7 plugins):**
-- convertPathData (complex path optimization - stub exists)
+- applyTransforms (applies transforms to coordinates)
 - convertTransform (transform matrix optimization)
 - inlineStyles (CSS inlining)
 - mergePaths (path merging)
 - moveElemsAttrsToGroup/moveGroupAttrsToElems (attribute movement)
-- reusePaths (path deduplication)
 - removeUselessStrokeAndFill (style cascade analysis)
+- reusePaths (path deduplication)
 
 ## When to Choose SVGN?
 
@@ -71,7 +71,7 @@ Consider using `svgn` if:
 
 -   You are already heavily invested in the Node.js/JavaScript ecosystem.
 -   Your performance requirements are met by `svgo`'s current capabilities.
--   You require one of the 7 plugins not yet implemented in `svgn` (particularly convertPathData or convertTransform).
+-   You require one of the 7 plugins not yet implemented in `svgn` (particularly convertTransform, inlineStyles, or removeUselessStrokeAndFill which are in SVGO's default preset).
 -   You need immediate access to the latest `svgo` features and plugins as they are released.
 -   You prefer the flexibility and rapid development cycles often associated with JavaScript.
 

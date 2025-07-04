@@ -104,13 +104,15 @@ impl Stringifier {
         // Add XML declaration if needed
         if let Some(version) = &document.metadata.version {
             if let Some(encoding) = &document.metadata.encoding {
-                writeln!(
+                write!(
                     output,
                     r#"<?xml version="{}" encoding="{}"?>"#,
                     version, encoding
                 )?;
+                self.write_newline(&mut output)?;
             } else {
-                writeln!(output, r#"<?xml version="{}"?>"#, version)?;
+                write!(output, r#"<?xml version="{}"?>"#, version)?;
+                self.write_newline(&mut output)?;
             }
         }
 
@@ -118,7 +120,7 @@ impl Stringifier {
         for node in &document.prologue {
             self.stringify_node(node, &mut output, 0)?;
             if self.pretty {
-                writeln!(output)?;
+                self.write_newline(&mut output)?;
             }
         }
 
@@ -128,13 +130,18 @@ impl Stringifier {
         // Add epilogue nodes (comments, PIs after root element)
         for node in &document.epilogue {
             if self.pretty {
-                writeln!(output)?;
+                self.write_newline(&mut output)?;
             }
             self.stringify_node(node, &mut output, 0)?;
         }
 
-        if self.pretty && !output.ends_with('\n') {
-            output.push('\n');
+        if self.pretty && !self.ends_with_newline(&output) {
+            self.write_newline(&mut output)?;
+        }
+        
+        // Add final newline if requested
+        if self.final_newline && !self.ends_with_newline(&output) {
+            self.write_newline(&mut output)?;
         }
 
         Ok(output)
@@ -181,7 +188,7 @@ impl Stringifier {
             }
 
             if self.pretty {
-                writeln!(output)?;
+                self.write_newline(output)?;
             }
             return Ok(());
         }
@@ -211,7 +218,7 @@ impl Stringifier {
                         if !trimmed.is_empty() {
                             self.write_indent(output, depth + 1);
                             write!(output, "{}", trimmed)?;
-                            writeln!(output)?;
+                            self.write_newline(output)?;
                         }
                         // Skip whitespace-only text nodes when pretty-printing
                     } else if !self.pretty || !text.trim().is_empty() {
@@ -225,7 +232,7 @@ impl Stringifier {
                     }
                     write!(output, "<!--{}-->", comment)?;
                     if self.pretty && has_element_children {
-                        writeln!(output)?;
+                        self.write_newline(output)?;
                     }
                 }
                 Node::CData(cdata) => {
@@ -234,7 +241,7 @@ impl Stringifier {
                     }
                     write!(output, "<![CDATA[{}]]>", cdata)?;
                     if self.pretty && has_element_children {
-                        writeln!(output)?;
+                        self.write_newline(output)?;
                     }
                 }
                 Node::ProcessingInstruction { target, data } => {
@@ -247,7 +254,7 @@ impl Stringifier {
                         write!(output, "<?{} {}?>", target, data)?;
                     }
                     if self.pretty && has_element_children {
-                        writeln!(output)?;
+                        self.write_newline(output)?;
                     }
                 }
                 Node::DocType(_) => {

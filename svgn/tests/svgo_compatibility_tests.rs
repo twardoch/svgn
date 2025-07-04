@@ -4,7 +4,7 @@
 //! These tests verify that SVGN is feature-compatible with SVGO
 
 use serde_json::json;
-use svgn::config::{Js2SvgOptions, QuoteAttrsStyle};
+use svgn::config::{Js2SvgOptions, QuoteAttrsStyle, LineEnding};
 use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 /// Test helper function to run optimization with specific plugins
@@ -35,6 +35,8 @@ fn test_optimization(
             indent: 4,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,
@@ -180,6 +182,8 @@ fn test_multipass_optimization() {
             indent: 4,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,
@@ -285,6 +289,8 @@ fn test_pretty_print_vs_minified() {
             indent: 2,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,
@@ -304,6 +310,8 @@ fn test_pretty_print_vs_minified() {
             indent: 0,
             quote_attrs: QuoteAttrsStyle::Always,
             self_closing: true,
+            eol: LineEnding::default(),
+            final_newline: false,
         },
         path: None,
         datauri: None,
