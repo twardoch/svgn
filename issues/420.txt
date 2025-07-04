@@ -1,9 +1,0 @@
-Now /report and review all problems mentioned @TODO.md and @PLAN.md and those mentiond in @issues/ and remove the issue files that no longer apply, and remove (clean) tasks or issues that no longer apply from @TODO.md and from @PLAN.md and then think very hard about the full codebase (check ./llms.txt which is a snapshot ), and then fully rewrite `./PLAN.md` so that it’ll be a very detailed, complete, readable specification for the upcoming development. 
-
-Analyze the plugins of @ref/svgo and our plugins in svgn. Start a detailed and comprehensive comparisons of every plugin of @ref/svgo and compare our svgn plugins to it. If the svgo plugin has the corresponding svgn plugin, check if the functionality of the svgn plugin is exactly compatible with the svgo plugin. If not, into @PLAN.md write detailed instructions on how to fix this. If there is no svgn plugin that corresponds to svgo, into @PLAN.md write precise instructions on how to create that svgn plugin. Do not write code yet, just write into @PLAN.md. 
-
-In @docs/plugins.md and @docs/comparison.md update the info about plugins, and make sure that @PLAN.md includes very very detailed info about plugins that are yet to be implemented or yet to be made fully functional. Then bring these tasks into @TODO.md as well. 
-
-Remember, the goal is that we get 100% feature parity and 100% API compatibility with the JS @ref/svgo code. 
-
-At the end of the process we’ll have an expanded, fresh, highly relevant and uptodate @PLAN.md and a @TODO.md that fully reflects it. 

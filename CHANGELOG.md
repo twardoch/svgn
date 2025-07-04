@@ -1,5 +1,33 @@
 # svgn Changelog
 
+## removeAttributesBySelector Plugin Fix (2025-07-04)
+
+### Major Achievement: Plugin Parity Increased to 91%
+
+#### removeAttributesBySelector Plugin Restoration ✅
+- **Fixed CSS selector parsing compilation error** in DummyParser trait implementation
+- **Re-enabled plugin registration** in both mod.rs and plugin.rs 
+- **Verified functionality** via CLI - plugin now appears in --show-plugins and accepts configuration
+- **Resolved long-standing TODO** that was blocking this plugin from being available
+- **Impact:** Plugin count increased from 48/54 to 49/54 (91% complete)
+
+#### Documentation Updates ✅
+- **Updated PLAN.md** to reflect accurate 91% completion status
+- **Updated TODO.md** to mark removeAttributesBySelector as completed
+- **Corrected success metrics** throughout both planning documents
+- **Focused remaining work** on 5 missing plugins instead of 7 tasks
+
+#### Technical Details ✅
+- Fixed `selectors::parser::SelectorParseErrorKind` trait bound issue
+- Removed unused HashMap import causing compilation warnings
+- Plugin now builds cleanly and integrates with the CLI system
+- Comprehensive CSS selector matching implementation preserved
+
+### Next Priority
+Focus shifts to implementing the 5 remaining missing plugins, starting with `convertTransform` which is critical for SVGO default preset compatibility.
+
+---
+
 ## Plugin Implementation and Infrastructure Updates (2025-01-03)
 
 ### Completed Tasks

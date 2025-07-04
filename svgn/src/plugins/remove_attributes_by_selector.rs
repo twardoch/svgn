@@ -13,7 +13,6 @@ use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstrain
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode, ElementSelectorFlags};
 use selectors::NthIndexCache;
 use cssparser::ToCss;
-use std::collections::HashMap;
 
 /// Plugin to remove attributes by CSS selector
 pub struct RemoveAttributesBySelectorPlugin;
@@ -503,7 +502,7 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
             struct DummyParser;
             impl<'i> selectors::Parser<'i> for DummyParser {
                 type Impl = SelectorImpl;
-                type Error = cssparser::ParseError<'i, selectors::parser::SelectorParseErrorKind<'i>>;
+                type Error = selectors::parser::SelectorParseErrorKind<'i>;
             }
             
             let selector_list = match SelectorList::<SelectorImpl>::parse(&DummyParser, &mut parser, parsing_mode) {
@@ -555,6 +554,7 @@ mod tests {
     use crate::plugin::{Plugin, PluginInfo};
     use indexmap::IndexMap;
     use serde_json::json;
+    use std::collections::HashMap;
 
     fn create_test_document() -> Document {
         let mut doc = Document::default();

@@ -1,0 +1,133 @@
+Below is a structured audit of **svgn** from the standpoint of “strict SVGO‑compatibility with the smallest reasonable footprint”.
+I looked at the entire repository and its generated `Cargo.lock` and focused on **(a)** run‑time dependencies, **(b)** dev‑time extras and **(c)** top‑level source code that is shipped in the published crate or binary.
+
+---
+
+## Executive summary
+
+*The core of svgn is lean, but a handful of crates and directories are clearly non‑essential for achieving 1‑to‑1 behaviour with SVGO.  Most can be gated behind optional features or removed outright, shaving 4–8 MB from a release build and \~80 MB from the dependency graph.*
+
+Key candidates for removal or demotion to an *optional* feature:
+
+| Area                              | What looks superfluous                                                    | Why it is probably safe to drop / gate                                                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| XML stack                         | **`roxmltree`**                                                           | `quick‑xml` already does token‑level parsing; SVGO never needs DOM‑style read‑only queries.                                                                                |
+| CSS stack                         | **`lightningcss`**                                                        | Very large; SVGO relies only on `css‑tree`’s tokenizer & selector matching, which `cssparser` + `selectors` already covers.                                                |
+| Geometry                          | **`lyon`, `kurbo`**                                                       | Pulled in for the *convert\_path\_data* and *shape→path* helpers, but SVGO does all geometry in pure JS.  A \~300 LoC custom routine or using `usvg-paths` would suffice.  |
+| WASM                              | **`wasm‑bindgen`, `js‑sys`**                                              | Only needed when compiling to the browser; keep behind a `wasm` feature (already partially feature‑gated).                                                                 |
+| SVG utils                         | **`usvg`**                                                                | Extra SVG tooling not required for optimisation; can stay behind an `usvg‑utils` feature.                                                                                  |
+| Benchmarking                      | **`criterion`** (plus `plotters`, `rayon`, etc.)                          | Adds \~45 transitive crates; move benches to a separate workspace crate.                                                                                                   |
+| Dual XML writers                  | **`xmlwriter`, `winnow`**                                                 | Neither is referenced in src; artefacts from an earlier experiment.                                                                                                        |
+| Docs site                         | `docs/`, Jekyll, SCSS, Gemfile                                            | Purely for GitHub pages – harmless but should be excluded from the published crate.                                                                                        |
+| CI helpers & wide target binaries | Pre‑built Windows & LLVM stub crates listed in `Cargo.lock` (`windows_*`) | Come from a dev dependency of `criterion` and are never linked into the CLI.                                                                                               |
+
+---
+
+## Detailed findings
+
+### 1  XML handling
+
+* **Redundancy.** Both `quick‑xml` and `roxmltree` are declared as first‑class deps , but only `quick‑xml` is imported in `parser.rs`.  `roxmltree` is unused across `src/` – a rip‑grep confirms zero references.
+  **Recommendation:** drop `roxmltree`.
+
+* **Stray crates.** `xmlwriter` and `winnow` appear only in `Cargo.lock` .  No code imports them.  They can be excised by regenerating the lock‑file after pruning.
+
+### 2  CSS & selector parsing
+
+* **Minimal requirement.** SVGO relies on the css‑tools subset for parsing inline `style=` attributes and matching `[selector]`‑style plugin filters.  That is fully covered by `cssparser` + `selectors` .
+
+* **Weight of `lightningcss`.** The alpha build of LightningCSS adds ≈1 MB of code and many tree‑sitter tables; svgn calls none of its APIs.
+  **Recommendation:** remove or hide behind an *experimental* feature flag.
+
+### 3  Geometry helpers
+
+* **`lyon` transitive bulk.** The crate family (`lyon_*`, `euclid`, `num‑traits`, etc.) pulls in 18 extra crates .  In svgn it is used only by `plugins/convert_path_data.rs` & `convert_shape_to_path.rs` to triangulate and flatten arcs.
+
+* **SVGO baseline.** JS SVGO implements those plugins with hand‑rolled math; porting that small math (≈150 LoC) would drop the lyon stack.
+
+* **Alternative.** Keep `lyon` but behind a `complex‑geometry` feature that default builds can turn off.
+
+### 4  WASM surface
+
+The library already has a conditional section in `svgn/Cargo.toml`  but the **workspace** manifest lists `wasm‑bindgen`/`js‑sys` unconditionally .
+
+> **Fix:** move them to `[target.'cfg(wasm32)'.dependencies]` in the *workspace* manifest too.
+
+### 5  Benchmark & dev tooling
+
+* `criterion` is specified as a **workspace dev‑dependency** but leaks into `Cargo.lock`, pulling heavy crates (`plotters`, `rayon`, `ciborium`, …) .
+* If users run `cargo install svgn`, those crates are **not** built, yet CI builds with `--all-targets` *will* compile them.
+
+  > **Advice:** Move benches to `svgn-benches/` sub‑crate outside the default workspace members, or gate with `benchmarks` feature.
+
+### 6  Optional SVG utilities (`usvg`)
+
+Already opt‑in via `features = ["usvg-utils"]` ; the workspace entry, however, brings it in unconditionally .  Align both manifests so it is truly optional.
+
+### 7  Command‑line surface (`clap`)
+
+`clap` v4 is necessary to offer SVGO‑compatible CLI flags (see `svgn/src/bin/svgn.rs`) .  No action needed, but consider the lighter `clap-lite` if the option set stays frozen.
+
+### 8  Code & directory hygiene
+
+* `docs/`, `scripts/build_*.sh`, example fixtures, benches – none are shipped in the crate but they *are* cloned by downstreams.  Add them to a `.cargo_vcs_info.excludes` or `publish = false` paths list.
+* Multiple generated `svgo_compatibility_tests-*` temp dirs remained in `target/` and were captured in `llms.txt` .  Add those names to `.gitignore`.
+
+---
+
+## Concrete next steps
+
+1. **Trim manifests**
+
+```toml
+# Cargo.toml (workspace)
+[workspace.dependencies]
+quick-xml = "0.31"
+cssparser  = "0.31"
+selectors  = "0.25"
+clap       = { version = "4.4", features = ["derive"] }
+serde      = { version = "1",  features = ["derive"] }
+serde_json = "1"
+
+# optional and dev only
+[features]
+geometry = ["lyon"]          # default = false
+wasm     = ["wasm-bindgen"]   # default = false
+bench    = []                 # activates benches
+
+[dev-dependencies]
+criterion = { version = "0.5", optional = true }
+```
+
+2. **Refactor** the two geometry‑heavy plugins to remove lyon, or guard them behind `cfg(feature="geometry")`.
+
+3. **Delete unused crates**
+
+```bash
+cargo rm roxmltree lightningcss xmlwriter winnow
+cargo update
+```
+
+4. **Split benches** into `benches/` sub‑crate with its own manifest so CI can opt‑out.
+
+5. **Align WASM gating** in both workspace and member manifests.
+
+---
+
+## Estimated impact
+
+| Item                                  | Build‑time crates removed | Release binary Δ |
+| ------------------------------------- | ------------------------- | ---------------- |
+| roxmltree, xmlwriter, winnow          | 3                         | −60 KB           |
+| lightningcss                          | 12                        | −650 KB          |
+| lyon (+ euclid, num‑traits, …)        | 18                        | −1.5 MB          |
+| criterion stack (when benches off)    | 45                        | n/a\*            |
+| wasm‑bindgen, js‑sys (desktop builds) | 9                         | −380 KB          |
+
+\*Dev‑only; saves CI minutes and 45 +  crates in lock‑file.
+
+---
+
+### Bottom line
+
+svgn is already impressively faithful to SVGO, but you can **strip 25‑30 % of its dependency graph** without losing any core capability.  Most of the heavy crates are there for “nice‑to‑have” features (geometry helpers, WASM, rich benches).  By turning those into opt‑in features and cleaning unused libs, you will get a smaller, faster, easier‑to‑audit project while still promising *100 % API and functional parity* with the original JavaScript tool.

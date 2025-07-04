@@ -1,244 +1,234 @@
 # SVGN TODO List
 
-## Completed - CLI Compatibility (SVGO Feature Parity) ✅
+## Phase 1A: Critical Default Preset Plugins (Weeks 1-4)
 
-### Core I/O Features ✅
-- [✓] Implement STDIN support (`-i -` or no input args)
-  - [✓] Detect when no input file is specified
-  - [✓] Read SVG content from stdin
-  - [✓] Handle piped input correctly
-- [✓] Implement STDOUT support (`-o -` or default with stdin)
-  - [✓] Detect `-o -` argument
-  - [✓] Default to stdout when input is stdin and no output specified
-  - [✓] Ensure no status messages pollute stdout
-- [✓] Add string input support (`-s, --string <STRING>`)
-  - [✓] Add new CLI argument for direct SVG string
-  - [✓] Process string without file I/O
-  - [✓] Handle proper escaping
-- [✓] Support positional arguments for input files
-  - [✓] Allow `svgn file.svg` instead of requiring `-i`
-  - [✓] Support multiple input files
-  - [✓] Match SVGO's argument parsing behavior
+### 1.1 convertTransform (2 weeks)
+- [ ] Add nalgebra dependency for matrix operations
+- [ ] Create plugin file: `svgn/src/plugins/convert_transform.rs`
+- [ ] Parse transform strings into matrices
+- [ ] Implement matrix multiplication
+- [ ] Convert matrices to shorter translate/scale/rotate forms
+- [ ] Optimize precision and remove redundant transforms
+- [ ] Support all 12 SVGO parameters
+- [ ] Add comprehensive test suite
 
-### Essential Features ✅
-- [✓] Add precision control (`-p, --precision <INTEGER>`)
-  - [✓] Add CLI argument for decimal precision
-  - [✓] Override all plugin precision settings
-  - [✓] Apply to all numeric value optimizations
-- [✓] Implement plugin listing (`--show-plugins`)
-  - [✓] List all available plugins
-  - [✓] Show plugin descriptions
-  - [✓] Exit after displaying
-- [✓] Add output formatting options
-  - [✓] `--indent <INTEGER>`: Control indentation spaces
-  - [✓] `--eol <lf|crlf>`: Line ending control
-  - [✓] `--final-newline`: Ensure trailing newline
+### 1.2 inlineStyles (1.5 weeks)
+- [ ] Add lightningcss or css crate dependency
+- [ ] Create plugin file: `svgn/src/plugins/inline_styles.rs`
+- [ ] Parse CSS from `<style>` elements
+- [ ] Implement CSS specificity calculation
+- [ ] Match CSS selectors to SVG elements
+- [ ] Apply cascade rules and inheritance
+- [ ] Convert CSS properties to SVG attributes
+- [ ] Handle media queries and pseudo-classes
+- [ ] Support all 4 SVGO parameters
+- [ ] Add test suite
 
-### Folder Processing ✅
-- [✓] Add recursive folder processing (`-r, --recursive`)
-  - [✓] Walk directory tree recursively
-  - [✓] Process all SVG files in subdirectories
-  - [✓] Maintain relative path structure
-- [✓] Add exclusion patterns (`--exclude <PATTERN...>`)
-  - [✓] Support regex patterns for file exclusion
-  - [✓] Allow multiple exclude patterns
-  - [✓] Apply to folder processing mode
+### 1.3 mergePaths (1 week)
+- [ ] Create plugin file: `svgn/src/plugins/merge_paths.rs`
+- [ ] Group paths by identical style attributes
+- [ ] Check DOM adjacency for mergeable paths
+- [ ] Concatenate path data strings correctly
+- [ ] Support force, floatPrecision, noSpaceAfterFlags parameters
+- [ ] Add test suite
 
-### Status and Output Control ✅
-- [✓] Add color control (`--no-color`)
-  - [✓] Disable ANSI color codes in output
-  - [✓] Detect terminal capabilities
-  - [✓] Respect NO_COLOR environment variable
-- [✓] Improve quiet mode to match SVGO behavior
-  - [✓] Suppress all non-error output
-  - [✓] Ensure compatibility with unix pipes
+### 1.4 moveElemsAttrsToGroup (0.5 weeks)
+- [ ] Create plugin file: `svgn/src/plugins/move_elems_attrs_to_group.rs`
+- [ ] Analyze attributes across sibling elements
+- [ ] Identify inheritable SVG attributes
+- [ ] Calculate size reduction benefit
+- [ ] Create `<g>` wrapper when beneficial
+- [ ] Move attributes and remove from children
+- [ ] Add test suite
 
-### CLI Architecture Refactor ✅
-- [✓] Refactor argument parsing for mutual exclusivity
-  - [✓] Enforce string vs file vs folder input modes
-  - [✓] Validate argument combinations
-  - [✓] Provide clear error messages
-- [✓] Implement proper default behavior
-  - [✓] No args = read stdin, write stdout
-  - [✓] Match SVGO's implicit behaviors
-  - [✓] Document all defaults clearly
+### 1.5 moveGroupAttrsToElems (0.5 weeks)
+- [ ] Create plugin file: `svgn/src/plugins/move_group_attrs_to_elems.rs`
+- [ ] Identify groups that only provide attributes
+- [ ] Distribute inheritable attributes to children
+- [ ] Handle attribute conflicts (child overrides)
+- [ ] Remove empty groups after distribution
+- [ ] Add test suite
 
-### Remaining CLI Work
-- [x] Update all writeln! calls in stringifier to use write_newline method ✅
+## Phase 1B: Standalone Plugins (Weeks 5-6)
+
+### 1.6 applyTransforms (1 week)
+- [ ] Create plugin file: `svgn/src/plugins/apply_transforms.rs`
+- [ ] Parse transform matrices from elements
+- [ ] Apply transform matrices to path coordinates
+- [ ] Transform basic shape coordinates (rect, circle, ellipse)
+- [ ] Handle nested transforms correctly
+- [ ] Remove transform attributes after application
+- [ ] Support transformPrecision and applyTransformsStroked parameters
+- [ ] Add test suite
+
+### 1.7 reusePaths (1 week)
+- [ ] Create plugin file: `svgn/src/plugins/reuse_paths.rs`
+- [ ] Hash path content for duplicate detection
+- [ ] Create `<defs>` and `<use>` elements
+- [ ] Replace duplicates with references
+- [ ] Calculate size reduction benefits
+- [ ] Add test suite
+
+## Phase 2: Completed Tasks ✅
+
+### 2.1 removeAttributesBySelector ✅ COMPLETED
+- [x] Add selectors crate dependency (was already present)
+- [x] Fix CSS selector parsing in `svgn/src/plugins/remove_attributes_by_selector.rs`
+- [x] Re-enable plugin in registry (`svgn/src/plugin.rs`)
+- [x] Uncomment in mod.rs
+- [x] Verify plugin functionality via CLI
+- [x] Plugin now functional and available
+
+## Phase 3: Infrastructure (Weeks 7-8)
+
+### 3.1 Parser Enhancements (1 week)
+- [ ] Fix XML entity expansion (Issue #201)
+- [ ] Parse `<!ENTITY>` declarations in DOCTYPE
+- [ ] Build entity table during parsing
+- [ ] Expand `&entity;` references throughout document
+- [ ] Update parser in `svgn/src/parser.rs`
+- [ ] Fix selective whitespace preservation (Issue #202)
+- [ ] Preserve whitespace in `<text>`, `<tspan>`, `<pre>`, `<script>`, `<style>`
+- [ ] Add context-aware whitespace handling
+- [ ] Fix enhanced error reporting (Issue #203)
+- [ ] Track line/column positions during parsing
+- [ ] Provide context snippets in error messages
+- [ ] Fix namespace handling consistency (Issue #204)
+- [ ] Unify namespace handling in single location
+- [ ] Remove redundancy between `namespaces` and `attributes` maps
+- [ ] Fix document metadata usage (Issue #205)
+- [ ] Ensure `path`, `encoding`, `version` are properly populated
+- [ ] Use metadata throughout optimization pipeline
+
+### 3.2 Stringifier Enhancements (0.5 weeks)
+- [ ] Fix XML declaration support (Issue #206)
+- [ ] Add XML declaration output based on DocumentMetadata
+- [ ] Update stringifier in `svgn/src/stringifier.rs`
+- [ ] Fix DOCTYPE preservation (Issue #207)
+- [ ] Store DOCTYPE declarations during parsing
+- [ ] Output DOCTYPE declarations with entities
+- [ ] Handle public/system identifiers
+
+### 3.3 Architecture Improvements (1 week)
+- [ ] Implement visitor pattern (Issue #213)
+- [ ] Create Visitor trait with enter/exit methods
+- [ ] Support for different node types
+- [ ] Enable fine-grained traversal control
+- [ ] Update plugin system architecture
+- [ ] Implement preset system (Issue #215)
+- [ ] Create Preset trait
+- [ ] Implement preset-default
+- [ ] Support preset inheritance
+- [ ] Allow custom presets
+- [ ] Add dynamic plugin loading support (Issue #216)
+- [ ] Plugin discovery mechanism
+- [ ] Runtime loading API
+- [ ] External plugin interface
+
+### 3.4 Plugin-Specific Fixes (0.5 weeks)
+- [ ] Fix cleanupEnableBackground style handling (Issue #225)
+- [ ] Parse enable-background from style attributes
+- [ ] Merge logic with attribute handling
+- [ ] Fix cleanupIds URL encoding (Issue #227)
+- [ ] Match SVGO's encodeURI/decodeURI behavior exactly
+- [ ] Fix cleanupIds optimization skip (Issue #228)
+- [ ] Skip ID minification for SVGs with only `<defs>`
+- [ ] Detect SVGs containing only defs
+
+## Phase 4: Default Preset Alignment (Week 6)
+
+### 4.1 Update Default Configuration
+- [ ] Add missing plugins to default preset configuration
+- [ ] Add `removeDeprecatedAttrs`
+- [ ] Add `mergeStyles`
+- [ ] Add `cleanupNumericValues`
+- [ ] Add `removeNonInheritableGroupAttrs`
+- [ ] Add `cleanupEnableBackground`
+- [ ] Add `removeHiddenElems`
+- [ ] Add `convertShapeToPath`
+- [ ] Add `convertEllipseToCircle`
+- [ ] Add `sortDefsChildren`
+- [ ] Add the 6 missing plugins when implemented
+- [ ] Update plugin registry order to match SVGO preset order
+- [ ] Test default preset compatibility
+
+## Phase 5: Quality & Testing (Weeks 8-9)
+
+### 5.1 Code Quality (0.5 weeks)
+- [ ] Fix all Clippy warnings (27 warnings)
+- [ ] Fix collapsible if statements (2)
+- [ ] Fix needless borrows (2)
+- [ ] Replace manual clamp with clamp function (1)
+- [ ] Add #[derive(Default)] for 3 structs
+- [ ] Implement Default for 17 structs with new()
+- [ ] Fix recursive parameter warnings (3)
+- [ ] Fix length comparison (1)
+- [ ] Fix collapsible match (1)
+- [ ] Remove needless return (1)
+- [ ] Fix invalid regex with backreference in prefix_ids.rs
+- [ ] Fix minor formatting issues in benches/optimization.rs
+
+### 5.2 Testing (1 week)
+- [ ] Port remaining SVGO test fixtures
+- [ ] Port all missing plugin test files from `/ref/svgo/test/plugins/`
+- [ ] Implement Rust test cases for new plugins
+- [ ] Add parameterized tests for plugin configurations
+- [ ] Achieve 100% SVGO test compatibility
+- [ ] Fix any output differences
+- [ ] Ensure identical optimization results
+- [ ] Target 100% test pass rate (currently 93.75%)
+- [ ] Add fuzz testing for parser
+- [ ] Create fuzzing harness
+- [ ] Test parser robustness
+- [ ] Add property-based tests
+
+### 5.3 CLI Completion (0.5 weeks)
 - [ ] Add support for .js config files (currently only .json and .toml)
 - [ ] Implement base64 encoding for datauri output (currently placeholder)
 
-## Top Priority - Version Management
-- [x] Make the build app use git-tag-based semver, not `0.1.0` ✅
-
-## Critical - Remaining Plugin Implementations (6 plugins)
-
-### Path Optimization Plugins
-- [x] Implement full **convertPathData** plugin with lyon geometry library (stub exists) ✅
-  - [x] Path simplification algorithms
-  - [x] Precision reduction
-  - [x] Relative/absolute conversion
-  - [ ] Arc optimization (advanced feature - future enhancement)
-- [ ] Implement **mergePaths** plugin
-  - [ ] Identify paths with identical styles
-  - [ ] Combine path data
-  - [ ] Handle transforms correctly
-- [ ] Implement **reusePaths** plugin
-  - [ ] Content hashing for path deduplication
-  - [ ] Create <defs> and <use> elements
-  - [ ] Reference management
-
-### Transform Optimization
-- [ ] Implement **convertTransform** plugin
-  - [ ] Matrix multiplication and optimization
-  - [ ] Convert matrices to shorter transform functions
-  - [ ] Combine multiple transforms
-- [ ] Complete **removeUselessTransforms** plugin implementation
-  - [ ] Detect identity transforms (translate(0,0), scale(1,1), etc.)
-  - [ ] Remove from elements
-  - [ ] Update tests
-
-### Style Processing
-- [ ] Implement **inlineStyles** plugin
-  - [ ] Parse CSS from <style> elements
-  - [ ] Calculate CSS specificity
-  - [ ] Apply styles as inline attributes
-  - [ ] Remove empty <style> elements
-
-### Structural Optimization
-- [ ] Implement **moveElemsAttrsToGroup** plugin
-  - [ ] Analyze common attributes across elements
-  - [ ] Move to parent group when beneficial
-  - [ ] Calculate size reduction
-- [ ] Implement **moveGroupAttrsToElems** plugin
-  - [ ] Distribute group attributes to children
-  - [ ] Remove unnecessary groups
-  - [ ] Handle inheritance correctly
-- [x] Implement **removeUselessStrokeAndFill** plugin ✅
-  - [x] Understand style cascade and inheritance
-  - [x] Remove redundant stroke/fill attributes
-  - [x] Handle currentColor correctly
-- [x] Implement **convertOneStopGradients** plugin ✅
-  - [x] Detect single-stop gradients
-  - [x] Convert to solid colors
-  - [x] Remove gradient definitions
-  - [x] Update references
-
-## High Priority - Infrastructure Enhancements
-
-### Parser Improvements
-- [ ] Implement XML entity expansion (Issue #201)
-  - [ ] Parse <!ENTITY> declarations in DOCTYPE
-  - [ ] Build entity table
-  - [ ] Expand &entity; references
-- [ ] Implement selective whitespace preservation (Issue #202)
-  - [ ] Preserve in <text>, <tspan>, <pre>, <script>, <style>
-  - [ ] Trim in other elements
-  - [ ] Add configuration option
-- [ ] Add enhanced error reporting (Issue #203)
-  - [ ] Track line/column during parsing
-  - [ ] Provide context snippets
-  - [ ] Improve error messages
-
-### Stringifier Enhancements
-- [ ] Add XML declaration output support (Issue #206)
-  - [ ] Output <?xml version="1.0" encoding="UTF-8"?>
-  - [ ] Make encoding configurable
-  - [ ] Conditional output based on config
-- [ ] Add DOCTYPE output support (Issue #207)
-  - [ ] Preserve DOCTYPE from input
-  - [ ] Output entity definitions
-  - [ ] Handle public/system identifiers
-
-### Architecture Improvements
-- [ ] Implement visitor pattern (Issue #213)
-  - [ ] Create Visitor trait with enter/exit methods
-  - [ ] Support for different node types
-  - [ ] Enable fine-grained traversal control
-- [ ] Implement preset system (Issue #215)
-  - [ ] Create Preset trait
-  - [ ] Implement preset-default
-  - [ ] Support preset inheritance
-  - [ ] Allow custom presets
-- [ ] Add dynamic plugin loading support (Issue #216)
-  - [ ] Plugin discovery mechanism
-  - [ ] Runtime loading API
-  - [ ] External plugin interface
-
-## Medium Priority - Plugin Enhancements
-
-- [ ] Fix cleanupEnableBackground style handling (Issue #225)
-  - [ ] Parse enable-background from style attributes
-  - [ ] Merge with attribute handling
-- [ ] Fix cleanupIds URL encoding (Issue #227)
-  - [ ] Match SVGO's encodeURI behavior
-  - [ ] Handle special characters correctly
-- [ ] Add cleanupIds optimization skip (Issue #228)
-  - [ ] Detect SVGs with only defs
-  - [ ] Skip ID minification for such files
-
-## Medium Priority - Build and Distribution
-
+### 5.4 Build & Distribution (1 week)
 - [ ] Complete cross-platform build scripts (Issue #410)
-  - [ ] Fix macOS universal binary build (Issue #412)
-  - [ ] Create Linux packaging (.deb, .rpm, .AppImage)
-  - [ ] Create Windows installer (.msi)
-  - [ ] Update GitHub Actions workflow
+- [ ] Fix macOS universal binary build (Issue #412)
+- [ ] Create Linux packaging (.deb, .rpm, .AppImage)
+- [ ] Create Windows installer (.msi)
+- [ ] Update GitHub Actions workflow
 - [ ] Implement version management
-  - [ ] Git tag-based versioning
-  - [ ] Automatic version injection at build time
-  - [ ] Update set-cargo-version.sh script
+- [ ] Git tag-based versioning
+- [ ] Automatic version injection at build time
+- [ ] Update set-cargo-version.sh script
 
-## Low Priority - Code Quality
-
-- [ ] Fix 27 Clippy warnings
-  - [ ] Fix collapsible if statements (2)
-  - [ ] Fix needless borrows (2)
-  - [ ] Replace manual clamp with clamp function (1)
-  - [ ] Add #[derive(Default)] for 3 structs
-  - [ ] Implement Default for 17 structs with new()
-  - [ ] Fix recursive parameter warnings (3)
-  - [ ] Fix length comparison (1)
-  - [ ] Fix collapsible match (1)
-  - [ ] Remove needless return (1)
-  - [ ] Fix invalid regex with backreference in prefix_ids.rs
-- [ ] Fix minor formatting issues in benches/optimization.rs
-
-## Low Priority - Performance and Testing
-
-- [ ] Create comprehensive benchmarks
-  - [ ] Compare performance with SVGO
-  - [ ] Benchmark individual plugins
-  - [ ] Memory usage profiling
-- [ ] Expand test coverage
-  - [ ] Port remaining SVGO test fixtures
-  - [ ] Add fuzz testing for parser
-  - [ ] Performance regression tests
-- [ ] Optimize performance
-  - [ ] Profile and optimize hot paths
-  - [ ] Consider parallel processing
-  - [ ] Optimize memory allocations
-
-## Future Enhancements
-
-- [ ] WASM compilation support
-- [ ] Node.js bindings
-- [ ] Python bindings
-- [ ] Plugin marketplace
-- [ ] Visual optimization preview
-- [ ] GPU-accelerated path optimization
-- [ ] Machine learning optimization hints
-
-## Documentation
-
-- [ ] Complete API documentation
-- [ ] Write migration guide from SVGO
-- [ ] Create plugin development guide
-- [ ] Add more examples
+### 5.5 Documentation Updates (0.5 weeks)
+- [ ] Update docs/plugins.md
+- [ ] Add new plugin documentation
+- [ ] Update implementation status
+- [ ] Add parameter documentation
+- [ ] Update docs/comparison.md
+- [ ] Update plugin count (54/54)
+- [ ] Update compatibility metrics
 - [ ] Document performance characteristics
+- [ ] Update README.md
+- [ ] Update implementation status
+- [ ] Update feature list
+- [ ] Add migration guide links
 
-## Issues to Remove/Close
+## Success Metrics
 
-- [ ] Review and close resolved issue files:
-  - [x] 411.txt (already removed - convertPathData stub implementation)
-  - [ ] Verify other issue files are still relevant
+### Plugin Parity
+- [ ] Achieve 54/54 plugins implemented (currently 49/54)
+- [x] Fix 1 disabled plugin (removeAttributesBySelector) ✅ COMPLETED
+- [ ] Implement 5 remaining missing plugins
+
+### Test Compatibility
+- [ ] Achieve 100% SVGO test suite passing (currently 93.75%)
+- [ ] Port all remaining test fixtures
+- [ ] Verify identical optimization results
+
+### Performance
+- [ ] Maintain 2-3x performance advantage over SVGO
+- [ ] Ensure new plugins don't degrade performance
+- [ ] Complete benchmark suite
+
+### API Compatibility
+- [ ] Maintain 100% CLI drop-in replacement capability
+- [ ] Support all SVGO configuration options
+- [ ] Match parameter names and behaviors exactly

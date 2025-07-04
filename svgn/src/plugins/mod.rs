@@ -30,7 +30,7 @@ pub mod remove_title;
 pub mod remove_unknowns_and_defaults;
 pub mod remove_xml_proc_inst;
 pub mod sort_attrs;
-// pub mod remove_attributes_by_selector; // TODO: Fix CSS selector parsing
+pub mod remove_attributes_by_selector;
 pub mod collapse_groups;
 pub mod convert_ellipse_to_circle;
 pub mod convert_one_stop_gradients;
@@ -78,7 +78,7 @@ pub use remove_title::RemoveTitlePlugin;
 pub use remove_unknowns_and_defaults::RemoveUnknownsAndDefaultsPlugin;
 pub use remove_xml_proc_inst::RemoveXMLProcInstPlugin;
 pub use sort_attrs::SortAttrsPlugin;
-// pub use remove_attributes_by_selector::RemoveAttributesBySelectorPlugin; // TODO: Fix CSS selector parsing
+pub use remove_attributes_by_selector::RemoveAttributesBySelectorPlugin;
 pub use collapse_groups::CollapseGroupsPlugin;
 pub use convert_ellipse_to_circle::ConvertEllipseToCirclePlugin;
 pub use convert_one_stop_gradients::ConvertOneStopGradientsPlugin;
