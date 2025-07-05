@@ -84,7 +84,7 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
   - **Size Optimization:** Calculate byte savings from attribute consolidation
 - **Implementation Steps:**
   1. Analyze sibling elements for common inheritable attributes
-  2. Identify attributes eligible for group inheritance (fill, stroke, transform, etc.)
+  2. Identify attributes eligible for group inheritance (fill, stroke, etc.)
   3. Calculate optimization benefit (group wrapper cost vs. attribute duplication savings)
   4. Create `<g>` wrapper with common attributes when beneficial
   5. Remove consolidated attributes from child elements
@@ -161,7 +161,7 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - **Mathematical Operations:** `nalgebra` infrastructure from `convertTransform` completion
 - **Path Processing:** Robust path parsing and manipulation from `convertPathData`
 - **DOM Manipulation:** Mature element traversal and attribute handling
-- **Plugin Architecture:** Well-tested plugin system with 50 working plugins
+- **Plugin Architecture:** Well-tested plugin system with 50 working implementations
 
 ### ✅ **Shared Infrastructure Benefits:**
 - **inlineStyles + CSS plugins:** Can leverage existing CSS processing in `convert_style_to_attrs` and `minify_styles`
@@ -196,282 +196,169 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 ## 3. Infrastructure Improvements (Priority: MEDIUM)
 
 ### 3.1 Parser Enhancements (1 week)
-- **XML Entity Expansion (Issue #201):** Parse and expand custom entities
-- **Whitespace Preservation (Issue #202):** Context-aware whitespace in text elements
-- **Error Reporting (Issue #203):** Line/column tracking and context snippets
-- **Namespace Consistency (Issue #204):** Unify namespace handling
-- **Metadata Usage (Issue #205):** Consistent DocumentMetadata usage
+
+- [ ] Fix XML entity expansion (Issue #201)
+- [ ] Parse `<!ENTITY>` declarations in DOCTYPE
+- [ ] Build entity table during parsing
+- [ ] Expand `&entity;` references throughout document
+- [ ] Update parser in `svgn/src/parser.rs`
+- [ ] Fix selective whitespace preservation (Issue #202)
+- [ ] Preserve whitespace in `<text>`, `<tspan>`, `<pre>`, `<script>`, `<style>`
+- [ ] Add context-aware whitespace handling
+- [ ] Fix enhanced error reporting (Issue #203)
+- [ ] Track line/column positions during parsing
+- [ ] Provide context snippets in error messages
+- [ ] Fix namespace handling consistency (Issue #204)
+- [ ] Unify namespace handling in single location
+- [ ] Remove redundancy between `namespaces` and `attributes` maps
+- [ ] Fix document metadata usage (Issue #205)
+- [ ] Ensure `path`, `encoding`, `version` are properly populated
+- [ ] Use metadata throughout optimization pipeline
 
 ### 3.2 Stringifier Enhancements (0.5 weeks)
-- **XML Declaration (Issue #206):** Output XML declarations
-- **DOCTYPE Preservation (Issue #207):** Store and output DOCTYPE
+
+- [ ] Fix XML declaration support (Issue #206)
+- [ ] Add XML declaration output based on DocumentMetadata
+- [ ] Update stringifier in `svgn/src/stringifier.rs`
+- [ ] Fix DOCTYPE preservation (Issue #207)
+- [ ] Store DOCTYPE declarations during parsing
+- [ ] Output DOCTYPE declarations with entities
+- [ ] Handle public/system identifiers
 
 ### 3.3 Architecture Improvements (1 week)
-- **Visitor Pattern (Issue #213):** Implement enter/exit methods
-- **Preset System (Issue #215):** Implement preset-default concept
-- **Dynamic Loading (Issue #216):** Runtime plugin loading
+
+- [ ] Implement visitor pattern (Issue #213)
+- [ ] Create Visitor trait with enter/exit methods
+- [ ] Support for different node types
+- [ ] Enable fine-grained traversal control
+- [ ] Update plugin system architecture
+- [ ] Implement preset system (Issue #215)
+- [ ] Create Preset trait
+- [ ] Implement preset-default
+- [ ] Support preset inheritance
+- [ ] Allow custom presets
+- [ ] Add dynamic plugin loading support (Issue #216)
+- [ ] Plugin discovery mechanism
+- [ ] Runtime loading API
+- [ ] External plugin interface
 
 ### 3.4 Plugin-Specific Fixes (0.5 weeks)
-- **cleanupEnableBackground (Issue #225):** Parse from style attributes
-- **cleanupIds URL Encoding (Issue #227):** Match SVGO's behavior exactly
-- **cleanupIds Optimization (Issue #228):** Skip for defs-only SVGs
 
-## 4. Default Preset Alignment (Priority: MEDIUM)
+- [ ] Fix cleanupEnableBackground style handling (Issue #225)
+- [ ] Parse enable-background from style attributes
+- [ ] Merge logic with attribute handling
+- [ ] Fix cleanupIds URL encoding (Issue #227)
+- [x] **cleanupIds Optimization (Issue #228):** Skip for defs-only SVGs
+- [x] Detect SVGs containing only defs
+
+## Phase 4: Default Preset Alignment (Week 5)
 
 ### 4.1 Update Default Configuration
-Current SVGN preset: 21 plugins
-Target SVGO preset: 35 plugins
 
-**Add to default preset:**
-- `removeDeprecatedAttrs`
-- `mergeStyles` 
-- `cleanupNumericValues`
-- `removeNonInheritableGroupAttrs`
-- `cleanupEnableBackground`
-- `removeHiddenElems`
-- `convertShapeToPath`
-- `convertEllipseToCircle`
-- `sortDefsChildren`
-- Plus the 4 missing plugins when implemented
+- [ ] Add missing plugins to default preset configuration
+- [ ] Add `removeDeprecatedAttrs`
+- [ ] Add `mergeStyles`
+- [ ] Add `cleanupNumericValues`
+- [ ] Add `removeNonInheritableGroupAttrs`
+- [ ] Add `cleanupEnableBackground`
+- [ ] Add `removeHiddenElems`
+- [ ] Add `convertShapeToPath`
+- [ ] Add `convertEllipseToCircle`
+- [ ] Add `sortDefsChildren`
+- [ ] Add the 6 missing plugins when implemented
+- [ ] Update plugin registry order to match SVGO preset order
+- [ ] Test default preset compatibility
 
-## 5. Code Quality & Testing (Priority: LOW)
+## Phase 5: Quality & Testing (Weeks 6-8)
 
 ### 5.1 Code Quality (0.5 weeks)
-- Fix 27 Clippy warnings
-- Implement missing Default traits
-- Fix regex with backreference in prefix_ids.rs
+
+- [ ] Fix all Clippy warnings (27 warnings)
+- [ ] Fix collapsible if statements (2)
+- [ ] Fix needless borrows (2)
+- [ ] Replace manual clamp with clamp function (1)
+- [ ] Add #[derive(Default)] for 3 structs
+- [ ] Implement Default for 17 structs with new()
+- [ ] Fix recursive parameter warnings (3)
+- [ ] Fix length comparison (1)
+- [ ] Fix collapsible match (1)
+- [ ] Remove needless return (1)
+- [ ] Fix invalid regex with backreference in prefix_ids.rs
+- [ ] Fix minor formatting issues in benches/optimization.rs
 
 ### 5.2 Testing (1 week)
-- Port remaining SVGO test fixtures
-- Achieve 100% SVGO test compatibility
-- Add fuzz testing for parser
+
+- [ ] Port remaining SVGO test fixtures
+- [ ] Port all missing plugin test files from `/ref/svgo/test/plugins/`
+- [ ] Implement Rust test cases for new plugins
+- [ ] Add parameterized tests for plugin configurations
+- [ ] Achieve 100% SVGO test compatibility
+- [ ] Fix any output differences
+- [ ] Ensure identical optimization results
+- [ ] Target 100% test pass rate (currently 93.75%)
+- [ ] Add fuzz testing for parser
+- [ ] Create fuzzing harness
+- [ ] Test parser robustness
+- [ ] Add property-based tests
 
 ### 5.3 CLI Completion (0.5 weeks)
-- Add support for .js config files (currently only .json and .toml)
-- Implement base64 encoding for datauri output (currently placeholder)
+
+- [ ] Add support for .js config files (currently only .json and .toml)
+- [ ] Implement base64 encoding for datauri output (currently placeholder)
 
 ### 5.4 Build & Distribution (1 week)
-- Fix macOS universal binary build (Issue #412)
-- Complete cross-platform packaging
-- Implement git tag-based versioning
 
-## 6. Implementation Timeline (5-7 weeks)
+- [ ] Complete cross-platform build scripts (Issue #410)
+- [ ] Fix macOS universal binary build (Issue #412)
+- [ ] Create Linux packaging (.deb, .rpm, .AppImage)
+- [ ] Create Windows installer (.msi)
+- [ ] Update GitHub Actions workflow
+- [ ] Implement version management
+- [ ] Git tag-based versioning
+- [ ] Automatic version injection at build time
+- [ ] Update set-cargo-version.sh script
 
-### Weeks 1-3: Critical Default Preset Plugins (Phase 1A)
-- **Week 1:** `inlineStyles` implementation (15 days total effort)
-  - Days 1-2: Foundation setup and parameter handling
-  - Days 3-5: CSS processing engine with lightningcss
-  - Days 6-8: SVG DOM integration and selector matching
-  - Days 9-10: CSS-to-SVG conversion logic
-  - Days 11-12: Cleanup and optimization features
-  - Days 13-15: Testing and SVGO compatibility validation
+### 5.5 Documentation Updates (0.5 weeks)
 
-- **Week 2:** `mergePaths` implementation (5 days effort)
-  - Leverage existing path parsing from `convertPathData`
-  - Focus on grouping algorithm and concatenation logic
+- [ ] Update docs/plugins.md
+- [ ] Add new plugin documentation
+- [ ] Update implementation status
+- [ ] Add parameter documentation
+- [ ] Update docs/comparison.md
+- [ ] Update plugin count (54/54)
+- [ ] Update compatibility metrics
+- [ ] Document performance characteristics
+- [ ] Update README.md
+- [ ] Update implementation status
+- [ ] Update feature list
+- [ ] Add migration guide links
 
-- **Week 3:** Attribute movement plugins (5 days combined effort)
-  - `moveElemsAttrsToGroup` (2.5 days) + `moveGroupAttrsToElems` (2.5 days)
-  - Shared inheritance analysis infrastructure
+## Success Metrics & Definition of Done
 
-### Weeks 4-5: Standalone Plugins + Integration (Phase 1B)  
-- **Week 4:** `applyTransforms` (5 days) + `reusePaths` (5 days)
-  - `applyTransforms` leverages existing `nalgebra` infrastructure
-  - `reusePaths` builds on existing `<defs>` handling
-- **Week 5:** Default preset alignment, testing, and integration
+### **Plugin Parity (Primary Goal)**
+- [ ] Achieve 54/54 plugins implemented (currently 51/54 - 94.4% complete)
+- [x] Fix 1 disabled plugin (removeAttributesBySelector) ✅ COMPLETED
+- [x] Implement convertTransform plugin ✅ COMPLETED (2025-07-04)
+- [x] Implement inlineStyles plugin MVP ✅ COMPLETED (2025-07-05)
+- [ ] Implement 3 remaining missing plugins:
+  - [ ] **mergePaths** - Path concatenation with style matching (NEXT PRIORITY)
+  - [ ] **moveElemsAttrsToGroup** - Attribute inheritance optimization
+  - [ ] **moveGroupAttrsToElems** - Reverse attribute distribution
 
-### Weeks 6-7: Polish and Release Preparation
-- **Week 6:** Code quality, documentation, and final testing
-- **Week 7:** Release preparation and community feedback integration
+### **Quality Gates**
+- [ ] **100% SVGO Output Compatibility:** Bit-for-bit identical output for test cases
+- [ ] **Performance Benchmark:** Maintain 2-3x speed advantage over SVGO
+- [ ] **Test Coverage:** 367+ tests passing with new plugin integration
+- [ ] **CLI Compatibility:** All SVGO parameters and options supported
 
-### Optional Extension: Infrastructure Improvements (If Time Permits)
-- **Additional weeks:** Parser/stringifier enhancements, architecture improvements
-- **Focus:** Performance optimization, code quality, advanced features
+### **Acceptance Criteria**
+- [ ] **Default Preset Complete:** All 35 SVGO default preset plugins implemented
+- [ ] **Parameter Compatibility:** All plugin parameters match SVGO specifications
+- [ ] **Edge Case Handling:** Complex CSS, nested transforms, and mixed content scenarios
+- [ ] **Documentation Complete:** Plugin documentation and usage examples
 
-## 7. Success Metrics
-
-### Plugin Parity
-- **Target:** 54/54 plugins (100%)
-- **Current:** 50/54 plugins (93%)
-- **Remaining:** 4 plugins = 4 tasks
-
-### Test Compatibility
-- **Target:** 100% SVGO test suite passing
-- **Current:** 93.75% parity
-- **Action:** Port remaining test fixtures
-
-### Performance
-- **Target:** Maintain 2-3x speed advantage
-- **Current:** Already achieved
-- **Action:** Ensure new plugins don't degrade performance
-
-### API Compatibility  
-- **Target:** 100% drop-in replacement
-- **Current:** ✅ CLI compatibility achieved
-- **Action:** Maintain during plugin additions
-
-## 8. Risk Assessment & Mitigation
-
-### **High-Risk Areas**
-
-#### **CSS Processing Complexity (inlineStyles)**
-- **Risk:** CSS specificity calculation and cascade resolution edge cases
-- **Mitigation:** 
-  - Start with basic CSS rule matching, iterate to full specificity
-  - Extensive testing against SVGO's CSS test cases
-  - Fallback to regex-based approach for complex selectors if needed
-- **Contingency:** Implement 80% functionality first, polish edge cases later
-
-#### **lightningcss Alpha Dependency**  
-- **Risk:** Breaking changes in alpha version during development
-- **Mitigation:**
-  - Pin to specific version in Cargo.lock
-  - Have fallback plan using direct cssparser + selectors
-  - Monitor upstream changes and adapt quickly
-
-#### **Plugin Interaction Complexity**
-- **Risk:** Plugins may interfere with each other's optimizations
-- **Mitigation:**
-  - Careful analysis of plugin execution order in default preset
-  - Comprehensive integration testing
-  - Implement plugin isolation where necessary
-
-### **Medium-Risk Areas**
-
-#### **Performance Regression**
-- **Risk:** New plugins could slow down optimization pipeline
-- **Mitigation:**
-  - Continuous benchmarking during development
-  - Profile and optimize critical paths
-  - Maintain performance parity with current implementation
-
-#### **SVGO Output Compatibility**
-- **Risk:** Subtle differences in optimization output vs. SVGO
-- **Mitigation:**
-  - Bit-for-bit output comparison in test suite
-  - Extensive edge case testing
-  - Community feedback and validation
-
-### **Timeline Risks**
-- **Underestimation:** Complex CSS edge cases may require more time
-  - **Mitigation:** Built-in buffer time, incremental delivery approach
-- **Scope Creep:** Temptation to add extra features during implementation
-  - **Mitigation:** Strict focus on SVGO parity first, enhancements later
-
-## 9. Conclusion
-
-SVGN is extremely close to 100% SVGO parity with only 4 remaining tasks:
-- 4 missing plugins (all critical for default preset)
-- All existing 50 plugins now functional and tested
-- Build system stable and all 377 tests passing
-
-The path is clear and well-defined. With focused execution on the critical default preset plugins first, SVGN will achieve complete SVGO compatibility while maintaining its significant performance advantages.
-
-**Next Action:** Continue with `inlineStyles` implementation - complete SVG DOM integration phase.
-
-**Latest Update (2025-07-05):** 
-- Build system fully stabilized with 377/377 tests passing
-- `convertTransform` plugin completed successfully with full mathematical foundation using nalgebra
-- `inlineStyles` plugin MVP completed and functional with real SVG processing
-- **Current Status: 51/54 plugins (94.4% complete)**
-- CI/CD issues identified requiring immediate fixes
-
-## 10. Critical CI/CD Fixes Required (Priority: IMMEDIATE)
-
-### Issue #506 Analysis: GitHub Actions Failures
-
-The CI/CD pipeline has multiple failing components that need immediate attention:
-
-#### 10.1 Selector Trait Implementation Fix (HIGH PRIORITY)
-**Problem:** selectors crate API mismatch causing compilation failures
-**Location:** `svgn/src/plugins/remove_attributes_by_selector.rs:503`
-
-**Required Change:**
-```rust
-// CHANGE FROM:
-impl<'i> selectors::Parser<'i> for DummyParser {
-    type Impl = SelectorImpl;
-    type Error = selectors::parser::SelectorParseErrorKind<'i>;
-}
-
-// CHANGE TO:
-impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
-    type Impl = SelectorImpl;
-    type Error = selectors::parser::SelectorParseErrorKind<'i>;
-}
-```
-
-#### 10.2 GitHub Actions Permissions Fix (HIGH PRIORITY)
-**Problem:** "Resource not accessible by integration" error in security audit
-**Location:** `.github/workflows/rust.yml`
-
-**Required Changes:**
-1. Add permissions block at top of workflow file:
-```yaml
-name: Rust
-
-permissions:
-  contents: read
-  security-events: write
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-```
-
-#### 10.3 GitHub Actions Deprecated Action Fix (MEDIUM PRIORITY)
-**Problem:** actions/upload-artifact@v3 deprecated since April 2024
-**Location:** `.github/workflows/release.yml:154`
-
-**Required Change:**
-```yaml
-# CHANGE FROM:
-- name: Upload artifacts
-  uses: actions/upload-artifact@v3
-
-# CHANGE TO:
-- name: Upload artifacts
-  uses: actions/upload-artifact@v4
-```
-
-### 10.4 Implementation Timeline for CI/CD Fixes
-**Duration:** 0.5 days (immediate priority)
-**Tasks:**
-1. Fix selector trait implementation (15 minutes)
-2. Update GitHub Actions permissions (10 minutes) 
-3. Upgrade deprecated action versions (10 minutes)
-4. Test CI/CD pipeline (remainder of time)
-5. Verify all workflows pass
-
-### 10.5 Acceptance Criteria
-- ✅ All GitHub Actions workflows passing
-- ✅ Security audit completing successfully
-- ✅ Artifact uploads working with v4 actions
-- ✅ No compilation errors in CI environment
-
-## 10. Implementation Wisdom & Lessons Learned
-
-### **Strategic Insights from Analysis:**
-
-🎯 **Progressive Implementation Philosophy:** Rather than attempting perfect CSS specification compliance immediately, implement core functionality first (80% of use cases), then iterate to handle edge cases. This reduces risk and provides early validation.
-
-🔧 **Leverage Existing Infrastructure:** SVGN's strength lies in its robust foundation - every new plugin should maximize reuse of existing parsing, DOM manipulation, and optimization infrastructure.
-
-⚡ **Performance-First Mindset:** Establish performance baselines before implementing new plugins. SVGN's 2-3x speed advantage is a key differentiator that must be preserved.
-
-🧪 **Test-Driven Validation:** Use SVGO's extensive test suite as the source of truth. Bit-for-bit output compatibility is the ultimate validation of correct implementation.
-
-### **Key Implementation Principles:**
-
-1. **Start Simple, Iterate:** Begin with minimal viable implementations, then add sophistication
-2. **Fail Fast:** Identify complex edge cases early and plan fallback strategies  
-3. **Measure Everything:** Continuous benchmarking and compatibility validation
-4. **Community-Centric:** Beta testing and feedback integration from the start
-
-### **Success Indicators:**
-- ✅ **Early Wins:** Simple plugins working correctly builds confidence
-- ✅ **Performance Maintained:** No regression in optimization speed
-- ✅ **Community Validation:** Positive feedback from beta testing
-- ✅ **SVGO Parity:** Identical output for all test cases
+### **Release Readiness**
+- [ ] **Code Quality:** All clippy warnings resolved, comprehensive error handling
+- [ ] **Integration Testing:** Multi-plugin interaction validation
+- [ ] **Community Validation:** Beta testing feedback incorporated
+- [ ] **Version Management:** Git tags and release automation configured

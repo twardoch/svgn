@@ -17,6 +17,7 @@ use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use lightningcss::{
     rules::CssRule,
     stylesheet::{ParserOptions, StyleSheet},
+    traits::ToCss,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -28,7 +29,7 @@ use selectors::parser::{Parser as SelectorParser, SelectorList};
 mod inline_styles_selector;
 mod inline_styles_converter;
 
-use inline_styles_selector::{SvgSelectorImpl, element_matches_selector, walk_element_tree_with_parent};
+use inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper, element_matches_selector, walk_element_tree_with_parent};
 use inline_styles_converter::convert_css_property;
 
 /// Parameters for the inline styles plugin
@@ -122,14 +123,13 @@ fn process_all_style_elements(
     let mut match_counts = HashMap::new();
     if params.only_matched_once {
         for rule in &all_css_rules {
-            let count = if let Some(ref selector_list) = rule.parsed_selectors {
-                count_matching_elements_with_selectors(element, selector_list)
-            } else {
-                count_matching_elements(element, &rule.selector)
-            };
+            let count = count_matching_elements_for_rule(element, rule);
             match_counts.insert(rule.selector.clone(), count);
         }
     }
+    
+    // Track which selectors were used for cleanup
+    let mut used_selectors = HashSet::new();
     
     // Apply rules to matching elements (in specificity order)
     for rule in &all_css_rules {
@@ -142,7 +142,7 @@ fn process_all_style_elements(
             }
         }
         
-        apply_css_rule(element, rule, params)?;
+        apply_css_rule_and_track(element, rule, params, &mut used_selectors)?;
     }
     
     // Clean up if configured
@@ -196,37 +196,46 @@ fn collect_css_rules(
     Ok(())
 }
 
-/// Count how many elements match a selector string (fallback)
-fn count_matching_elements(element: &Element, selector: &str) -> usize {
+/// Count how many elements match a CSS rule
+fn count_matching_elements_for_rule(element: &Element, rule: &CssRuleData) -> usize {
     let mut count = 0;
-    count_matching_elements_impl(element, selector, &mut count);
+    
+    if let Some(ref selector_list) = rule.parsed_selectors {
+        // Use advanced selector matching
+        walk_element_tree_with_parent(element, None, |elem, parent, index| {
+            let wrapper = SvgElementWrapper::new(elem, parent, index);
+            for selector in selector_list.0.iter() {
+                let mut context = selectors::matching::MatchingContext::new(
+                    selectors::matching::MatchingMode::Normal,
+                    None,
+                    None,
+                    selectors::matching::QuirksMode::NoQuirks,
+                );
+                if selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context) {
+                    count += 1;
+                    break; // Don't count same element multiple times
+                }
+            }
+        });
+    } else {
+        // Fallback to simple matching
+        count_matching_elements_simple(element, &rule.selector, &mut count);
+    }
+    
     count
 }
 
-fn count_matching_elements_impl(element: &Element, selector: &str, count: &mut usize) {
+/// Simple element counting fallback
+fn count_matching_elements_simple(element: &Element, selector: &str, count: &mut usize) {
     if element_matches_selector_simple(element, selector) {
         *count += 1;
     }
     
     for child in &element.children {
         if let Node::Element(child_elem) = child {
-            count_matching_elements_impl(child_elem, selector, count);
+            count_matching_elements_simple(child_elem, selector, count);
         }
     }
-}
-
-/// Count how many elements match a parsed selector list
-fn count_matching_elements_with_selectors(element: &Element, selectors: &SelectorList<SvgSelectorImpl>) -> usize {
-    let mut count = 0;
-    walk_element_tree_with_parent(element, None, |elem, _parent, _index| {
-        for selector in selectors.0.iter() {
-            if element_matches_selector(elem, selector) {
-                count += 1;
-                break; // Don't count same element multiple times
-            }
-        }
-    });
-    count
 }
 
 /// Apply a CSS rule to all matching elements
@@ -245,10 +254,33 @@ fn apply_css_rule_and_track(
     _params: &InlineStylesParams,
     used_selectors: &mut HashSet<String>,
 ) -> PluginResult<()> {
+    apply_css_rule_and_track_impl(element, rule, _params, used_selectors, None, 0)
+}
+
+/// Implementation of CSS rule application with parent tracking
+fn apply_css_rule_and_track_impl(
+    element: &mut Element,
+    rule: &CssRuleData,
+    _params: &InlineStylesParams,
+    used_selectors: &mut HashSet<String>,
+    parent: Option<&Element>,
+    index: usize,
+) -> PluginResult<()> {
     // Check if this element matches the selector
     let matches = if let Some(ref selector_list) = rule.parsed_selectors {
-        selector_list.0.iter().any(|sel| element_matches_selector(element, sel))
+        // Use advanced selector matching
+        let wrapper = SvgElementWrapper::new(element, parent, index);
+        selector_list.0.iter().any(|selector| {
+            let mut context = selectors::matching::MatchingContext::new(
+                selectors::matching::MatchingMode::Normal,
+                None,
+                None,
+                selectors::matching::QuirksMode::NoQuirks,
+            );
+            selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context)
+        })
     } else {
+        // Fallback to simple matching
         element_matches_selector_simple(element, &rule.selector)
     };
     
@@ -258,7 +290,7 @@ fn apply_css_rule_and_track(
         // Track which selectors were used
         used_selectors.insert(rule.selector.clone());
         
-        // Track if we used a class or ID selector
+        // Track if we used a class or ID selector for cleanup
         if rule.selector.starts_with('.') {
             let class_name = &rule.selector[1..];
             element.attributes.insert("data-used-class".to_string(), class_name.to_string());
@@ -268,10 +300,12 @@ fn apply_css_rule_and_track(
         }
     }
     
-    // Process children
+    // Process children with proper parent tracking
+    let mut child_index = 0;
     for child in &mut element.children {
         if let Node::Element(child_elem) = child {
-            apply_css_rule_and_track(child_elem, rule, _params, used_selectors)?;
+            apply_css_rule_and_track_impl(child_elem, rule, _params, used_selectors, Some(element), child_index)?;
+            child_index += 1;
         }
     }
     
@@ -428,7 +462,7 @@ fn extract_css_rules(stylesheet: &StyleSheet) -> Vec<CssRuleData> {
                 // Extract selectors
                 for sel in &style_rule.selectors.0 {
                     if let Some(selector_str) = extract_selector_string(sel) {
-                        // Try to parse the selector
+                        // Try to parse the selector with advanced parser
                         let parsed_selectors = parse_selector(&selector_str);
                         
                         // Calculate specificity
@@ -438,11 +472,11 @@ fn extract_css_rules(stylesheet: &StyleSheet) -> Vec<CssRuleData> {
                             calculate_selector_specificity(&selector_str)
                         };
                         
-                        // Extract declarations
+                        // Extract declarations using the converter
                         let mut declarations = Vec::new();
                         for property in &style_rule.declarations.declarations {
-                            // Use the new converter
                             if let Some((prop_name, prop_value)) = convert_css_property(property) {
+                                // Only include SVG presentation attributes
                                 if PRESENTATION_ATTRS.contains(prop_name.as_str()) {
                                     declarations.push((prop_name, prop_value));
                                 }
@@ -460,11 +494,14 @@ fn extract_css_rules(stylesheet: &StyleSheet) -> Vec<CssRuleData> {
                     }
                 }
             }
-            CssRule::Media(_media_rule) => {
-                // TODO: Handle media queries when useMqs is true
+            CssRule::Media(media_rule) => {
+                // TODO: Handle media queries when useMqs parameter is true
+                // For now, skip media queries to maintain compatibility
+                // In future versions, we can recursively process media rules
+                // when params.use_mqs is enabled
             }
             _ => {
-                // Ignore other rule types for now
+                // Ignore other rule types (import, namespace, etc.)
             }
         }
     }
@@ -474,20 +511,28 @@ fn extract_css_rules(stylesheet: &StyleSheet) -> Vec<CssRuleData> {
 
 /// Extract a selector string from lightningcss selector
 fn extract_selector_string(selector: &lightningcss::selector::Selector) -> Option<String> {
-    // Convert selector to string representation
-    // For now, use debug format and clean it up
-    let debug_str = format!("{:?}", selector);
+    // Convert selector to string using lightningcss's ToCss trait
+    use lightningcss::printer::{Printer, PrinterOptions};
     
-    // Try to extract the selector string from the debug format
-    // Format is: Selector(SELECTOR, specificity = ...)
-    if debug_str.starts_with("Selector(") {
-        if let Some(comma_pos) = debug_str.find(", specificity") {
-            let selector_part = &debug_str[9..comma_pos]; // Skip "Selector("
-            return Some(selector_part.to_string());
+    let mut dest = String::new();
+    let mut printer = Printer::new(&mut dest, PrinterOptions::default());
+    
+    if selector.to_css(&mut printer).is_ok() {
+        Some(dest)
+    } else {
+        // Fallback to debug format if ToCss fails
+        let debug_str = format!("{:?}", selector);
+        
+        // Try to extract the selector string from the debug format
+        if debug_str.starts_with("Selector(") {
+            if let Some(comma_pos) = debug_str.find(", specificity") {
+                let selector_part = &debug_str[9..comma_pos]; // Skip "Selector("
+                return Some(selector_part.to_string());
+            }
         }
+        
+        None
     }
-    
-    None
 }
 
 
