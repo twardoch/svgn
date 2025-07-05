@@ -7,10 +7,10 @@
 //! rule violations when implementing external traits.
 
 use crate::ast::Element;
+use precomputed_hash::PrecomputedHash;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::{Selector, SelectorImpl};
 use selectors::{Element as SelectorElement, OpaqueElement};
-// Use String/&str types directly since &'a T implements PrecomputedHash
 use std::fmt;
 use std::borrow::Borrow;
 
@@ -42,12 +42,32 @@ impl cssparser::ToCss for SvgAttrValue {
     }
 }
 
+impl PrecomputedHash for SvgAttrValue {
+    fn precomputed_hash(&self) -> u32 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        hasher.finish() as u32
+    }
+}
+
 impl cssparser::ToCss for SvgIdentifier {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
         W: fmt::Write,
     {
         dest.write_str(&self.0)
+    }
+}
+
+impl PrecomputedHash for SvgIdentifier {
+    fn precomputed_hash(&self) -> u32 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        hasher.finish() as u32
     }
 }
 
@@ -60,6 +80,16 @@ impl cssparser::ToCss for SvgLocalName {
     }
 }
 
+impl PrecomputedHash for SvgLocalName {
+    fn precomputed_hash(&self) -> u32 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        hasher.finish() as u32
+    }
+}
+
 impl cssparser::ToCss for SvgNamespacePrefix {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
@@ -69,8 +99,15 @@ impl cssparser::ToCss for SvgNamespacePrefix {
     }
 }
 
-// Note: PrecomputedHash trait implementations removed
-// Using String directly instead of wrapper types for SelectorImpl
+impl PrecomputedHash for SvgNamespacePrefix {
+    fn precomputed_hash(&self) -> u32 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        hasher.finish() as u32
+    }
+}
 
 // Implement Borrow<str> for types that need it
 impl Borrow<str> for SvgLocalName {
