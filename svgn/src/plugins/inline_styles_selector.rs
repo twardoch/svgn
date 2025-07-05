@@ -456,11 +456,11 @@ impl<'a> SelectorElement for SvgElement<'a> {
         None
     }
 
-    fn is_part(&self, _name: &String) -> bool {
+    fn is_part(&self, _name: &SvgIdentifier) -> bool {
         false
     }
 
-    fn has_custom_state(&self, _name: &String) -> bool {
+    fn has_custom_state(&self, _name: &SvgIdentifier) -> bool {
         false
     }
 

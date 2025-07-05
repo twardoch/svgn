@@ -36,7 +36,27 @@ Generating code snapshot in ./llms.txt ...
 │   - .yml (3,068 tokens)                              │
 ╰──────────────────────────────────────────────────────╯
 Building the svgn project...
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `base64`
+   --> svgn/src/optimizer.rs:227:9
+    |
+227 |     use base64::{engine::general_purpose::STANDARD, Engine as _};
+    |         ^^^^^^ use of unresolved module or unlinked crate `base64`
+    |
+    = help: if you wanted to use a crate named `base64`, use `cargo add base64` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `base64`
+   --> svgn/src/optimizer.rs:227:9
+    |
+227 |     use base64::{engine::general_purpose::STANDARD, Engine as _};
+    |         ^^^^^^ use of unresolved module or unlinked crate `base64`
+    |
+    = help: if you wanted to use a crate named `base64`, use `cargo add base64` to add it to your `Cargo.toml`
+
 warning: unused import: `MatchingContext`
    --> svgn/src/plugins/inline_styles_selector.rs:502:9
     |
@@ -44,76 +64,6 @@ warning: unused import: `MatchingContext`
     |         ^^^^^^^^^^^^^^^
     |
     = note: `#[warn(unused_imports)]` on by default
-
-error[E0053]: method `has_id` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:439:26
-    |
-439 |     fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
-    |                          ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier, CaseSensitivity) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String, CaseSensitivity) -> _`
-help: change the parameter type to match the trait
-    |
-439 -     fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
-439 +     fn has_id(&self, id: &SvgIdentifier, _case_sensitivity: CaseSensitivity) -> bool {
-    |
-
-error[E0053]: method `has_class` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:446:31
-    |
-446 |     fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
-    |                               ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier, CaseSensitivity) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String, CaseSensitivity) -> _`
-help: change the parameter type to match the trait
-    |
-446 -     fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
-446 +     fn has_class(&self, name: &SvgIdentifier, _case_sensitivity: CaseSensitivity) -> bool {
-    |
-
-error[E0053]: method `imported_part` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:455:36
-    |
-455 |     fn imported_part(&self, _name: &String) -> Option<String> {
-    |                                    ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier) -> std::option::Option<SvgIdentifier>`
-               found signature `fn(&SvgElement<'_>, &std::string::String) -> std::option::Option<std::string::String>`
-help: change the parameter type to match the trait
-    |
-455 -     fn imported_part(&self, _name: &String) -> Option<String> {
-455 +     fn imported_part(&self, _name: &SvgIdentifier) -> Option<String> {
-    |
-
-error[E0053]: method `is_part` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:459:30
-    |
-459 |     fn is_part(&self, _name: &String) -> bool {
-    |                              ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String) -> _`
-help: change the parameter type to match the trait
-    |
-459 -     fn is_part(&self, _name: &String) -> bool {
-459 +     fn is_part(&self, _name: &SvgIdentifier) -> bool {
-    |
-
-error[E0053]: method `has_custom_state` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:463:39
-    |
-463 |     fn has_custom_state(&self, _name: &String) -> bool {
-    |                                       ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String) -> _`
-help: change the parameter type to match the trait
-    |
-463 -     fn has_custom_state(&self, _name: &String) -> bool {
-463 +     fn has_custom_state(&self, _name: &SvgIdentifier) -> bool {
-    |
 
 error[E0599]: no method named `unescape` found for reference `&BytesText<'_>` in the current scope
    --> svgn/src/parser.rs:113:34
@@ -214,7 +164,7 @@ warning: unused variable: `selector_str`
 587 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
     |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_selector_str`
 
-Some errors have detailed explanations: E0053, E0277, E0593, E0599.
-For more information about an error, try `rustc --explain E0053`.
+Some errors have detailed explanations: E0277, E0432, E0433, E0593, E0599.
+For more information about an error, try `rustc --explain E0277`.
 warning: `svgn` (lib) generated 3 warnings
-error: could not compile `svgn` (lib) due to 14 previous errors; 3 warnings emitted
+error: could not compile `svgn` (lib) due to 11 previous errors; 3 warnings emitted
