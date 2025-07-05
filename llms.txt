@@ -298,6 +298,9 @@ Project Structure:
 │   │       ├── 📁 svgn-0xr22q2li5f6e
 │   │       │   └── 📁 s-h8wz79slo7-18ndj1d-working
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-10wch8w7zi0o3
+│   │       │   └── 📁 s-h8xo7pyhek-104b6x8-working
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-13fgx0qv2imo9
 │   │       │   └── 📁 s-h8vxb2xsm4-0vekycq-cekbhqoqob44304h74ca0p6yc
 │   │       │       └── ... (depth limit reached)
@@ -346,15 +349,16 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy5yac4w-0rd2u1o-7pdsdub5b0b9bejhzkssh35gb
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2tns3rwtx94yj
-│   │       │   ├── 📁 s-h8xjyaeh9u-14745dj-working
-│   │       │   │   └── ... (depth limit reached)
-│   │       │   └── 📁 s-h8xjyca1ye-0d2z22s-working
+│   │       │   └── 📁 s-h8xmxsmsyf-01nvo1p-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2u97lia1lgp1m
 │   │       │   └── 📁 s-h8vvldook1-17qd51w-4uhzy02cd4qrdun2axf78o8vn
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-34f3amqcxmf28
 │   │       │   └── 📁 s-h8vz5c4113-1vh6154-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-375smsqubg4wl
+│   │       │   └── 📁 s-h8xo7pykax-0lt4lv7-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-381scq06xq25y
 │   │       │   └── 📁 s-h8wlfhoauz-1lb9l0o-7ib9qoxuz4lztht8ygyqf7mam
@@ -368,9 +372,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy13hne6-1cmetxo-9wppxolmwiabhnemwoxyhcvwn
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3hb61y1xvrwcr
-│   │       │   ├── 📁 s-h8xjyaeh9q-02gj4vr-working
-│   │       │   │   └── ... (depth limit reached)
-│   │       │   └── 📁 s-h8xjyca1y8-05hlp2v-working
+│   │       │   └── 📁 s-h8xmxsmsm5-0xbpggn-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3jlqspzqbxclx
 │   │       │   └── 📁 s-h8x148dhtz-1dmextk-8kgp328ex7gnsu7kvz6j36it3
@@ -886,70 +888,66 @@ target/
 Relative File Path: Cargo.toml
 
 ```toml
-# this_file: Cargo.toml
-
 [workspace]
-members = ["svgn"]
-default-members = ["svgn"]
+members = [ "svgn" ]
+default-members = [ "svgn" ]
 resolver = "2"
+
 
 [workspace.package]
 version = "1.2.3"
 edition = "2021"
-authors = ["Adam Twardoch <adam@twardoch.com>"]
+authors = [ "Adam Twardoch <adam@twardoch.com>" ]
 license = "MIT"
 repository = "https://github.com/twardoch/svgn"
 homepage = "https://github.com/twardoch/svgn"
 
+
 [workspace.dependencies]
-# Core dependencies
-clap = { version = "4.4", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
 thiserror = "1.0"
-
-# XML parsing
 quick-xml = "0.31"
 roxmltree = "0.20"
-
-# CSS parsing
-cssparser = "0.31"
+cssparser = "0.33"
 selectors = "0.25"
 lightningcss = "1.0.0-alpha.67"
-
-# Utils
 regex = "1.10"
 indexmap = "2.0"
 base64 = "0.22"
 urlencoding = "2.1"
 once_cell = "1.19.0"
 toml = "0.8"
-
-# Path processing
 lyon = "1.0"
-
-# Matrix operations
 nalgebra = "0.33"
-
-# Optional: SVG utilities
-usvg = { version = "0.42" }
-
-# Dev dependencies
 assert_cmd = "2.0"
 predicates = "3.0"
 tempfile = "3.8"
 criterion = "0.5"
-
-# WASM support
 wasm-bindgen = "0.2"
 js-sys = "0.3"
+
+
+[workspace.dependencies.clap]
+version = "4.4"
+features = [ "derive" ]
+
+
+[workspace.dependencies.serde]
+version = "1.0"
+features = [ "derive" ]
+
+
+[workspace.dependencies.usvg]
+version = "0.42"
+
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+
 ```
 
 Relative File Path: LICENSE
@@ -6558,7 +6556,7 @@ struct CssRuleData {
 struct SvgSelectorImpl {
 }
 
-struct SvgElementWrapper {
+struct SvgElement {
 }
 
 

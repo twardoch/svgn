@@ -17,7 +17,7 @@ Generating code snapshot in ./llms.txt ...
 ╭──────────────────────── Processing Complete ────────────────────────╮
 │ Summary:                                                            │
 │ Files Processed: 107                                                │
-│ Total Tokens: 67,214                                                │
+│ Total Tokens: 67,180                                                │
 │ Output Destination: llms.txt                                        │
 │                                                                     │
 │ Top 3 Files by Tokens:                                              │
@@ -26,7 +26,7 @@ Generating code snapshot in ./llms.txt ...
 │   - svgn/src/plugins/cleanup_list_of_values.rs (3,957 tokens)       │
 │                                                                     │
 │ Top 5 Extensions by Tokens:                                         │
-│   - .rs (51,304 tokens)                                             │
+│   - .rs (51,303 tokens)                                             │
 │   - .sh (6,130 tokens)                                              │
 │   - .yml (2,953 tokens)                                             │
 │   - .bak (2,786 tokens)                                             │
@@ -34,6 +34,20 @@ Generating code snapshot in ./llms.txt ...
 ╰─────────────────────────────────────────────────────────────────────╯
 Building the svgn project...
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
+error[E0432]: unresolved import `crate::plugins::inline_styles_selector::SvgElementWrapper`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:112:63
+    |
+112 | use crate::plugins::inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper};
+    |                                                               ^^^^^^^^^^^^^^^^^ no `SvgElementWrapper` in `plugins::inline_styles_selector`
+
+error[E0432]: unresolved imports `crate::plugins::inline_styles_selector::SvgElementWrapper`, `crate::plugins::inline_styles_selector::walk_element_tree_with_parent`
+  --> svgn/src/plugins/inline_styles.rs:32:63
+   |
+32 | use crate::plugins::inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper, walk_element_tree_with_parent};
+   |                                                               ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `walk_element_tree_with_parent` in `plugins::inline_styles_selector`
+   |                                                               |
+   |                                                               no `SvgElementWrapper` in `plugins::inline_styles_selector`
+
 warning: unused imports: `SelectorImpl` and `Selector`
   --> svgn/src/plugins/remove_attributes_by_selector.rs:12:25
    |
@@ -66,17 +80,23 @@ warning: unused import: `cssparser::ToCss`
 16 | use cssparser::ToCss;
    |     ^^^^^^^^^^^^^^^^
 
+warning: unused import: `MatchingContext`
+   --> svgn/src/plugins/inline_styles_selector.rs:290:31
+    |
+290 |     use selectors::matching::{MatchingContext, MatchingMode, IgnoreNthChildForInvalidation};
+    |                               ^^^^^^^^^^^^^^^
+
 warning: unused import: `SelectorImpl`
   --> svgn/src/plugins/inline_styles.rs:27:39
    |
 27 | use selectors::parser::{SelectorList, SelectorImpl};
    |                                       ^^^^^^^^^^^^
 
-error[E0277]: the trait bound `std::string::String: cssparser::ToCss` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:23:22
+error[E0277]: the trait bound `std::string::String: cssparser::serializer::ToCss` is not satisfied
+   --> svgn/src/plugins/inline_styles_selector.rs:20:22
     |
-23  |     type AttrValue = String;
-    |                      ^^^^^^ the trait `cssparser::ToCss` is not implemented for `std::string::String`
+20  |     type AttrValue = String;
+    |                      ^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `std::string::String`
     |
 note: there are multiple different versions of crate `cssparser` in the dependency graph
    --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
@@ -84,15 +104,13 @@ note: there are multiple different versions of crate `cssparser` in the dependen
 13  | pub trait ToCss {
     | ^^^^^^^^^^^^^^^ this is the required trait
     |
-   ::: svgn/src/plugins/inline_styles_selector.rs:13:1
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
     |
-13  | extern crate cssparser;
-    | ----------------------- one version of crate `cssparser` used here, as a direct dependency of the current crate
-    |
-   ::: svgn/src/plugins/inline_styles.rs:17:5
-    |
-17  | use lightningcss::{
-    |     ------------ one version of crate `cssparser` used here, as a dependency of crate `parcel_selectors`
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
     |
    ::: /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/string.rs:360:1
     |
@@ -117,11 +135,11 @@ note: required by a bound in `selectors::SelectorImpl::AttrValue`
     |   required by this bound in `SelectorImpl::AttrValue`
     = note: this error originates in the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `std::string::String: cssparser::ToCss` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:24:23
+error[E0277]: the trait bound `std::string::String: cssparser::serializer::ToCss` is not satisfied
+   --> svgn/src/plugins/inline_styles_selector.rs:21:23
     |
-24  |     type Identifier = String;
-    |                       ^^^^^^ the trait `cssparser::ToCss` is not implemented for `std::string::String`
+21  |     type Identifier = String;
+    |                       ^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `std::string::String`
     |
 note: there are multiple different versions of crate `cssparser` in the dependency graph
    --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
@@ -129,15 +147,13 @@ note: there are multiple different versions of crate `cssparser` in the dependen
 13  | pub trait ToCss {
     | ^^^^^^^^^^^^^^^ this is the required trait
     |
-   ::: svgn/src/plugins/inline_styles_selector.rs:13:1
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
     |
-13  | extern crate cssparser;
-    | ----------------------- one version of crate `cssparser` used here, as a direct dependency of the current crate
-    |
-   ::: svgn/src/plugins/inline_styles.rs:17:5
-    |
-17  | use lightningcss::{
-    |     ------------ one version of crate `cssparser` used here, as a dependency of crate `parcel_selectors`
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
     |
    ::: /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/string.rs:360:1
     |
@@ -162,11 +178,11 @@ note: required by a bound in `selectors::SelectorImpl::Identifier`
     |   required by this bound in `SelectorImpl::Identifier`
     = note: this error originates in the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `std::string::String: cssparser::ToCss` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:25:22
+error[E0277]: the trait bound `std::string::String: cssparser::serializer::ToCss` is not satisfied
+   --> svgn/src/plugins/inline_styles_selector.rs:22:22
     |
-25  |     type LocalName = String;
-    |                      ^^^^^^ the trait `cssparser::ToCss` is not implemented for `std::string::String`
+22  |     type LocalName = String;
+    |                      ^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `std::string::String`
     |
 note: there are multiple different versions of crate `cssparser` in the dependency graph
    --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
@@ -174,15 +190,13 @@ note: there are multiple different versions of crate `cssparser` in the dependen
 13  | pub trait ToCss {
     | ^^^^^^^^^^^^^^^ this is the required trait
     |
-   ::: svgn/src/plugins/inline_styles_selector.rs:13:1
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
     |
-13  | extern crate cssparser;
-    | ----------------------- one version of crate `cssparser` used here, as a direct dependency of the current crate
-    |
-   ::: svgn/src/plugins/inline_styles.rs:17:5
-    |
-17  | use lightningcss::{
-    |     ------------ one version of crate `cssparser` used here, as a dependency of crate `parcel_selectors`
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
     |
    ::: /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/string.rs:360:1
     |
@@ -207,11 +221,11 @@ note: required by a bound in `selectors::SelectorImpl::LocalName`
     |   required by this bound in `SelectorImpl::LocalName`
     = note: this error originates in the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `std::string::String: cssparser::ToCss` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:26:28
+error[E0277]: the trait bound `std::string::String: cssparser::serializer::ToCss` is not satisfied
+   --> svgn/src/plugins/inline_styles_selector.rs:23:28
     |
-26  |     type NamespacePrefix = String;
-    |                            ^^^^^^ the trait `cssparser::ToCss` is not implemented for `std::string::String`
+23  |     type NamespacePrefix = String;
+    |                            ^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `std::string::String`
     |
 note: there are multiple different versions of crate `cssparser` in the dependency graph
    --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
@@ -219,15 +233,13 @@ note: there are multiple different versions of crate `cssparser` in the dependen
 13  | pub trait ToCss {
     | ^^^^^^^^^^^^^^^ this is the required trait
     |
-   ::: svgn/src/plugins/inline_styles_selector.rs:13:1
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
     |
-13  | extern crate cssparser;
-    | ----------------------- one version of crate `cssparser` used here, as a direct dependency of the current crate
-    |
-   ::: svgn/src/plugins/inline_styles.rs:17:5
-    |
-17  | use lightningcss::{
-    |     ------------ one version of crate `cssparser` used here, as a dependency of crate `parcel_selectors`
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
     |
    ::: /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/string.rs:360:1
     |
@@ -251,6 +263,256 @@ note: required by a bound in `selectors::SelectorImpl::NamespacePrefix`
     | |_required by a bound in this associated type
     |   required by this bound in `SelectorImpl::NamespacePrefix`
     = note: this error originates in the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `inline_styles_selector::NonTSPseudoClass: cssparser::serializer::ToCss` is not satisfied
+   --> svgn/src/plugins/inline_styles_selector.rs:28:29
+    |
+28  |     type NonTSPseudoClass = NonTSPseudoClass;
+    |                             ^^^^^^^^^^^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `inline_styles_selector::NonTSPseudoClass`
+    |
+note: there are multiple different versions of crate `cssparser` in the dependency graph
+   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
+    |
+13  | pub trait ToCss {
+    | ^^^^^^^^^^^^^^^ this is the required trait
+    |
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
+    |
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
+    |
+   ::: svgn/src/plugins/inline_styles_selector.rs:34:1
+    |
+34  | pub enum NonTSPseudoClass {}
+    | ------------------------- this type doesn't implement the required trait
+    |
+   ::: /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.33.0/src/rules_and_declarations.rs:26:1
+    |
+26  | pub trait DeclarationParser<'i> {
+    | ------------------------------- this is the found trait
+    = help: you can use `cargo tree` to explore your dependency tree
+    = note: required for `<SvgSelectorImpl as SelectorImpl>::NonTSPseudoClass` to implement `selectors::parser::NonTSPseudoClass`
+note: required by a bound in `selectors::SelectorImpl::NonTSPseudoClass`
+   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/parser.rs:239:1
+    |
+239 | / with_bounds! {
+240 | |     [Clone + Eq]
+241 | |     [for<'a> From<&'a str>]
+242 | | }
+    | |_^ required by this bound in `SelectorImpl::NonTSPseudoClass`
+    = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `inline_styles_selector::PseudoElement: cssparser::serializer::ToCss` is not satisfied
+   --> svgn/src/plugins/inline_styles_selector.rs:29:26
+    |
+29  |     type PseudoElement = PseudoElement;
+    |                          ^^^^^^^^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `inline_styles_selector::PseudoElement`
+    |
+note: there are multiple different versions of crate `cssparser` in the dependency graph
+   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
+    |
+13  | pub trait ToCss {
+    | ^^^^^^^^^^^^^^^ this is the required trait
+    |
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
+    |
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
+    |
+   ::: svgn/src/plugins/inline_styles_selector.rs:65:1
+    |
+65  | pub enum PseudoElement {}
+    | ---------------------- this type doesn't implement the required trait
+    |
+   ::: /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.33.0/src/rules_and_declarations.rs:26:1
+    |
+26  | pub trait DeclarationParser<'i> {
+    | ------------------------------- this is the found trait
+    = help: you can use `cargo tree` to explore your dependency tree
+    = note: required for `<SvgSelectorImpl as SelectorImpl>::PseudoElement` to implement `selectors::parser::PseudoElement`
+note: required by a bound in `selectors::SelectorImpl::PseudoElement`
+   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/parser.rs:239:1
+    |
+239 | / with_bounds! {
+240 | |     [Clone + Eq]
+241 | |     [for<'a> From<&'a str>]
+242 | | }
+    | |_^ required by this bound in `SelectorImpl::PseudoElement`
+    = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `inline_styles_selector::NonTSPseudoClass: cssparser::serializer::ToCss` is not satisfied
+  --> svgn/src/plugins/inline_styles_selector.rs:51:46
+   |
+51 | impl selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
+   |                                              ^^^^^^^^^^^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `inline_styles_selector::NonTSPseudoClass`
+   |
+note: there are multiple different versions of crate `cssparser` in the dependency graph
+  --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
+   |
+13 | pub trait ToCss {
+   | ^^^^^^^^^^^^^^^ this is the required trait
+   |
+  ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
+   |
+11 | use selectors::SelectorList;
+   |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16 | use cssparser::ToCss;
+   |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
+   |
+  ::: svgn/src/plugins/inline_styles_selector.rs:34:1
+   |
+34 | pub enum NonTSPseudoClass {}
+   | ------------------------- this type doesn't implement the required trait
+   |
+  ::: /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.33.0/src/rules_and_declarations.rs:26:1
+   |
+26 | pub trait DeclarationParser<'i> {
+   | ------------------------------- this is the found trait
+   = help: you can use `cargo tree` to explore your dependency tree
+note: required by a bound in `selectors::parser::NonTSPseudoClass`
+  --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/parser.rs:46:37
+   |
+46 | pub trait NonTSPseudoClass: Sized + ToCss {
+   |                                     ^^^^^ required by this bound in `NonTSPseudoClass`
+   = note: `NonTSPseudoClass` is a "sealed trait", because to implement it you also need to implement `cssparser::serializer::ToCss`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+   = help: the following types implement the trait:
+             selectors::attr::AttrSelectorOperator
+             selectors::SelectorList<Impl>
+             selectors::parser::Selector<Impl>
+             selectors::parser::Combinator
+             selectors::parser::Component<Impl>
+             selectors::attr::AttrSelectorWithOptionalNamespace<Impl>
+             selectors::parser::LocalName<Impl>
+             cssparser::color::RGBA
+           and 21 others
+
+error[E0277]: the trait bound `inline_styles_selector::PseudoElement: cssparser::serializer::ToCss` is not satisfied
+  --> svgn/src/plugins/inline_styles_selector.rs:82:43
+   |
+82 | impl selectors::parser::PseudoElement for PseudoElement {
+   |                                           ^^^^^^^^^^^^^ the trait `cssparser::serializer::ToCss` is not implemented for `inline_styles_selector::PseudoElement`
+   |
+note: there are multiple different versions of crate `cssparser` in the dependency graph
+  --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/serializer.rs:13:1
+   |
+13 | pub trait ToCss {
+   | ^^^^^^^^^^^^^^^ this is the required trait
+   |
+  ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
+   |
+11 | use selectors::SelectorList;
+   |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16 | use cssparser::ToCss;
+   |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
+   |
+  ::: svgn/src/plugins/inline_styles_selector.rs:65:1
+   |
+65 | pub enum PseudoElement {}
+   | ---------------------- this type doesn't implement the required trait
+   |
+  ::: /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.33.0/src/rules_and_declarations.rs:26:1
+   |
+26 | pub trait DeclarationParser<'i> {
+   | ------------------------------- this is the found trait
+   = help: you can use `cargo tree` to explore your dependency tree
+note: required by a bound in `selectors::parser::PseudoElement`
+  --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/parser.rs:29:34
+   |
+29 | pub trait PseudoElement: Sized + ToCss {
+   |                                  ^^^^^ required by this bound in `PseudoElement`
+   = note: `PseudoElement` is a "sealed trait", because to implement it you also need to implement `cssparser::serializer::ToCss`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+   = help: the following types implement the trait:
+             selectors::attr::AttrSelectorOperator
+             selectors::SelectorList<Impl>
+             selectors::parser::Selector<Impl>
+             selectors::parser::Combinator
+             selectors::parser::Component<Impl>
+             selectors::attr::AttrSelectorWithOptionalNamespace<Impl>
+             selectors::parser::LocalName<Impl>
+             cssparser::color::RGBA
+           and 21 others
+
+error[E0053]: method `attr_matches` has an incompatible type for trait
+   --> svgn/src/plugins/inline_styles_selector.rs:169:13
+    |
+169 |         ns: &NamespaceConstraint<&str>,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `std::string::String`, found `str`
+    |
+    = note: expected signature `fn(&SvgElement<'_>, &NamespaceConstraint<&std::string::String>, &std::string::String, &AttrSelectorOperation<&std::string::String>) -> _`
+               found signature `fn(&SvgElement<'_>, &NamespaceConstraint<&str>, &str, &AttrSelectorOperation<&str>) -> _`
+help: change the parameter type to match the trait
+    |
+169 -         ns: &NamespaceConstraint<&str>,
+169 +         ns: &NamespaceConstraint<&std::string::String>,
+    |
+
+error[E0050]: method `match_non_ts_pseudo_class` has 2 parameters but the declaration in trait `match_non_ts_pseudo_class` has 3
+   --> svgn/src/plugins/inline_styles_selector.rs:242:34
+    |
+242 |     fn match_non_ts_pseudo_class(&self, _pc: &NonTSPseudoClass) -> bool {
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected 3 parameters, found 2
+    |
+    = note: `match_non_ts_pseudo_class` from trait: `fn(&Self, &<<Self as selectors::Element>::Impl as SelectorImpl>::NonTSPseudoClass, &mut MatchingContext<'_, <Self as selectors::Element>::Impl>) -> bool`
+
+error[E0050]: method `match_pseudo_element` has 2 parameters but the declaration in trait `match_pseudo_element` has 3
+   --> svgn/src/plugins/inline_styles_selector.rs:246:29
+    |
+246 |     fn match_pseudo_element(&self, _pe: &PseudoElement) -> bool {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected 3 parameters, found 2
+    |
+    = note: `match_pseudo_element` from trait: `fn(&Self, &<<Self as selectors::Element>::Impl as SelectorImpl>::PseudoElement, &mut MatchingContext<'_, <Self as selectors::Element>::Impl>) -> bool`
+
+error[E0050]: method `has_id` has 2 parameters but the declaration in trait `has_id` has 3
+   --> svgn/src/plugins/inline_styles_selector.rs:258:15
+    |
+258 |     fn has_id(&self, id: &str) -> bool {
+    |               ^^^^^^^^^^^^^^^ expected 3 parameters, found 2
+    |
+    = note: `has_id` from trait: `fn(&Self, &<<Self as selectors::Element>::Impl as SelectorImpl>::Identifier, CaseSensitivity) -> bool`
+
+error[E0050]: method `has_class` has 2 parameters but the declaration in trait `has_class` has 3
+   --> svgn/src/plugins/inline_styles_selector.rs:262:18
+    |
+262 |     fn has_class(&self, name: &str) -> bool {
+    |                  ^^^^^^^^^^^^^^^^^ expected 3 parameters, found 2
+    |
+    = note: `has_class` from trait: `fn(&Self, &<<Self as selectors::Element>::Impl as SelectorImpl>::Identifier, CaseSensitivity) -> bool`
+
+error[E0053]: method `imported_part` has an incompatible type for trait
+   --> svgn/src/plugins/inline_styles_selector.rs:271:36
+    |
+271 |     fn imported_part(&self, _name: &str) -> Option<String> {
+    |                                    ^^^^ expected `std::string::String`, found `str`
+    |
+    = note: expected signature `fn(&SvgElement<'_>, &std::string::String) -> std::option::Option<_>`
+               found signature `fn(&SvgElement<'_>, &str) -> std::option::Option<_>`
+help: change the parameter type to match the trait
+    |
+271 -     fn imported_part(&self, _name: &str) -> Option<String> {
+271 +     fn imported_part(&self, _name: &std::string::String) -> Option<String> {
+    |
+
+error[E0053]: method `is_part` has an incompatible type for trait
+   --> svgn/src/plugins/inline_styles_selector.rs:275:30
+    |
+275 |     fn is_part(&self, _name: &str) -> bool {
+    |                              ^^^^ expected `std::string::String`, found `str`
+    |
+    = note: expected signature `fn(&SvgElement<'_>, &std::string::String) -> _`
+               found signature `fn(&SvgElement<'_>, &str) -> _`
+help: change the parameter type to match the trait
+    |
+275 -     fn is_part(&self, _name: &str) -> bool {
+275 +     fn is_part(&self, _name: &std::string::String) -> bool {
+    |
 
 error[E0061]: this function takes 6 arguments but 4 arguments were supplied
    --> svgn/src/plugins/remove_attributes_by_selector.rs:123:27
@@ -315,6 +577,39 @@ note: required by a bound in `SelectorList::<Impl>::parse`
 397 |         P: Parser<'i, Impl = Impl>,
     |            ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `SelectorList::<Impl>::parse`
 
+error[E0308]: mismatched types
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:194:96
+    |
+194 | ... let selector_list = match SelectorList::<SvgSelectorImpl>::parse(&SvgSelectorImpl, &mut parser, selectors::parser::ParseRelative::No) {
+    |                               --------------------------------------                   ^^^^^^^^^^^ expected `cssparser::parser::Parser<'_, '_>`, found `cssparser::Parser<'_, '_>`
+    |                               |
+    |                               arguments to this function are incorrect
+    |
+note: two different versions of crate `cssparser` are being used; two types coming from two different versions of the same crate are different types even if they look the same
+   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.31.2/src/parser.rs:234:1
+    |
+234 | pub struct Parser<'i, 't> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type `cssparser::parser::Parser`
+    |
+   ::: /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cssparser-0.33.0/src/parser.rs:247:1
+    |
+247 | pub struct Parser<'i, 't> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^ this is the found type `cssparser::Parser`
+    |
+   ::: svgn/src/plugins/remove_attributes_by_selector.rs:11:5
+    |
+11  | use selectors::SelectorList;
+    |     --------- one version of crate `cssparser` used here, as a dependency of crate `selectors`
+...
+16  | use cssparser::ToCss;
+    |     --------- one version of crate `cssparser` used here, as a direct dependency of the current crate
+    = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/parser.rs:391:12
+    |
+391 |     pub fn parse<'i, 't, P>(
+    |            ^^^^^
+
 error[E0277]: the trait bound `SvgSelectorImpl: selectors::Parser<'_>` is not satisfied
    --> svgn/src/plugins/remove_attributes_by_selector.rs:194:39
     |
@@ -322,204 +617,59 @@ error[E0277]: the trait bound `SvgSelectorImpl: selectors::Parser<'_>` is not sa
     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `selectors::Parser<'_>` is not implemented for `SvgSelectorImpl`
 
 error[E0308]: mismatched types
-   --> svgn/src/plugins/inline_styles_selector.rs:111:28
+   --> svgn/src/plugins/inline_styles_selector.rs:174:57
     |
-111 |         OpaqueElement::new(self.element as *const Element as *const ())
-    |         ------------------ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&_`, found `*const ()`
-    |         |
-    |         arguments to this function are incorrect
-    |
-    = note: expected reference `&_`
-             found raw pointer `*const ()`
-note: associated function defined here
-   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/tree.rs:22:12
-    |
-22  |     pub fn new<T>(ptr: &T) -> Self {
-    |            ^^^
-help: consider borrowing here
-    |
-111 |         OpaqueElement::new(&(self.element as *const Element as *const ()))
-    |                            ++                                           +
+174 |         if !matches!(ns, NamespaceConstraint::Specific(&"") | NamespaceConstraint::Any) {
+    |                      --                                 ^^ expected `str`, found `&str`
+    |                      |
+    |                      this expression has type `&NamespaceConstraint<&str>`
 
-error[E0599]: no variant or associated item named `CaseInsensitive` found for enum `CaseSensitivity` in the current scope
-   --> svgn/src/plugins/inline_styles_selector.rs:241:88
+error[E0658]: use of unstable library feature `str_as_str`
+   --> svgn/src/plugins/inline_styles_selector.rs:201:56
     |
-241 |                     let case_insensitive = matches!(case_sensitivity, CaseSensitivity::CaseInsensitive);
-    |                                                                                        ^^^^^^^^^^^^^^^ variant or associated item not found in `CaseSensitivity`
+201 | ...                   values.contains(&value.as_str())
+    |                                              ^^^^^^
     |
-help: there is a variant with a similar name
-    |
-241 -                     let case_insensitive = matches!(case_sensitivity, CaseSensitivity::CaseInsensitive);
-241 +                     let case_insensitive = matches!(case_sensitivity, CaseSensitivity::CaseSensitive);
-    |
-
-error[E0277]: the trait bound `&&std::string::String: std::str::pattern::Pattern` is not satisfied
-    --> svgn/src/plugins/inline_styles_selector.rs:274:56
-     |
-274  | ...                   attr_value.starts_with(expected_value)
-     |                                  ----------- ^^^^^^^^^^^^^^ the trait `Fn(char)` is not implemented for `std::string::String`
-     |                                  |
-     |                                  required by a bound introduced by this call
-     |
-     = note: required for `&std::string::String` to implement `FnOnce(char)`
-     = note: required for `&&std::string::String` to implement `std::str::pattern::Pattern`
-note: required by a bound in `core::str::<impl str>::starts_with`
-    --> /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1358:27
-     |
-1358 |     pub fn starts_with<P: Pattern>(&self, pat: P) -> bool {
-     |                           ^^^^^^^ required by this bound in `core::str::<impl str>::starts_with`
-help: consider dereferencing here
-     |
-274  |                                 attr_value.starts_with(*expected_value)
-     |                                                        +
-
-error[E0277]: the trait bound `&&std::string::String: std::str::pattern::Pattern` is not satisfied
-    --> svgn/src/plugins/inline_styles_selector.rs:281:54
-     |
-281  | ...                   attr_value.ends_with(expected_value)
-     |                                  --------- ^^^^^^^^^^^^^^ the trait `Fn(char)` is not implemented for `std::string::String`
-     |                                  |
-     |                                  required by a bound introduced by this call
-     |
-     = note: required for `&std::string::String` to implement `FnOnce(char)`
-     = note: required for `&&std::string::String` to implement `std::str::pattern::Pattern`
-note: required by a bound in `core::str::<impl str>::ends_with`
-    --> /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1383:25
-     |
-1383 |     pub fn ends_with<P: Pattern>(&self, pat: P) -> bool
-     |                         ^^^^^^^ required by this bound in `core::str::<impl str>::ends_with`
-help: consider dereferencing here
-     |
-281  |                                 attr_value.ends_with(*expected_value)
-     |                                                      +
-
-error[E0277]: the trait bound `&&std::string::String: std::str::pattern::Pattern` is not satisfied
-    --> svgn/src/plugins/inline_styles_selector.rs:288:53
-     |
-288  | ...                   attr_value.contains(expected_value)
-     |                                  -------- ^^^^^^^^^^^^^^ the trait `Fn(char)` is not implemented for `std::string::String`
-     |                                  |
-     |                                  required by a bound introduced by this call
-     |
-     = note: required for `&std::string::String` to implement `FnOnce(char)`
-     = note: required for `&&std::string::String` to implement `std::str::pattern::Pattern`
-note: required by a bound in `core::str::<impl str>::contains`
-    --> /Users/adam/.rustup/toolchains/stable-x86_64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1320:24
-     |
-1320 |     pub fn contains<P: Pattern>(&self, pat: P) -> bool {
-     |                        ^^^^^^^ required by this bound in `core::str::<impl str>::contains`
-help: consider dereferencing here
-     |
-288  |                                 attr_value.contains(*expected_value)
-     |                                                     +
+    = note: see issue #130366 <https://github.com/rust-lang/rust/issues/130366> for more information
 
 error[E0308]: arguments to this function are incorrect
-   --> svgn/src/plugins/inline_styles_selector.rs:359:23
+   --> svgn/src/plugins/inline_styles_selector.rs:295:23
     |
-359 |     let mut context = selectors::matching::MatchingContext::new(
+295 |     let mut context = selectors::matching::MatchingContext::new(
     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
-364 |         selectors::NthIndexCache::default(),
-    |         ----------------------------------- expected `NeedsSelectorFlags`, found `NthIndexCache`
+299 |         IgnoreNthChildForInvalidation::No,
+    |         --------------------------------- expected `QuirksMode`, found `IgnoreNthChildForInvalidation`
+300 |         selectors::matching::QuirksMode::NoQuirks,
+    |         ----------------------------------------- expected `NeedsSelectorFlags`, found `QuirksMode`
+301 |         selectors::matching::NeedsSelectorFlags::No,
+    |         ------------------------------------------- expected `IgnoreNthChildForInvalidation`, found `NeedsSelectorFlags`
     |
-note: expected `&mut NthIndexCache`, found `Option<_>`
-   --> svgn/src/plugins/inline_styles_selector.rs:362:9
-    |
-362 |         None,
-    |         ^^^^
-    = note: expected mutable reference `&mut NthIndexCache`
-                            found enum `std::option::Option<_>`
-note: expected `IgnoreNthChildForInvalidation`, found `Option<_>`
-   --> svgn/src/plugins/inline_styles_selector.rs:365:9
-    |
-365 |         None,
-    |         ^^^^
-    = note: expected enum `IgnoreNthChildForInvalidation`
-               found enum `std::option::Option<_>`
 note: associated function defined here
    --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.25.0/context.rs:190:12
     |
 190 |     pub fn new(
     |            ^^^
-
-error[E0277]: the trait bound `&mut usize: std::clone::Clone` is not satisfied in `{closure@svgn/src/plugins/inline_styles.rs:205:54: 205:75}`
-   --> svgn/src/plugins/inline_styles.rs:205:54
+help: reorder these arguments
     |
-205 |           walk_element_tree_with_parent(element, None, |elem, parent, index| {
-    |           -----------------------------                ^--------------------
-    |           |                                            |
-    |  _________|____________________________________________within this `{closure@svgn/src/plugins/inline_styles.rs:205:54: 205:75}`
-    | |         |
-    | |         required by a bound introduced by this call
-206 | |             let wrapper = SvgElementWrapper::new(elem, parent, index);
-207 | |             for selector in selector_list.0.iter() {
-208 | |                 let mut context = MatchingContext::new(
-...   |
-221 | |         });
-    | |_________^ within `{closure@svgn/src/plugins/inline_styles.rs:205:54: 205:75}`, the trait `std::clone::Clone` is not implemented for `&mut usize`
+295 -     let mut context = selectors::matching::MatchingContext::new(
+296 -         MatchingMode::Normal,
+297 -         None,
+298 -         &mut nth_index_cache,
+299 -         IgnoreNthChildForInvalidation::No,
+300 -         selectors::matching::QuirksMode::NoQuirks,
+301 -         selectors::matching::NeedsSelectorFlags::No,
+302 -     );
+295 +     let mut context = selectors::matching::MatchingContext::new(MatchingMode::Normal, None, &mut nth_index_cache, selectors::matching::QuirksMode::NoQuirks, selectors::matching::NeedsSelectorFlags::No, IgnoreNthChildForInvalidation::No);
     |
-    = help: the trait `std::clone::Clone` is implemented for `usize`
-    = note: `std::clone::Clone` is implemented for `&usize`, but not for `&mut usize`
-note: required because it's used within this closure
-   --> svgn/src/plugins/inline_styles.rs:205:54
-    |
-205 |         walk_element_tree_with_parent(element, None, |elem, parent, index| {
-    |                                                      ^^^^^^^^^^^^^^^^^^^^^
-note: required by a bound in `walk_element_tree_with_parent`
-   --> svgn/src/plugins/inline_styles_selector.rs:376:51
-    |
-371 | pub fn walk_element_tree_with_parent<F>(
-    |        ----------------------------- required by a bound in this function
-...
-376 |     F: FnMut(&Element, Option<&Element>, usize) + Clone,
-    |                                                   ^^^^^ required by this bound in `walk_element_tree_with_parent`
-
-warning: variable `element_index` is assigned to, but never used
-   --> svgn/src/plugins/inline_styles_selector.rs:382:13
-    |
-382 |     let mut element_index = 0;
-    |             ^^^^^^^^^^^^^
-    |
-    = note: consider using `_element_index` instead
-    = note: `#[warn(unused_variables)]` on by default
-
-error[E0716]: temporary value dropped while borrowed
-   --> svgn/src/plugins/inline_styles.rs:279:22
-    |
-279 |                 &mut selectors::NthIndexCache::default(),
-    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ creates a temporary value which is freed while still in use
-...
-283 |             );
-    |              - temporary value is freed at the end of this statement
-284 |             selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context)
-    |                                                                                ------------ borrow later used here
-    |
-help: consider using a `let` binding to create a longer lived value
-    |
-276 ~             let binding = selectors::NthIndexCache::default();
-277 ~             let mut context = MatchingContext::new(
-278 |                 MatchingMode::Normal,
-279 |                 None,
-280 ~                 &mut binding,
-    |
-
-error[E0502]: cannot borrow `*element` as immutable because it is also borrowed as mutable
-   --> svgn/src/plugins/inline_styles.rs:311:91
-    |
-309 |     for child in &mut element.children {
-    |                  ---------------------
-    |                  |
-    |                  mutable borrow occurs here
-    |                  mutable borrow later used here
-310 |         if let Node::Element(child_elem) = child {
-311 |             apply_css_rule_and_track_impl(child_elem, rule, _params, used_selectors, Some(element), child_index)?;
-    |                                                                                           ^^^^^^^ immutable borrow occurs here
 
 warning: unused variable: `media_rule`
    --> svgn/src/plugins/inline_styles.rs:501:28
     |
 501 |             CssRule::Media(media_rule) => {
     |                            ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_media_rule`
+    |
+    = note: `#[warn(unused_variables)]` on by default
 
 warning: unused variable: `selector_str`
    --> svgn/src/plugins/inline_styles.rs:558:19
@@ -527,7 +677,7 @@ warning: unused variable: `selector_str`
 558 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
     |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_selector_str`
 
-Some errors have detailed explanations: E0061, E0277, E0308, E0502, E0599, E0716.
-For more information about an error, try `rustc --explain E0061`.
+Some errors have detailed explanations: E0050, E0053, E0061, E0277, E0308, E0432, E0599, E0658.
+For more information about an error, try `rustc --explain E0050`.
 warning: `svgn` (lib) generated 9 warnings
-error: could not compile `svgn` (lib) due to 17 previous errors; 9 warnings emitted
+error: could not compile `svgn` (lib) due to 25 previous errors; 9 warnings emitted

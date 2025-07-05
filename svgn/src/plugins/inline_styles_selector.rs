@@ -17,11 +17,11 @@ pub struct SvgSelectorImpl;
 
 impl SelectorImpl for SvgSelectorImpl {
     type ExtraMatchingData<'a> = ();
-    type AttrValue = String;
-    type Identifier = String;
-    type LocalName = String;
-    type NamespacePrefix = String;
-    type NamespaceUrl = String;
+    type AttrValue = cssparser::CowRcStr<'static>;
+    type Identifier = cssparser::CowRcStr<'static>;
+    type LocalName = cssparser::CowRcStr<'static>;
+    type NamespacePrefix = cssparser::CowRcStr<'static>;
+    type NamespaceUrl = cssparser::CowRcStr<'static>;
     type BorrowedNamespaceUrl = str;
     type BorrowedLocalName = str;
 
@@ -89,6 +89,9 @@ pub struct SvgElement<'a> {
     pub element: &'a Element,
 }
 
+/// Type alias for compatibility with other modules
+pub type SvgElementWrapper<'a> = SvgElement<'a>;
+
 impl<'a> SvgElement<'a> {
     pub fn new(element: &'a Element) -> Self {
         SvgElement { element }
@@ -153,7 +156,7 @@ impl<'a> SelectorElement for SvgElement<'a> {
     }
 
     fn has_local_name(&self, local_name: &str) -> bool {
-        self.element.tag_name == local_name
+        self.element.name == local_name
     }
 
     fn has_namespace(&self, _namespace: &str) -> bool {
@@ -161,14 +164,14 @@ impl<'a> SelectorElement for SvgElement<'a> {
     }
 
     fn is_same_type(&self, other: &Self) -> bool {
-        self.element.tag_name == other.element.tag_name
+        self.element.name == other.element.name
     }
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&str>,
-        local_name: &str,
-        operation: &AttrSelectorOperation<&str>,
+        ns: &NamespaceConstraint<&cssparser::CowRcStr<'static>>,
+        local_name: &cssparser::CowRcStr<'static>,
+        operation: &AttrSelectorOperation<&cssparser::CowRcStr<'static>>,
     ) -> bool {
         // Only match attributes without namespace for now
         if !matches!(ns, NamespaceConstraint::Specific(&"") | NamespaceConstraint::Any) {
@@ -181,54 +184,54 @@ impl<'a> SelectorElement for SvgElement<'a> {
                 AttrSelectorOperation::WithValue {
                     operator,
                     case_sensitivity,
-                    expected_value,
+                    value,
                 } => {
                     let case_insensitive = matches!(case_sensitivity, CaseSensitivity::AsciiCaseInsensitive);
                     
                     match operator {
                         selectors::attr::AttrSelectorOperator::Equal => {
                             if case_insensitive {
-                                attr_value.to_lowercase() == expected_value.to_lowercase()
+                                attr_value.to_lowercase() == value.to_lowercase()
                             } else {
-                                attr_value == expected_value
+                                attr_value == value
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Includes => {
                             let values: Vec<&str> = attr_value.split_whitespace().collect();
                             if case_insensitive {
-                                values.iter().any(|v| v.to_lowercase() == expected_value.to_lowercase())
+                                values.iter().any(|v| v.to_lowercase() == value.to_lowercase())
                             } else {
-                                values.contains(&expected_value.as_str())
+                                values.contains(&value.as_str())
                             }
                         }
                         selectors::attr::AttrSelectorOperator::DashMatch => {
                             if case_insensitive {
                                 let attr_lower = attr_value.to_lowercase();
-                                let expected_lower = expected_value.to_lowercase();
+                                let expected_lower = value.to_lowercase();
                                 attr_lower == expected_lower || attr_lower.starts_with(&format!("{}-", expected_lower))
                             } else {
-                                *attr_value == **expected_value || attr_value.starts_with(&format!("{}-", expected_value))
+                                *attr_value == **value || attr_value.starts_with(&format!("{}-", value))
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Prefix => {
                             if case_insensitive {
-                                attr_value.to_lowercase().starts_with(&expected_value.to_lowercase())
+                                attr_value.to_lowercase().starts_with(&value.to_lowercase())
                             } else {
-                                attr_value.starts_with(expected_value)
+                                attr_value.starts_with(value)
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Suffix => {
                             if case_insensitive {
-                                attr_value.to_lowercase().ends_with(&expected_value.to_lowercase())
+                                attr_value.to_lowercase().ends_with(&value.to_lowercase())
                             } else {
-                                attr_value.ends_with(expected_value)
+                                attr_value.ends_with(value)
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Substring => {
                             if case_insensitive {
-                                attr_value.to_lowercase().contains(&expected_value.to_lowercase())
+                                attr_value.to_lowercase().contains(&value.to_lowercase())
                             } else {
-                                attr_value.contains(expected_value)
+                                attr_value.contains(value)
                             }
                         }
                     }
@@ -281,13 +284,29 @@ impl<'a> SelectorElement for SvgElement<'a> {
     }
 
     fn is_root(&self) -> bool {
-        self.element.tag_name == "svg"
+        self.element.name == "svg"
+    }
+}
+
+/// Walk through the element tree with parent context
+/// This function is used by other modules for traversing SVG elements
+pub fn walk_element_tree_with_parent<F>(element: &Element, parent: Option<&Element>, mut visitor: F)
+where
+    F: FnMut(&Element, Option<&Element>),
+{
+    visitor(element, parent);
+    
+    for child in &element.children {
+        if let crate::ast::Node::Element(child_element) = child {
+            walk_element_tree_with_parent(child_element, Some(element), &mut visitor);
+        }
     }
 }
 
 /// Check if a CSS selector matches an SVG element
 pub fn matches_selector(element: &Element, selector: &Selector<SvgSelectorImpl>) -> bool {
-    use selectors::matching::{MatchingContext, MatchingMode, NthIndexCache, IgnoreNthChildForInvalidation};
+    use selectors::matching::{MatchingContext, MatchingMode, IgnoreNthChildForInvalidation};
+    use selectors::NthIndexCache;
     
     let svg_element = SvgElement::new(element);
     let mut nth_index_cache = NthIndexCache::default();
