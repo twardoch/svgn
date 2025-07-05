@@ -30,7 +30,7 @@ use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelect
 mod inline_styles_selector;
 mod inline_styles_converter;
 
-use inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper, element_matches_selector, walk_element_tree_with_parent};
+use inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper, walk_element_tree_with_parent};
 use inline_styles_converter::convert_css_property;
 
 /// Parameters for the inline styles plugin
