@@ -9,6 +9,7 @@ use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult, PluginError};
 use serde_json::Value;
 use selectors::SelectorList;
+use selectors::parser::{Selector, SelectorImpl};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode, ElementSelectorFlags};
 use selectors::NthIndexCache;
@@ -107,348 +108,34 @@ fn parse_attributes(value: &Value) -> PluginResult<Vec<String>> {
     }
 }
 
-/// Element wrapper for selector matching
-#[derive(Debug, Clone)]
-struct ElementWrapper<'a> {
-    element: &'a Element,
-}
-
-impl<'a> selectors::Element for ElementWrapper<'a> {
-    type Impl = SelectorImpl;
-
-    fn opaque(&self) -> selectors::OpaqueElement {
-        selectors::OpaqueElement::new(self)
-    }
-
-    fn parent_element(&self) -> Option<Self> {
-        None // We don't need parent traversal for this plugin
-    }
-
-    fn parent_node_is_shadow_root(&self) -> bool {
-        false
-    }
-
-    fn containing_shadow_host(&self) -> Option<Self> {
-        None
-    }
-
-    fn is_part(&self, _name: &<Self::Impl as selectors::SelectorImpl>::Identifier) -> bool {
-        false
-    }
-
-    fn imported_part(
-        &self,
-        _: &<Self::Impl as selectors::SelectorImpl>::Identifier,
-    ) -> Option<<Self::Impl as selectors::SelectorImpl>::Identifier> {
-        None
-    }
-
-    fn is_pseudo_element(&self) -> bool {
-        false
-    }
-
-    fn is_same_type(&self, other: &Self) -> bool {
-        self.element.name == other.element.name
-    }
-
-    fn is_root(&self) -> bool {
-        self.element.name == "svg"
-    }
-
-    fn is_empty(&self) -> bool {
-        self.element.children.is_empty()
-    }
-
-    fn is_html_slot_element(&self) -> bool {
-        false
-    }
-
-    fn has_local_name(&self, local_name: &<Self::Impl as selectors::SelectorImpl>::BorrowedLocalName) -> bool {
-        self.element.name == local_name
-    }
-
-    fn has_namespace(&self, ns: &<Self::Impl as selectors::SelectorImpl>::BorrowedNamespaceUrl) -> bool {
-        // SVG elements don't have namespaces in our AST structure
-        ns.is_empty()
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        false
-    }
-
-    fn has_id(
-        &self,
-        id: &<Self::Impl as selectors::SelectorImpl>::Identifier,
-        _case_sensitivity: CaseSensitivity,
-    ) -> bool {
-        self.element.attributes.get("id").is_some_and(|v| *v == id.0)
-    }
-
-    fn has_class(
-        &self,
-        name: &<Self::Impl as selectors::SelectorImpl>::Identifier,
-        _case_sensitivity: CaseSensitivity,
-    ) -> bool {
-        if let Some(class_attr) = self.element.attributes.get("class") {
-            class_attr.split_whitespace().any(|class| class == name.0)
-        } else {
-            false
-        }
-    }
-
-    fn attr_matches(
-        &self,
-        ns: &NamespaceConstraint<&<Self::Impl as selectors::SelectorImpl>::NamespaceUrl>,
-        local_name: &<Self::Impl as selectors::SelectorImpl>::LocalName,
-        operation: &AttrSelectorOperation<&<Self::Impl as selectors::SelectorImpl>::AttrValue>,
-    ) -> bool {
-        // We only support no namespace for now
-        if !matches!(ns, NamespaceConstraint::Specific(url) if url.0.is_empty()) && !matches!(ns, NamespaceConstraint::Any) {
-            return false;
-        }
-
-        if let Some(attr_value) = self.element.attributes.get(&local_name.0) {
-            match operation {
-                AttrSelectorOperation::Exists => true,
-                AttrSelectorOperation::WithValue {
-                    operator,
-                    case_sensitivity: _,
-                    value,
-                } => {
-                    use selectors::attr::AttrSelectorOperator::*;
-                    match operator {
-                        Equal => attr_value == value.0.as_str(),
-                        Includes => attr_value.split_whitespace().any(|v| v == value.0.as_str()),
-                        DashMatch => {
-                            attr_value == value.0.as_str() || attr_value.starts_with(&format!("{}-", value.0))
-                        }
-                        Prefix => attr_value.starts_with(&value.0),
-                        Substring => attr_value.contains(&value.0),
-                        Suffix => attr_value.ends_with(&value.0),
-                    }
-                }
-            }
-        } else {
-            false
-        }
-    }
-
-    fn match_pseudo_element(
-        &self,
-        _pe: &<Self::Impl as selectors::SelectorImpl>::PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        false
-    }
-
-    fn match_non_ts_pseudo_class(
-        &self,
-        _pc: &<Self::Impl as selectors::SelectorImpl>::NonTSPseudoClass,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        false
-    }
-
-    fn is_link(&self) -> bool {
-        false
-    }
-
-    fn prev_sibling_element(&self) -> Option<Self> {
-        None
-    }
-
-    fn next_sibling_element(&self) -> Option<Self> {
-        None
-    }
-
-    fn first_element_child(&self) -> Option<Self> {
-        None
-    }
-
-    fn apply_selector_flags(&self, _flags: ElementSelectorFlags) {
-        // No flags to apply
-    }
-}
-
-/// Selector implementation
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct SelectorImpl;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct AttrValue(String);
-
-impl<'a> From<&'a str> for AttrValue {
-    fn from(s: &'a str) -> Self {
-        AttrValue(s.to_string())
-    }
-}
-
-impl ToCss for AttrValue {
-    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        write!(dest, "{}", self.0)
-    }
-}
-
-impl AsRef<str> for AttrValue {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Identifier(String);
-
-impl<'a> From<&'a str> for Identifier {
-    fn from(s: &'a str) -> Self {
-        Identifier(s.to_string())
-    }
-}
-
-impl ToCss for Identifier {
-    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        write!(dest, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct LocalName(String);
-
-impl<'a> From<&'a str> for LocalName {
-    fn from(s: &'a str) -> Self {
-        LocalName(s.to_string())
-    }
-}
-
-impl std::borrow::Borrow<str> for LocalName {
-    fn borrow(&self) -> &str {
-        &self.0
-    }
-}
-
-impl ToCss for LocalName {
-    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        write!(dest, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-struct NamespaceUrl(String);
-
-impl std::borrow::Borrow<str> for NamespaceUrl {
-    fn borrow(&self) -> &str {
-        &self.0
-    }
-}
-
-impl ToCss for NamespaceUrl {
-    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        write!(dest, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-struct NamespacePrefix(String);
-
-impl<'a> From<&'a str> for NamespacePrefix {
-    fn from(s: &'a str) -> Self {
-        NamespacePrefix(s.to_string())
-    }
-}
-
-impl ToCss for NamespacePrefix {
-    fn to_css<W>(&self, dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        write!(dest, "{}", self.0)
-    }
-}
-
-impl selectors::SelectorImpl for SelectorImpl {
-    type ExtraMatchingData<'a> = ();
-    type AttrValue = AttrValue;
-    type Identifier = Identifier;
-    type LocalName = LocalName;
-    type NamespaceUrl = NamespaceUrl;
-    type NamespacePrefix = NamespacePrefix;
-    type BorrowedLocalName = str;
-    type BorrowedNamespaceUrl = str;
-    type NonTSPseudoClass = NonTSPseudoClass;
-    type PseudoElement = PseudoElement;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum NonTSPseudoClass {}
-
-impl selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
-    type Impl = SelectorImpl;
-
-    fn is_active_or_hover(&self) -> bool {
-        false
-    }
-
-    fn is_user_action_state(&self) -> bool {
-        false
-    }
-}
-
-impl ToCss for NonTSPseudoClass {
-    fn to_css<W>(&self, _dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        match *self {}
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum PseudoElement {}
-
-impl ToCss for PseudoElement {
-    fn to_css<W>(&self, _dest: &mut W) -> std::fmt::Result
-    where
-        W: std::fmt::Write,
-    {
-        match *self {}
-    }
-}
-
-impl selectors::parser::PseudoElement for PseudoElement {
-    type Impl = SelectorImpl;
-}
+// Use the working SVG selector implementation from inline_styles_selector module
+use crate::plugins::inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper};
 
 /// Collect matching elements without mutable borrows
 fn collect_matching_paths(
     node: &Node,
-    selector_list: &SelectorList<SelectorImpl>,
+    selector_list: &SelectorList<SvgSelectorImpl>,
     current_path: Vec<usize>,
     matching_paths: &mut Vec<Vec<usize>>,
 ) {
     if let Node::Element(element) = node {
-        let wrapper = ElementWrapper { element };
-        let mut nth_index_cache = NthIndexCache::default();
-        let mut context = MatchingContext::new(
-            MatchingMode::Normal,
+        let wrapper = SvgElementWrapper::new(element, None, 0);
+        let mut context = selectors::matching::MatchingContext::new(
+            selectors::matching::MatchingMode::Normal,
             None,
-            &mut nth_index_cache,
-            selectors::context::QuirksMode::NoQuirks,
-            selectors::matching::NeedsSelectorFlags::No,
-            selectors::matching::IgnoreNthChildForInvalidation::No,
+            None,
+            selectors::matching::QuirksMode::NoQuirks,
         );
         
-        if matches_selector_list(selector_list, &wrapper, &mut context) {
+        // Check if any selector in the list matches
+        let mut matches = false;
+        for selector in selector_list.iter() {
+            if selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context) {
+                matches = true;
+                break;
+            }
+        }
+        if matches {
             matching_paths.push(current_path.clone());
         }
         
@@ -499,46 +186,12 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
             let mut parser = cssparser::Parser::new(&mut parser_input);
             let parsing_mode = selectors::parser::ParseRelative::No;
             
-            struct DummyParser;
-            impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
-                type Impl = SelectorImpl;
-                type Error = selectors::parser::SelectorParseErrorKind<'i>;
-                
-                fn parse_non_ts_pseudo_class(
-                    &self,
-                    _location: cssparser::SourceLocation,
-                    _name: cssparser::CowRcStr<'i>,
-                ) -> Result<<Self::Impl as selectors::parser::SelectorImpl>::NonTSPseudoClass, cssparser::ParseError<'i, selectors::parser::SelectorParseErrorKind<'i>>> {
-                    Err(cssparser::ParseError {
-                        kind: cssparser::ParseErrorKind::Basic(cssparser::BasicParseErrorKind::UnexpectedToken(cssparser::Token::Ident(_name))),
-                        location: _location,
-                    })
-                }
-                
-                fn parse_pseudo_element(
-                    &self,
-                    _location: cssparser::SourceLocation,
-                    _name: cssparser::CowRcStr<'i>,
-                ) -> Result<<Self::Impl as selectors::parser::SelectorImpl>::PseudoElement, cssparser::ParseError<'i, selectors::parser::SelectorParseErrorKind<'i>>> {
-                    Err(cssparser::ParseError {
-                        kind: cssparser::ParseErrorKind::Basic(cssparser::BasicParseErrorKind::UnexpectedToken(cssparser::Token::Ident(_name))),
-                        location: _location,
-                    })
-                }
-                
-                fn default_namespace(&self) -> Option<<Self::Impl as selectors::parser::SelectorImpl>::NamespaceUrl> {
-                    None
-                }
-                
-                fn namespace_for_prefix(
-                    &self,
-                    _prefix: &<Self::Impl as selectors::parser::SelectorImpl>::NamespacePrefix,
-                ) -> Option<<Self::Impl as selectors::parser::SelectorImpl>::NamespaceUrl> {
-                    None
-                }
-            }
+            // Use our SVG selector implementation from the inline_styles_selector module
+            // Parse selector using SvgSelectorImpl - simplified parsing for selectors v0.25
+            let mut input = cssparser::ParserInput::new(&config.selector);
+            let mut parser = cssparser::Parser::new(&mut input);
             
-            let selector_list = match SelectorList::<SelectorImpl>::parse(&DummyParser, &mut parser, parsing_mode) {
+            let selector_list = match SelectorList::<SvgSelectorImpl>::parse(&SvgSelectorImpl, &mut parser, selectors::parser::ParseRelative::No) {
                 Ok(list) => list,
                 Err(_) => {
                     return Err(PluginError::InvalidConfig(format!(

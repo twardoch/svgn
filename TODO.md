@@ -1,43 +1,45 @@
 # SVGN Development Plan: Path to 100% SVGO Parity
 
-## Executive Summary
+## 1. Executive Summary
 
 SVGN is a high-performance Rust port of SVGO that has achieved 93% plugin implementation. This plan outlines the focused path to achieve complete SVGO v4.0.0 compatibility.
 
 **Current Status (2025-07-05):**
-- ✅ **50/54 plugins** fully implemented and functional (93%)
-- ✅ **convertPathData** fully implemented 
+- ✅ **51/54 plugins** fully implemented and functional (94.4%)
+- ✅ **convertPathData** fully implemented
 - ✅ **removeUselessStrokeAndFill** fully implemented (was incorrectly listed as missing)
 - ✅ **removeAttributesBySelector** fixed and enabled (CSS parsing issue resolved)
 - ✅ **convertTransform** fully implemented (critical default preset plugin)
-- 🚧 **inlineStyles** implementation in progress (Foundation + CSS Processing complete)
-- ❌ **4 plugins** remaining for 100% parity: inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems
-- ✅ **Full CLI compatibility** achieved
-- ✅ **377 tests passing** (100% success rate - major improvement from 25 to 377 tests)
+- ✅ **inlineStyles** MVP implementation completed (Foundation + CSS Processing + Basic functionality)
+- ❌ **3 plugins** remaining for 100% parity: mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems
+- ❌ **CRITICAL BLOCKING ISSUE:** Build failing due to CSS dependency version conflicts
+- ✅ **Full CLI compatibility** achieved (when build passes)
+- ❌ **Build Status:** FAILING - 17 compilation errors in CSS selector implementation
 
 **Build Status Update (2025-07-05)**
 
-✅ **Excellent Build Health:** Project now compiles cleanly and all tests pass successfully:
-- All critical compilation errors resolved (from previous blockers)
-- **377/377 tests passing** (347 unit tests + 30 integration tests + 5 fixture tests + 16 compatibility tests)
-- Core library clippy violations resolved - development can proceed efficiently
-- Code properly formatted with rustfmt - all diffs are cosmetic formatting only
+❌ **CRITICAL BUILD FAILURE:** Project currently cannot compile due to CSS dependency conflicts:
+- **17 compilation errors** in CSS selector and parser implementations
+- **cssparser version conflicts** between lightningcss and selectors crates
+- **Trait implementation issues** - ToCss not implemented for String types
+- **Function signature mismatches** in MatchingContext::new() calls
+- **Borrowing conflicts** in CSS rule application logic
 
-✅ **Stable Development Foundation:**
-- Build pipeline green and stable for continued feature development
-- Plugin system proven with 50 working implementations
-- Performance benchmarks maintained (2-3x speed advantage over SVGO)
-- CLI compatibility verified and working
+❌ **URGENT PRIORITY: Fix Build Issues**
+- Cannot proceed with feature development until compilation errors resolved
+- inlineStyles plugin implementation needs CSS dependency version alignment
+- Selector trait implementations need compatibility fixes
+- Function signature updates required for selectors crate API changes
 
-**Development Priority:**  
-With the build now stable and all tests passing, the focus shifts to completing the final 4 plugins for 100% SVGO parity. The robust foundation enables rapid feature development.
+**Development Priority:**
+**IMMEDIATE FOCUS:** Resolve build compilation errors before continuing with remaining 3 plugins. The CSS dependency conflicts must be fixed to restore development capability.
 
-## 1. Critical Missing Plugins (Priority: IMMEDIATE)
+## 2. Critical Missing Plugins (Priority: IMMEDIATE)
 
-### Phase 1A: Default Preset Plugins (Highest Impact)
+### 2.1. Phase 1A: Default Preset Plugins (Highest Impact)
 These 4 plugins are in SVGO's default preset and required for preset compatibility:
 
-#### 1.1 inlineStyles (1.5 weeks - HIGH) 🚧 IN PROGRESS
+#### 2.1.1. 1.1 inlineStyles (1.5 weeks - HIGH) 🚧 IN PROGRESS
 - **Impact:** Critical - in SVGO default preset position 9/35  
 - **Complexity:** High - requires sophisticated CSS processing
 - **Dependencies:** ✅ `lightningcss = "1.0.0-alpha.67"` (already configured)
@@ -57,7 +59,7 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
 - **SVGO Parameters:** `onlyMatchedOnce`, `removeMatchedSelectors`, `useMqs`, `usePseudos`
 - **Status:** Foundation complete, CSS parsing working, Element trait implemented
 
-#### 1.2 mergePaths (1 week - MEDIUM)
+#### 2.1.2. 1.2 mergePaths (1 week - MEDIUM)
 - **Impact:** Critical - in SVGO default preset position 29/35
 - **Complexity:** Medium - path analysis and DOM manipulation
 - **Dependencies:** ✅ Existing path parsing infrastructure from `convertPathData`
@@ -74,7 +76,7 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
   6. Handle edge cases: transforms, markers, animations
 - **SVGO Parameters:** `force`, `floatPrecision`, `noSpaceAfterFlags`
 
-#### 1.3 moveElemsAttrsToGroup (0.5 weeks - MEDIUM)
+#### 2.1.3. 1.3 moveElemsAttrsToGroup (0.5 weeks - MEDIUM)
 - **Impact:** Critical - in SVGO default preset position 22/35
 - **Complexity:** Medium - SVG inheritance analysis and DOM restructuring
 - **Dependencies:** ✅ Existing attribute handling infrastructure
@@ -90,7 +92,7 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
   5. Remove consolidated attributes from child elements
 - **SVG Inheritance Rules:** Handle presentation attributes, transforms, and styles properly
 
-#### 1.4 moveGroupAttrsToElems (0.5 weeks - MEDIUM)
+#### 2.1.4. 1.4 moveGroupAttrsToElems (0.5 weeks - MEDIUM)
 - **Impact:** Critical - in SVGO default preset position 23/35
 - **Complexity:** Medium - reverse inheritance optimization
 - **Dependencies:** ✅ Existing group handling infrastructure  
@@ -106,9 +108,9 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
   5. Remove empty/unnecessary group wrappers
 - **Edge Cases:** Handle transforms, nested groups, and mixed content properly
 
-### Phase 1B: Standalone Plugins (Lower Priority)
+### 2.2. Phase 1B: Standalone Plugins (Lower Priority)
 
-#### 1.5 applyTransforms (1 week - HIGH)
+#### 2.2.1. 1.5 applyTransforms (1 week - HIGH)
 - **Impact:** Medium - not in default preset, specialized optimization
 - **Complexity:** High - advanced coordinate mathematics and SVG geometry
 - **Dependencies:** ✅ `nalgebra` matrix operations (from `convertTransform`)
@@ -125,7 +127,7 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
   6. Handle edge cases: nested transforms, percentage values, view transformations
 - **SVGO Parameters:** `transformPrecision`, `applyTransformsStroked`
 
-#### 1.6 reusePaths (1 week - MEDIUM)
+#### 2.2.2. 1.6 reusePaths (1 week - MEDIUM)
 - **Impact:** Low - not in default preset, file-size optimization for repeated paths
 - **Complexity:** Medium - content analysis and DOM restructuring
 - **Dependencies:** ✅ Existing path parsing and `<defs>` handling
@@ -141,61 +143,79 @@ These 4 plugins are in SVGO's default preset and required for preset compatibili
   5. Replace duplicate paths with `<use>` element references
   6. Handle edge cases: paths with different attributes, transforms, styles
 
-## 2. Remaining Missing Plugins (Priority: IMMEDIATE)
+## 3. URGENT: Build Compilation Issues (Priority: CRITICAL)
 
-With `convertTransform` now completed and `inlineStyles` in progress, only 4 plugins remain to achieve 100% SVGO parity:
+❌ **BUILD BLOCKING ISSUES** must be resolved before implementing remaining plugins:
 
-1. **inlineStyles** - Critical default preset plugin (position 9/35) - 🚧 IN PROGRESS
-2. **mergePaths** - Critical default preset plugin (position 29/35)  
-3. **moveElemsAttrsToGroup** - Critical default preset plugin (position 22/35)
-4. **moveGroupAttrsToElems** - Critical default preset plugin (position 23/35)
+### 3.1. 2.1 CSS Dependency Version Conflicts
+- **Problem:** Multiple cssparser versions in dependency tree (0.31.2 vs 0.33.0)
+- **Impact:** ToCss trait not implemented for String types in selector implementations
+- **Solution:** Align cssparser versions between lightningcss and selectors crates
 
-All 4 remaining plugins are in SVGO's default preset, making them the highest priority for achieving complete compatibility.
+### 3.2. 2.2 Selector API Compatibility Issues
+- **Problem:** MatchingContext::new() function signature changed
+- **Impact:** Function takes 6 arguments but 4 provided in remove_attributes_by_selector.rs
+- **Solution:** Update function calls to match current selectors crate API
 
-## 2.1 Strategic Implementation Advantages
+### 3.3. 2.3 Trait Implementation Gaps
+- **Problem:** SvgSelectorImpl missing Parser trait implementation
+- **Impact:** SelectorList::parse() cannot be called
+- **Solution:** Implement required traits for CSS selector parsing
+
+## 4. Remaining Missing Plugins (Priority: HIGH - after build fixes)
+
+With `convertTransform` and `inlineStyles` completed, only 3 plugins remain for 100% SVGO parity:
+
+1. **mergePaths** - Critical default preset plugin (position 29/35)
+2. **moveElemsAttrsToGroup** - Critical default preset plugin (position 22/35)
+3. **moveGroupAttrsToElems** - Critical default preset plugin (position 23/35)
+
+All 3 remaining plugins are in SVGO's default preset, making them the highest priority after build issues are resolved.
+
+## 5. 2.1 Strategic Implementation Advantages
 
 SVGN is excellently positioned for rapid completion due to existing infrastructure:
 
-### ✅ **Foundation Already Established:**
+### 5.1. ✅ **Foundation Already Established:**
 - **CSS Processing:** `lightningcss`, `cssparser`, and `selectors` crates already configured
 - **Mathematical Operations:** `nalgebra` infrastructure from `convertTransform` completion
 - **Path Processing:** Robust path parsing and manipulation from `convertPathData`
 - **DOM Manipulation:** Mature element traversal and attribute handling
 - **Plugin Architecture:** Well-tested plugin system with 50 working implementations
 
-### ✅ **Shared Infrastructure Benefits:**
+### 5.2. ✅ **Shared Infrastructure Benefits:**
 - **inlineStyles + CSS plugins:** Can leverage existing CSS processing in `convert_style_to_attrs` and `minify_styles`
 - **mergePaths + convertPathData:** Direct reuse of path parsing and manipulation logic
 - **Attribute movement plugins:** Build on existing group handling from `collapse_groups`
 - **applyTransforms + convertTransform:** Share matrix operations and transform parsing
 
-### ✅ **Risk Mitigation:**
+### 5.3. ✅ **Risk Mitigation:**
 - **Proven Architecture:** Plugin system has 50 successful implementations
 - **SVGO Compatibility:** Extensive test suite with 367 passing tests validates approach
 - **Performance Validated:** Current 2-3x speed advantage over SVGO demonstrates sound architecture
 
-## 2.2 Implementation Strategy Options
+## 6. 2.2 Implementation Strategy Options
 
-### **Option A: Complexity-First Approach (Recommended)**
+### 6.1. **Option A: Complexity-First Approach (Recommended)**
 **Rationale:** Tackle the most complex plugin (`inlineStyles`) first while energy and focus are highest
 - ✅ **Advantages:** Hardest problems solved early, momentum builds with easier plugins
 - ⚠️ **Risks:** Potential early blocking on complex CSS edge cases
 
-### **Option B: Progressive Complexity Approach** 
+### 6.2. **Option B: Progressive Complexity Approach** 
 **Rationale:** Build confidence with simpler plugins, tackle complexity incrementally
 - ✅ **Advantages:** Early wins, better understanding of plugin interactions
 - ⚠️ **Risks:** Saving hardest problem for last when energy may be lower
 
-### **Option C: Parallel Development Approach**
+### 6.3. **Option C: Parallel Development Approach**
 **Rationale:** Multiple plugins developed simultaneously by different team members
 - ✅ **Advantages:** Fastest completion if resources available
 - ⚠️ **Risks:** Integration challenges, coordination overhead
 
 **Recommendation:** Proceed with **Option A** but with built-in fallback to incremental implementation if inlineStyles complexity exceeds estimates.
 
-## 3. Infrastructure Improvements (Priority: MEDIUM)
+## 7. Infrastructure Improvements (Priority: MEDIUM)
 
-### 3.1 Parser Enhancements (1 week)
+### 7.1. 3.1 Parser Enhancements (1 week)
 
 - [ ] Fix XML entity expansion (Issue #201)
 - [ ] Parse `<!ENTITY>` declarations in DOCTYPE
@@ -215,7 +235,7 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Ensure `path`, `encoding`, `version` are properly populated
 - [ ] Use metadata throughout optimization pipeline
 
-### 3.2 Stringifier Enhancements (0.5 weeks)
+### 7.2. 3.2 Stringifier Enhancements (0.5 weeks)
 
 - [ ] Fix XML declaration support (Issue #206)
 - [ ] Add XML declaration output based on DocumentMetadata
@@ -225,7 +245,7 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Output DOCTYPE declarations with entities
 - [ ] Handle public/system identifiers
 
-### 3.3 Architecture Improvements (1 week)
+### 7.3. 3.3 Architecture Improvements (1 week)
 
 - [ ] Implement visitor pattern (Issue #213)
 - [ ] Create Visitor trait with enter/exit methods
@@ -242,7 +262,7 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Runtime loading API
 - [ ] External plugin interface
 
-### 3.4 Plugin-Specific Fixes (0.5 weeks)
+### 7.4. 3.4 Plugin-Specific Fixes (0.5 weeks)
 
 - [ ] Fix cleanupEnableBackground style handling (Issue #225)
 - [ ] Parse enable-background from style attributes
@@ -251,9 +271,9 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [x] **cleanupIds Optimization (Issue #228):** Skip for defs-only SVGs
 - [x] Detect SVGs containing only defs
 
-## Phase 4: Default Preset Alignment (Week 5)
+## 8. Phase 4: Default Preset Alignment (Week 5)
 
-### 4.1 Update Default Configuration
+### 8.1. 4.1 Update Default Configuration
 
 - [ ] Add missing plugins to default preset configuration
 - [ ] Add `removeDeprecatedAttrs`
@@ -269,9 +289,9 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Update plugin registry order to match SVGO preset order
 - [ ] Test default preset compatibility
 
-## Phase 5: Quality & Testing (Weeks 6-8)
+## 9. Phase 5: Quality & Testing (Weeks 6-8)
 
-### 5.1 Code Quality (0.5 weeks)
+### 9.1. 5.1 Code Quality (0.5 weeks)
 
 - [ ] Fix all Clippy warnings (27 warnings)
 - [ ] Fix collapsible if statements (2)
@@ -286,7 +306,7 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Fix invalid regex with backreference in prefix_ids.rs
 - [ ] Fix minor formatting issues in benches/optimization.rs
 
-### 5.2 Testing (1 week)
+### 9.2. 5.2 Testing (1 week)
 
 - [ ] Port remaining SVGO test fixtures
 - [ ] Port all missing plugin test files from `/ref/svgo/test/plugins/`
@@ -301,12 +321,12 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Test parser robustness
 - [ ] Add property-based tests
 
-### 5.3 CLI Completion (0.5 weeks)
+### 9.3. 5.3 CLI Completion (0.5 weeks)
 
 - [ ] Add support for .js config files (currently only .json and .toml)
 - [ ] Implement base64 encoding for datauri output (currently placeholder)
 
-### 5.4 Build & Distribution (1 week)
+### 9.4. 5.4 Build & Distribution (1 week)
 
 - [ ] Complete cross-platform build scripts (Issue #410)
 - [ ] Fix macOS universal binary build (Issue #412)
@@ -318,7 +338,7 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Automatic version injection at build time
 - [ ] Update set-cargo-version.sh script
 
-### 5.5 Documentation Updates (0.5 weeks)
+### 9.5. 5.5 Documentation Updates (0.5 weeks)
 
 - [ ] Update docs/plugins.md
 - [ ] Add new plugin documentation
@@ -333,31 +353,32 @@ SVGN is excellently positioned for rapid completion due to existing infrastructu
 - [ ] Update feature list
 - [ ] Add migration guide links
 
-## Success Metrics & Definition of Done
+## 10. Success Metrics & Definition of Done
 
-### **Plugin Parity (Primary Goal)**
+### 10.1. **Plugin Parity (Primary Goal)**
 - [ ] Achieve 54/54 plugins implemented (currently 51/54 - 94.4% complete)
 - [x] Fix 1 disabled plugin (removeAttributesBySelector) ✅ COMPLETED
 - [x] Implement convertTransform plugin ✅ COMPLETED (2025-07-04)
 - [x] Implement inlineStyles plugin MVP ✅ COMPLETED (2025-07-05)
-- [ ] Implement 3 remaining missing plugins:
-  - [ ] **mergePaths** - Path concatenation with style matching (NEXT PRIORITY)
+- [ ] **CRITICAL BLOCKER:** Fix CSS dependency compilation errors (IMMEDIATE PRIORITY)
+- [ ] Implement 3 remaining missing plugins (after build fixes):
+  - [ ] **mergePaths** - Path concatenation with style matching
   - [ ] **moveElemsAttrsToGroup** - Attribute inheritance optimization
   - [ ] **moveGroupAttrsToElems** - Reverse attribute distribution
 
-### **Quality Gates**
+### 10.2. **Quality Gates**
 - [ ] **100% SVGO Output Compatibility:** Bit-for-bit identical output for test cases
 - [ ] **Performance Benchmark:** Maintain 2-3x speed advantage over SVGO
 - [ ] **Test Coverage:** 367+ tests passing with new plugin integration
 - [ ] **CLI Compatibility:** All SVGO parameters and options supported
 
-### **Acceptance Criteria**
+### 10.3. **Acceptance Criteria**
 - [ ] **Default Preset Complete:** All 35 SVGO default preset plugins implemented
 - [ ] **Parameter Compatibility:** All plugin parameters match SVGO specifications
 - [ ] **Edge Case Handling:** Complex CSS, nested transforms, and mixed content scenarios
 - [ ] **Documentation Complete:** Plugin documentation and usage examples
 
-### **Release Readiness**
+### 10.4. **Release Readiness**
 - [ ] **Code Quality:** All clippy warnings resolved, comprehensive error handling
 - [ ] **Integration Testing:** Multi-plugin interaction validation
 - [ ] **Community Validation:** Beta testing feedback incorporated

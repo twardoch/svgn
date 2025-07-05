@@ -37,6 +37,7 @@ pub mod convert_one_stop_gradients;
 pub mod convert_path_data;
 pub mod convert_shape_to_path;
 pub mod convert_transform;
+pub mod inline_styles_selector;
 pub mod inline_styles;
 pub mod minify_styles;
 pub mod prefix_ids;
