@@ -1,23 +1,24 @@
 Generating code snapshot in ./llms.txt ...
-╭───────────────────────────────────── CodeToPrompt ──────────────────────────────────────╮
-│ Configuration for this run:                                                             │
-│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn                      │
-│ Include Patterns: ['*']                                                                 │
-│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref', 'testdata', '*.lock'] │
-│ Respect .gitignore: True                                                                │
-│ Show Line Numbers: False                                                                │
-│ Count Tokens: True                                                                      │
-│ Compress Code: True                                                                     │
-│ Max Tokens: Unlimited                                                                   │
-│ Tree Depth: 5                                                                           │
-│ Output Format: default                                                                  │
-│ Interactive Mode: False                                                                 │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────── CodeToPrompt ────────────────────────────────╮
+│ Configuration for this run:                                                  │
+│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn           │
+│ Include Patterns: ['*']                                                      │
+│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref',            │
+│ 'testdata', '*.lock']                                                        │
+│ Respect .gitignore: True                                                     │
+│ Show Line Numbers: False                                                     │
+│ Count Tokens: True                                                           │
+│ Compress Code: True                                                          │
+│ Max Tokens: Unlimited                                                        │
+│ Tree Depth: 5                                                                │
+│ Output Format: default                                                       │
+│ Interactive Mode: False                                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
 ╭──────────────────────── Processing Complete ────────────────────────╮
 │ Summary:                                                            │
 │ Files Processed: 124                                                │
-│ Total Tokens: 127,568                                               │
+│ Total Tokens: 131,720                                               │
 │ Output Destination: llms.txt                                        │
 │                                                                     │
 │ Top 3 Files by Tokens:                                              │
@@ -26,7 +27,7 @@ Generating code snapshot in ./llms.txt ...
 │   - svgn/src/plugins/remove_unknowns_and_defaults.rs (4,955 tokens) │
 │                                                                     │
 │ Top 5 Extensions by Tokens:                                         │
-│   - .rs (51,325 tokens)                                             │
+│   - .rs (55,477 tokens)                                             │
 │   - .css (49,238 tokens)                                            │
 │   - .sh (9,049 tokens)                                              │
 │   - .html (7,592 tokens)                                            │
@@ -54,60 +55,24 @@ warning: unused import: `MatchingContext`
 502 |         MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
     |         ^^^^^^^^^^^^^^^
 
-error[E0599]: no method named `expand_entities_in_text` found for reference `&parser::Parser` in the current scope
-   --> svgn/src/parser.rs:132:45
+warning: unused variable: `input`
+   --> svgn/src/parser.rs:334:91
     |
-132 |                         text_content = self.expand_entities_in_text(&text_content, &entities);
-    |                                             ^^^^^^^^^^^^^^^^^^^^^^^
-    |
-help: there is a method `expand_entities` with a similar name, but with different arguments
-   --> svgn/src/parser.rs:65:5
-    |
-65  |     pub fn expand_entities(mut self, expand: bool) -> Self {
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E0599]: no method named `parse_entities_from_doctype` found for reference `&parser::Parser` in the current scope
-   --> svgn/src/parser.rs:194:30
-    |
-194 |                         self.parse_entities_from_doctype(&doctype, &mut entities);
-    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&Parser`
-
-warning: unused variable: `parent`
-   --> svgn/src/plugins/inline_styles.rs:288:5
-    |
-288 |     parent: Option<&Element>,
-    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_parent`
+334 |     fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>, input: &str) -> ParseResult<Element> {
+    |                                                                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
     |
     = note: `#[warn(unused_variables)]` on by default
 
-warning: unused variable: `index`
-   --> svgn/src/plugins/inline_styles.rs:289:5
-    |
-289 |     index: usize,
-    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_index`
-
-error[E0502]: cannot borrow `*element` as immutable because it is also borrowed as mutable
-   --> svgn/src/plugins/inline_styles.rs:345:22
-    |
-338 |     for child in &mut element.children {
-    |                  ---------------------
-    |                  |
-    |                  mutable borrow occurs here
-    |                  mutable borrow later used here
-...
-345 |                 Some(element),
-    |                      ^^^^^^^ immutable borrow occurs here
-
 warning: unused variable: `media_rule`
-   --> svgn/src/plugins/inline_styles.rs:540:28
+   --> svgn/src/plugins/inline_styles.rs:527:28
     |
-540 |             CssRule::Media(media_rule) => {
+527 |             CssRule::Media(media_rule) => {
     |                            ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_media_rule`
 
 warning: unused variable: `selector_str`
-   --> svgn/src/plugins/inline_styles.rs:596:19
+   --> svgn/src/plugins/inline_styles.rs:583:19
     |
-596 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
+583 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
     |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_selector_str`
 
 warning: unused variable: `wrapper`
@@ -174,7 +139,571 @@ warning: variable does not need to be mutable
     |                 |
     |                 help: remove this `mut`
 
-Some errors have detailed explanations: E0502, E0599.
-For more information about an error, try `rustc --explain E0502`.
-warning: `svgn` (lib) generated 16 warnings
-error: could not compile `svgn` (lib) due to 3 previous errors; 16 warnings emitted
+warning: function `apply_css_rule` is never used
+   --> svgn/src/plugins/inline_styles.rs:264:4
+    |
+264 | fn apply_css_rule(
+    |    ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `apply_css_rule_and_track` is never used
+   --> svgn/src/plugins/inline_styles.rs:273:4
+    |
+273 | fn apply_css_rule_and_track(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calculate_parsed_selector_specificity` is never used
+   --> svgn/src/plugins/inline_styles.rs:604:4
+    |
+604 | fn calculate_parsed_selector_specificity(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `collect_matching_paths` is never used
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:138:4
+    |
+138 | fn collect_matching_paths(
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_element_by_path_mut` is never used
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:179:4
+    |
+179 | fn get_element_by_path_mut<'a>(node: &'a mut Node, path: &[usize]) -> Option<&'a mut Element> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `svgn` (lib) generated 20 warnings (run `cargo fix --lib -p svgn` to apply 7 suggestions)
+    Finished `release` profile [optimized] target(s) in 1m 20s
+Running tests...
+   Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
+warning: unused imports: `MatchingContext`, `MatchingForInvalidation`, `MatchingMode`, `NeedsSelectorFlags`, and `QuirksMode`
+  --> svgn/src/plugins/inline_styles.rs:25:5
+   |
+25 |     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
+   |     ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `SvgElementWrapper` and `walk_element_tree_with_parent`
+  --> svgn/src/plugins/inline_styles.rs:35:5
+   |
+35 |     walk_element_tree_with_parent, SvgElementWrapper, SvgSelectorImpl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `MatchingContext`
+   --> svgn/src/plugins/inline_styles_selector.rs:502:9
+    |
+502 |         MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
+    |         ^^^^^^^^^^^^^^^
+
+warning: unused variable: `input`
+   --> svgn/src/parser.rs:334:91
+    |
+334 |     fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>, input: &str) -> ParseResult<Element> {
+    |                                                                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_input`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `media_rule`
+   --> svgn/src/plugins/inline_styles.rs:527:28
+    |
+527 |             CssRule::Media(media_rule) => {
+    |                            ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_media_rule`
+
+warning: unused variable: `selector_str`
+   --> svgn/src/plugins/inline_styles.rs:583:19
+    |
+583 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
+    |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_selector_str`
+
+warning: unused variable: `wrapper`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:145:13
+    |
+145 |         let wrapper = SvgElementWrapper::new(element);
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_wrapper`
+
+warning: unused variable: `context`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:147:17
+    |
+147 |         let mut context: selectors::matching::MatchingContext<'_, SvgSelectorImpl> = selectors::matching::MatchingContext::new(
+    |                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_context`
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:147:13
+    |
+147 |         let mut context: selectors::matching::MatchingContext<'_, SvgSelectorImpl> = selectors::matching::MatchingContext::new(
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:157:13
+    |
+157 |         let mut matches = false;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `parser`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:256:21
+    |
+256 |             let mut parser = cssparser::Parser::new(&mut parser_input);
+    |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_parser`
+
+warning: unused variable: `parsing_mode`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:257:17
+    |
+257 |             let parsing_mode = selectors::parser::ParseRelative::No;
+    |                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_parsing_mode`
+
+warning: unused variable: `parser`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:262:21
+    |
+262 |             let mut parser = cssparser::Parser::new(&mut input);
+    |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_parser`
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:256:17
+    |
+256 |             let mut parser = cssparser::Parser::new(&mut parser_input);
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:262:17
+    |
+262 |             let mut parser = cssparser::Parser::new(&mut input);
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: function `apply_css_rule` is never used
+   --> svgn/src/plugins/inline_styles.rs:264:4
+    |
+264 | fn apply_css_rule(
+    |    ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: function `apply_css_rule_and_track` is never used
+   --> svgn/src/plugins/inline_styles.rs:273:4
+    |
+273 | fn apply_css_rule_and_track(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calculate_parsed_selector_specificity` is never used
+   --> svgn/src/plugins/inline_styles.rs:604:4
+    |
+604 | fn calculate_parsed_selector_specificity(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `collect_matching_paths` is never used
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:138:4
+    |
+138 | fn collect_matching_paths(
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_element_by_path_mut` is never used
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:179:4
+    |
+179 | fn get_element_by_path_mut<'a>(node: &'a mut Node, path: &[usize]) -> Option<&'a mut Element> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `svgn` (lib) generated 20 warnings (run `cargo fix --lib -p svgn` to apply 7 suggestions)
+warning: `svgn` (lib test) generated 20 warnings (20 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.31s
+     Running unittests src/lib.rs (target/debug/deps/svgn-eeb94c1bdee743bc)
+
+running 350 tests
+test config::tests::test_default_config ... ok
+test ast::tests::test_element_creation ... ok
+test optimizer::tests::test_optimization_info ... ok
+test config::tests::test_default_preset ... ok
+test ast::tests::test_child_operations ... ok
+test config::tests::test_plugin_management ... ok
+test ast::tests::test_whitespace_detection ... ok
+test ast::tests::test_attribute_operations ... ok
+test optimizer::tests::test_datauri_encoding ... ok
+test parser::tests::test_parse_empty_element ... ok
+test config::tests::test_json_parsing ... ok
+test config::tests::test_config_serialization ... ok
+test parser::tests::test_parse_invalid_xml ... ok
+test parser::tests::test_parse_with_comments ... ok
+test optimizer::tests::test_optimize_with_config ... ok
+test parser::tests::test_parse_simple_svg ... ok
+test parser::tests::test_parse_with_namespaces ... ok
+test plugin::tests::test_apply_plugins ... ok
+test parser::tests::test_parse_with_text ... ok
+test plugin::tests::test_apply_unknown_plugin ... ok
+test optimizer::tests::test_optimize_simple_svg ... ok
+test plugin::tests::test_plugin_config ... ok
+test plugin::tests::test_plugin_registry ... ok
+test plugins::add_attributes_to_svg_element::tests::test_add_multiple_attributes ... ok
+test plugins::add_attributes_to_svg_element::tests::test_add_attributes_with_values ... ok
+test plugins::add_attributes_to_svg_element::tests::test_add_single_attribute ... ok
+test plugins::add_attributes_to_svg_element::tests::test_dont_overwrite_existing_attributes ... ok
+test plugins::add_attributes_to_svg_element::tests::test_invalid_params ... ok
+test plugins::add_attributes_to_svg_element::tests::test_missing_params ... ok
+test plugins::add_attributes_to_svg_element::tests::test_non_svg_element ... ok
+test plugins::add_attributes_to_svg_element::tests::test_validate_params ... ok
+test plugins::add_classes_to_svg_element::tests::test_add_multiple_classes ... ok
+test plugins::add_classes_to_svg_element::tests::test_add_classes_to_existing ... ok
+test plugins::add_classes_to_svg_element::tests::test_add_single_class ... ok
+test plugins::add_classes_to_svg_element::tests::test_duplicate_classes ... ok
+test plugins::add_classes_to_svg_element::tests::test_empty_class_names ... ok
+test plugins::add_classes_to_svg_element::tests::test_invalid_class_name_type ... ok
+test plugins::add_classes_to_svg_element::tests::test_invalid_params ... ok
+test plugins::add_classes_to_svg_element::tests::test_missing_params ... ok
+test plugins::add_classes_to_svg_element::tests::test_non_svg_element ... ok
+test plugins::add_classes_to_svg_element::tests::test_validate_params ... ok
+test plugins::cleanup_attrs::tests::test_with_params ... ok
+test plugins::cleanup_enable_background::tests::test_remove_without_filter ... ok
+test plugins::cleanup_ids::tests::test_skip_with_scripts ... ok
+test plugins::cleanup_ids::tests::test_preserve_ids ... ok
+test plugins::cleanup_list_of_values::tests::test_plugin_name_and_description ... ok
+test plugins::cleanup_list_of_values::tests::test_preserves_non_list_attributes ... ok
+test plugins::cleanup_enable_background::tests::test_keep_non_matching ... ok
+test plugins::cleanup_enable_background::tests::test_simplify_mask_pattern ... ok
+test plugins::cleanup_enable_background::tests::test_cleanup_with_filter ... ok
+test plugins::cleanup_numeric_values::tests::test_cleans_viewbox ... ok
+test plugins::cleanup_ids::tests::test_minify_ids ... ok
+test plugins::cleanup_ids::tests::test_remove_unused_ids ... ok
+test plugins::cleanup_attrs::tests::test_cleanup_spaces ... ok
+test plugins::cleanup_attrs::tests::test_cleanup_newlines ... ok
+test plugins::cleanup_numeric_values::tests::test_plugin_name_and_description ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_viewbox ... ok
+test plugins::cleanup_list_of_values::tests::test_configurable_precision ... ok
+test plugins::cleanup_list_of_values::tests::test_handles_comma_separated_values ... ok
+test plugins::cleanup_list_of_values::tests::test_configurable_leading_zero ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_points_list ... ok
+test plugins::cleanup_list_of_values::tests::test_handles_enable_background_with_new ... ok
+test plugins::cleanup_list_of_values::tests::test_handles_mixed_separators ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_stroke_dasharray ... ok
+test plugins::cleanup_list_of_values::tests::test_converts_units_in_lists ... ok
+test plugins::cleanup_list_of_values::tests::test_rounds_text_positioning ... ok
+test plugins::collapse_groups::tests::test_collapse_empty_group ... ok
+test plugins::collapse_groups::tests::test_concatenate_transforms ... ok
+test plugins::collapse_groups::tests::test_nested_groups ... ok
+test plugins::collapse_groups::tests::test_move_attributes_to_single_child ... ok
+test plugins::collapse_groups::tests::test_preserve_group_with_id ... ok
+test plugins::collapse_groups::tests::test_preserve_group_with_multiple_children ... ok
+test plugins::convert_colors::tests::test_convert_to_short_hex ... ok
+test plugins::convert_ellipse_to_circle::tests::test_convert_equal_radii ... ok
+test plugins::convert_ellipse_to_circle::tests::test_convert_rx_auto ... ok
+test plugins::convert_ellipse_to_circle::tests::test_convert_ry_auto ... ok
+test plugins::convert_ellipse_to_circle::tests::test_default_zero_values ... ok
+test plugins::convert_ellipse_to_circle::tests::test_keep_unequal_radii ... ok
+test plugins::convert_ellipse_to_circle::tests::test_nested_ellipses ... ok
+test plugins::convert_one_stop_gradients::tests::test_apply_with_empty_document ... ok
+test plugins::convert_one_stop_gradients::tests::test_apply_with_no_gradients ... ok
+test plugins::convert_one_stop_gradients::tests::test_extract_gradient_id ... ok
+test plugins::convert_one_stop_gradients::tests::test_plugin_creation ... ok
+test plugins::convert_path_data::tests::test_format_number ... ok
+test plugins::cleanup_numeric_values::tests::test_preserves_non_numeric_values ... ok
+test plugins::cleanup_numeric_values::tests::test_configurable_default_px ... ok
+test plugins::convert_path_data::tests::test_optimize_removes_useless_lineto ... ok
+test plugins::cleanup_numeric_values::tests::test_configurable_leading_zero ... ok
+test plugins::convert_path_data::tests::test_parse_relative_path ... ok
+test plugins::cleanup_numeric_values::tests::test_configurable_precision ... ok
+test plugins::cleanup_numeric_values::tests::test_preserves_version_attribute ... ok
+test plugins::cleanup_numeric_values::tests::test_rounds_decimal_values ... ok
+test plugins::convert_path_data::tests::test_parse_simple_path ... ok
+test plugins::cleanup_numeric_values::tests::test_converts_units_to_px ... ok
+test plugins::cleanup_numeric_values::tests::test_removes_leading_zeros ... ok
+test plugins::cleanup_numeric_values::tests::test_removes_default_px_units ... ok
+test plugins::convert_shape_to_path::tests::test_convert_circle ... ok
+test plugins::convert_shape_to_path::tests::test_convert_line ... ok
+test plugins::convert_shape_to_path::tests::test_convert_rect_basic ... ok
+test plugins::convert_shape_to_path::tests::test_convert_rect_with_position ... ok
+test plugins::convert_shape_to_path::tests::test_precision_formatting ... ok
+test plugins::convert_shape_to_path::tests::test_rect_with_rounded_corners_not_converted ... ok
+test plugins::convert_transform::tests::test_remove_useless_transforms ... ok
+test plugins::inline_styles::tests::test_inline_styles_plugin_description ... ok
+test plugins::inline_styles::tests::test_inline_styles_plugin_name ... ok
+test plugins::merge_styles::tests::test_merge_styles ... ok
+test plugins::merge_styles::tests::test_merge_styles_with_media ... ok
+test plugins::merge_styles::tests::test_remove_empty_styles ... ok
+test plugins::inline_styles::tests::test_inline_styles_basic_functionality ... ok
+test plugins::convert_transform::tests::test_plugin_optimizes_transform ... ok
+test plugins::convert_transform::tests::test_plugin_removes_identity_transform ... ok
+test plugins::convert_transform::tests::test_parse_transform_string ... ok
+test plugins::convert_shape_to_path::tests::test_convert_polygon ... ok
+test plugins::convert_shape_to_path::tests::test_convert_polyline ... ok
+test plugins::convert_colors::tests::test_color_name_to_hex ... ok
+test plugins::convert_colors::tests::test_color_params ... ok
+test plugins::prefix_ids::tests::test_apply_with_custom_config ... ok
+test plugins::prefix_ids::tests::test_apply_with_href ... ok
+test plugins::prefix_ids::tests::test_apply_with_ids ... ok
+test plugins::prefix_ids::tests::test_escape_identifier_name ... ok
+test plugins::convert_colors::tests::test_rgb_to_hex ... ok
+test plugins::minify_styles::tests::test_empty_style_element_removal ... ok
+test plugins::minify_styles::tests::test_minify_css_basic ... ok
+test plugins::minify_styles::tests::test_minify_css_preserve_comments ... ok
+test plugins::minify_styles::tests::test_minify_style_element ... ok
+test plugins::minify_styles::tests::test_minify_css_with_comments ... ok
+test plugins::minify_styles::tests::test_complex_css_minification ... ok
+test plugins::minify_styles::tests::test_minify_css_block ... ok
+test plugins::minify_styles::tests::test_style_attribute_minification ... ok
+test plugins::minify_styles::tests::test_minify_css_block_trailing_semicolon ... ok
+test plugins::minify_styles::tests::test_preserve_important ... ok
+test plugins::prefix_ids::tests::test_plugin_creation ... ok
+test plugins::prefix_ids::tests::test_prefix_id ... ok
+test plugins::prefix_ids::tests::test_prefix_reference ... ok
+test plugins::remove_attributes_by_selector::tests::test_element_name_selector ... ok
+test plugins::prefix_ids::tests::test_generate_prefix ... ok
+test plugins::remove_attributes_by_selector::tests::test_invalid_selector ... FAILED
+test plugins::remove_attributes_by_selector::tests::test_multiple_selectors ... FAILED
+test plugins::remove_attributes_by_selector::tests::test_multiple_attributes_removal ... FAILED
+test plugins::remove_attributes_by_selector::tests::test_single_attribute_removal ... FAILED
+test plugins::remove_attrs::tests::test_no_attrs_parameter_error ... ok
+test plugins::remove_attrs::tests::test_plugin_name_and_description ... ok
+test plugins::remove_comments::tests::test_remove_comments ... ok
+test plugins::remove_deprecated_attrs::tests::test_keep_xml_lang_without_lang ... ok
+test plugins::remove_deprecated_attrs::tests::test_animation_attribute_target ... ok
+test plugins::remove_deprecated_attrs::tests::test_remove_unsafe_attributes ... ok
+test plugins::remove_deprecated_attrs::tests::test_remove_xml_lang_when_lang_exists ... ok
+test plugins::remove_desc::tests::test_remove_any ... ok
+test plugins::remove_desc::tests::test_remove_empty_desc ... ok
+test plugins::remove_desc::tests::test_preserve_custom_desc ... ok
+test plugins::remove_dimensions::tests::test_create_viewbox_from_dimensions ... ok
+test plugins::remove_dimensions::tests::test_decimal_dimensions ... ok
+test plugins::remove_desc::tests::test_remove_standard_desc ... ok
+test plugins::remove_dimensions::tests::test_invalid_dimensions_ignored ... ok
+test plugins::remove_attrs::tests::test_custom_separator ... ok
+test plugins::remove_dimensions::tests::test_missing_dimension_ignored ... ok
+test plugins::remove_dimensions::tests::test_nested_svg_elements ... ok
+test plugins::remove_dimensions::tests::test_no_dimensions_no_change ... ok
+test plugins::remove_dimensions::tests::test_only_processes_svg_elements ... ok
+test plugins::remove_dimensions::tests::test_plugin_creation ... ok
+test plugins::remove_attrs::tests::test_element_specific_removal ... ok
+test plugins::remove_dimensions::tests::test_remove_dimensions_with_existing_viewbox ... ok
+test plugins::remove_dimensions::tests::test_zero_dimensions ... ok
+test plugins::remove_attrs::tests::test_value_specific_removal ... ok
+test plugins::remove_doctype::tests::test_empty_document ... ok
+test plugins::remove_editors_ns_data::tests::test_apply_preserves_normal_content ... ok
+test plugins::remove_editors_ns_data::tests::test_apply_removes_editor_content ... ok
+test plugins::remove_editors_ns_data::tests::test_apply_with_additional_namespaces ... ok
+test plugins::remove_editors_ns_data::tests::test_plugin_creation ... ok
+test plugins::remove_editors_ns_data::tests::test_collect_editor_prefixes ... ok
+test plugins::remove_editors_ns_data::tests::test_remove_editor_attributes ... ok
+test plugins::remove_editors_ns_data::tests::test_should_remove_element ... ok
+test plugins::remove_elements_by_attr::tests::test_apply_no_config_does_nothing ... ok
+test plugins::remove_elements_by_attr::tests::test_apply_recursive ... ok
+test plugins::remove_elements_by_attr::tests::test_apply_removes_by_class ... ok
+test plugins::remove_elements_by_attr::tests::test_apply_removes_by_id ... ok
+test plugins::remove_elements_by_attr::tests::test_parse_config_mixed ... ok
+test plugins::remove_elements_by_attr::tests::test_parse_config_multiple_classes ... ok
+test plugins::remove_elements_by_attr::tests::test_parse_config_multiple_ids ... ok
+test plugins::remove_elements_by_attr::tests::test_parse_config_single_class ... ok
+test plugins::remove_elements_by_attr::tests::test_parse_config_single_id ... ok
+test plugins::remove_elements_by_attr::tests::test_plugin_creation ... ok
+test plugins::remove_elements_by_attr::tests::test_should_remove_element_by_class ... ok
+test plugins::remove_elements_by_attr::tests::test_should_remove_element_by_id ... ok
+test plugins::remove_empty_attrs::tests::test_no_attributes ... ok
+test plugins::remove_empty_attrs::tests::test_nested_elements ... ok
+test plugins::remove_attrs::tests::test_nested_elements ... ok
+test plugins::remove_empty_attrs::tests::test_plugin_name_and_description ... ok
+test plugins::remove_empty_attrs::tests::test_preserves_conditional_processing_attrs ... ok
+test plugins::remove_empty_attrs::tests::test_removes_empty_attributes ... ok
+test plugins::remove_empty_containers::tests::test_keeps_non_container_elements ... ok
+test plugins::remove_empty_containers::tests::test_plugin_name_and_description ... ok
+test plugins::remove_empty_containers::tests::test_preserves_elements_in_switch ... ok
+test plugins::remove_empty_containers::tests::test_preserves_g_with_filter ... ok
+test plugins::remove_attrs::tests::test_preserve_current_color ... ok
+test plugins::remove_attrs::tests::test_simple_attribute_removal ... ok
+test plugins::remove_empty_containers::tests::test_preserves_mask_with_id ... ok
+test plugins::remove_attrs::tests::test_preserve_current_color_case_insensitive ... ok
+test plugins::remove_empty_containers::tests::test_preserves_pattern_with_attributes ... ok
+test plugins::remove_empty_containers::tests::test_preserves_svg_root ... ok
+test plugins::remove_empty_containers::tests::test_removes_empty_defs ... ok
+test plugins::remove_empty_containers::tests::test_removes_empty_g ... ok
+test plugins::remove_empty_containers::tests::test_removes_nested_empty_containers ... ok
+test plugins::remove_empty_text::tests::test_configurable_text_removal ... ok
+test plugins::remove_empty_text::tests::test_configurable_tref_removal ... ok
+test plugins::remove_empty_text::tests::test_configurable_tspan_removal ... ok
+test plugins::remove_empty_text::tests::test_mixed_text_elements ... ok
+test plugins::remove_empty_text::tests::test_plugin_name_and_description ... ok
+test plugins::remove_empty_text::tests::test_preserves_text_with_content ... ok
+test plugins::remove_empty_text::tests::test_preserves_tref_with_href ... ok
+test plugins::remove_empty_text::tests::test_removes_empty_text ... ok
+test plugins::remove_empty_text::tests::test_removes_empty_tspan ... ok
+test plugins::remove_attrs::tests::test_regex_pattern_removal ... ok
+test plugins::remove_empty_text::tests::test_removes_tref_without_href ... ok
+test plugins::remove_hidden_elems::tests::test_config_display_none_disabled ... ok
+test plugins::remove_hidden_elems::tests::test_plugin_name_and_description ... ok
+test plugins::remove_hidden_elems::tests::test_nested_hidden_elements ... ok
+test plugins::remove_hidden_elems::tests::test_remove_display_none ... ok
+test plugins::remove_hidden_elems::tests::test_remove_empty_groups ... ok
+test plugins::prefix_ids::tests::test_get_basename ... ok
+test plugins::remove_hidden_elems::tests::test_remove_empty_path ... ok
+test plugins::remove_hidden_elems::tests::test_remove_opacity_zero ... ok
+test plugins::remove_hidden_elems::tests::test_remove_visibility_hidden ... ok
+test plugins::remove_hidden_elems::tests::test_remove_zero_radius_circle ... ok
+test plugins::remove_hidden_elems::tests::test_remove_zero_radius_ellipse ... ok
+test plugins::remove_hidden_elems::tests::test_remove_zero_width_rect ... ok
+test plugins::remove_hidden_elems::tests::test_zero_line ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_empty_group ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_nested_groups ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_all_non_inheritable_attrs ... ok
+test plugins::remove_metadata::tests::test_remove_metadata ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_only_affects_groups ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_plugin_name_and_description ... ok
+test plugins::remove_non_inheritable_group_attrs::tests::test_remove_non_inheritable_attrs ... ok
+test plugins::remove_off_canvas_paths::tests::test_nested_elements ... ok
+test plugins::remove_off_canvas_paths::tests::test_no_viewbox_no_removal ... ok
+test plugins::remove_off_canvas_paths::tests::test_plugin_name_and_description ... ok
+test plugins::remove_off_canvas_paths::tests::test_remove_circle_outside_viewbox ... ok
+test plugins::remove_off_canvas_paths::tests::test_remove_line_outside_viewbox ... ok
+test plugins::remove_off_canvas_paths::tests::test_remove_polygon_outside_viewbox ... ok
+test plugins::remove_attrs::tests::test_multiple_attribute_removal ... ok
+test plugins::remove_off_canvas_paths::tests::test_remove_rect_outside_viewbox ... ok
+test plugins::remove_off_canvas_paths::tests::test_viewbox_with_offset ... ok
+test plugins::remove_raster_images::tests::test_plugin_name_and_description ... ok
+test plugins::remove_scripts::tests::test_javascript_url_in_anchor ... ok
+test plugins::remove_scripts::tests::test_normal_anchor_preserved ... ok
+test plugins::remove_scripts::tests::test_plugin_name_and_description ... ok
+test plugins::remove_scripts::tests::test_remove_script_elements ... ok
+test plugins::remove_scripts::tests::test_remove_event_attributes ... ok
+test plugins::convert_style_to_attrs::tests::test_preserve_existing_attributes ... ok
+test plugins::remove_scripts::tests::test_xlink_href_with_javascript ... ok
+test plugins::remove_style_element::tests::test_remove_multiple_style_elements ... ok
+test plugins::remove_title::tests::test_remove_title ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_configuration_options ... ok
+test plugins::remove_style_element::tests::test_remove_style_elements ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_plugin_name_and_description ... ok
+test plugins::remove_raster_images::tests::test_preserve_non_image_elements ... ok
+test plugins::remove_raster_images::tests::test_case_sensitivity ... ok
+test plugins::remove_raster_images::tests::test_preserve_svg_images ... ok
+test plugins::remove_raster_images::tests::test_remove_gif_image ... ok
+test plugins::remove_raster_images::tests::test_remove_png_image ... ok
+test plugins::remove_raster_images::tests::test_remove_jpeg_image ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_aria_attributes ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_data_attributes ... ok
+test plugins::remove_raster_images::tests::test_nested_images ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_id_elements_from_default_removal ... ok
+test plugins::remove_raster_images::tests::test_url_with_path ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_preserves_namespaced_attributes ... ok
+test plugins::remove_raster_images::tests::test_remove_data_uri_images ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_removes_default_values ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_removes_unknown_attributes ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_removes_unknown_elements ... ok
+test plugins::remove_unknowns_and_defaults::tests::test_role_attribute_handling ... ok
+test plugins::remove_unused_ns::tests::test_mixed_used_and_unused_namespaces ... ok
+test plugins::remove_unused_ns::tests::test_nested_element_namespace_usage ... ok
+test plugins::remove_unused_ns::tests::test_no_namespaces_to_remove ... ok
+test plugins::remove_unused_ns::tests::test_plugin_name_and_description ... ok
+test plugins::remove_unused_ns::tests::test_preserve_used_namespace_in_attributes ... ok
+test plugins::convert_colors::tests::test_convert_rgb_to_hex_function ... ok
+test plugins::remove_unused_ns::tests::test_preserve_used_namespace_in_element_name ... ok
+test plugins::remove_unused_ns::tests::test_remove_all_unused_namespaces ... ok
+test plugins::remove_useless_defs::tests::test_flatten_nested_useless_elements ... ok
+test plugins::remove_unused_ns::tests::test_remove_unused_namespace ... ok
+test plugins::remove_useless_defs::tests::test_non_rendering_elements_without_id ... ok
+test plugins::remove_useless_defs::tests::test_plugin_name_and_description ... ok
+test plugins::remove_useless_defs::tests::test_preserve_elements_with_id ... ok
+test plugins::remove_useless_defs::tests::test_preserve_style_elements ... ok
+test plugins::remove_useless_defs::tests::test_remove_elements_without_id ... ok
+test plugins::remove_useless_defs::tests::test_remove_empty_defs ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_preserve_with_id ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_remove_fill_none ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_remove_stroke_none ... ok
+test plugins::remove_useless_transforms::tests::test_is_useless_transform ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_remove_zero_opacity ... ok
+test plugins::remove_useless_stroke_and_fill::tests::test_skip_with_style_element ... ok
+test plugins::remove_useless_transforms::tests::test_preserve_non_identity_transform ... ok
+test plugins::remove_useless_transforms::tests::test_remove_identity_scale ... ok
+test plugins::remove_useless_transforms::tests::test_remove_identity_translate ... ok
+test plugins::remove_view_box::tests::test_comma_separated_viewbox ... ok
+test plugins::remove_view_box::tests::test_keep_viewbox_different_dimensions ... ok
+test plugins::remove_view_box::tests::test_keep_viewbox_different_origin ... ok
+test plugins::remove_view_box::tests::test_keep_viewbox_missing_width_or_height ... ok
+test plugins::remove_view_box::tests::test_keep_viewbox_with_px_units ... ok
+test plugins::remove_view_box::tests::test_mixed_separator_viewbox ... ok
+test plugins::remove_view_box::tests::test_nested_svg_preserved ... ok
+test plugins::remove_view_box::tests::test_pattern_element ... ok
+test plugins::remove_view_box::tests::test_plugin_name_and_description ... ok
+test plugins::remove_view_box::tests::test_remove_redundant_viewbox ... ok
+test plugins::remove_xlink::tests::test_convert_xlink_href_to_href ... ok
+test plugins::remove_xlink::tests::test_convert_xlink_show_to_target ... ok
+test plugins::remove_xlink::tests::test_convert_xlink_title_to_title_element ... ok
+test plugins::remove_xlink::tests::test_include_legacy_option ... ok
+test plugins::remove_xlink::tests::test_plugin_name_and_description ... ok
+test plugins::remove_xlink::tests::test_preserve_existing_href ... ok
+test plugins::remove_xlink::tests::test_preserve_legacy_elements ... ok
+test plugins::remove_xml_proc_inst::tests::test_preserve_other_pi ... ok
+test plugins::remove_xmlns::tests::test_complex_nested_structure ... ok
+test plugins::remove_xml_proc_inst::tests::test_remove_xml_declaration ... ok
+test plugins::remove_xmlns::tests::test_ignore_non_svg_elements ... ok
+test plugins::remove_xmlns::tests::test_no_xmlns_attribute ... ok
+test plugins::remove_xmlns::tests::test_plugin_name_and_description ... ok
+test plugins::remove_xmlns::tests::test_preserve_other_xmlns_attributes ... ok
+test plugins::remove_xmlns::tests::test_remove_xmlns_from_nested_svg ... ok
+test plugins::remove_xmlns::tests::test_remove_xmlns_from_svg ... ok
+test plugins::sort_attrs::tests::test_alphabetical_fallback ... ok
+test plugins::sort_attrs::tests::test_custom_order ... ok
+test plugins::sort_attrs::tests::test_grouped_attributes ... ok
+test plugins::sort_attrs::tests::test_plugin_name_and_description ... ok
+test plugins::sort_attrs::tests::test_nested_elements ... ok
+test plugins::sort_attrs::tests::test_sorts_by_default_order ... ok
+test plugins::sort_attrs::tests::test_xmlns_alphabetical_ordering ... ok
+test plugins::sort_attrs::tests::test_xmlns_front_ordering ... ok
+test plugins::sort_defs_children::tests::test_complex_sorting ... ok
+test plugins::sort_defs_children::tests::test_empty_defs ... ok
+test plugins::sort_defs_children::tests::test_nested_defs ... ok
+test plugins::sort_defs_children::tests::test_plugin_name_and_description ... ok
+test plugins::sort_defs_children::tests::test_preserve_non_element_nodes ... ok
+test plugins::sort_defs_children::tests::test_sort_alphabetically ... ok
+test plugins::convert_style_to_attrs::tests::test_convert_style_to_attrs ... ok
+test plugins::sort_defs_children::tests::test_sort_by_frequency ... ok
+test plugins::sort_defs_children::tests::test_sort_by_name_length ... ok
+test stringifier::tests::test_attribute_escaping ... ok
+test stringifier::tests::test_quote_styles ... ok
+test stringifier::tests::test_self_closing_elements ... ok
+test stringifier::tests::test_stringify_pretty ... ok
+test stringifier::tests::test_stringify_simple_element ... ok
+test stringifier::tests::test_stringify_with_comment ... ok
+test stringifier::tests::test_stringify_with_text ... ok
+test plugins::convert_style_to_attrs::tests::test_complex_css_parsing ... ok
+test plugins::remove_doctype::tests::test_remove_doctype ... ok
+
+failures:
+
+---- plugins::remove_attributes_by_selector::tests::test_invalid_selector stdout ----
+
+thread 'plugins::remove_attributes_by_selector::tests::test_invalid_selector' panicked at svgn/src/plugins/remove_attributes_by_selector.rs:454:9:
+assertion failed: result.is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- plugins::remove_attributes_by_selector::tests::test_multiple_selectors stdout ----
+
+thread 'plugins::remove_attributes_by_selector::tests::test_multiple_selectors' panicked at svgn/src/plugins/remove_attributes_by_selector.rs:411:13:
+assertion `left == right` failed
+  left: Some("#00ff00")
+ right: None
+
+---- plugins::remove_attributes_by_selector::tests::test_multiple_attributes_removal stdout ----
+
+thread 'plugins::remove_attributes_by_selector::tests::test_multiple_attributes_removal' panicked at svgn/src/plugins/remove_attributes_by_selector.rs:360:13:
+assertion `left == right` failed
+  left: Some("#00ff00")
+ right: None
+
+---- plugins::remove_attributes_by_selector::tests::test_single_attribute_removal stdout ----
+
+thread 'plugins::remove_attributes_by_selector::tests::test_single_attribute_removal' panicked at svgn/src/plugins/remove_attributes_by_selector.rs:340:13:
+assertion `left == right` failed
+  left: Some("#00ff00")
+ right: None
+
+
+failures:
+    plugins::remove_attributes_by_selector::tests::test_invalid_selector
+    plugins::remove_attributes_by_selector::tests::test_multiple_attributes_removal
+    plugins::remove_attributes_by_selector::tests::test_multiple_selectors
+    plugins::remove_attributes_by_selector::tests::test_single_attribute_removal
+
+test result: FAILED. 346 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `--lib`

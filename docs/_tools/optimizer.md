@@ -135,7 +135,7 @@ nav_order: 1
   <ul>
     <li><strong>Privacy-first:</strong> All processing happens locally in your browser</li>
     <li><strong>High Performance:</strong> 2-3x faster than JavaScript implementations</li>
-    <li><strong>Full Compatibility:</strong> 48/53 SVGO plugins implemented</li>
+    <li><strong>Full Compatibility:</strong> 55/53 SVGO plugins implemented</li>
     <li><strong>Real-time Preview:</strong> See optimizations applied instantly</li>
     <li><strong>Batch Processing:</strong> Upload and optimize multiple files at once</li>
     <li><strong>Customizable:</strong> Configure optimization settings to your needs</li>

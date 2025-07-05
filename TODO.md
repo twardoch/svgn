@@ -185,12 +185,12 @@
 - [x] M3. Build entity table during parsing - COMPLETED: HashMap stores entity name->value mappings
 - [x] M4. Expand &entity; references throughout document - COMPLETED: Entities expanded in text and attributes
 - [x] M5. Update parser in svgn/src/parser.rs - COMPLETED: Added expand_entities flag and helper methods
-- [ ] M6. Fix selective whitespace preservation (Issue #202)
-- [ ] M7. Preserve whitespace in <text>, <tspan>, <pre>, <script>, <style>
-- [ ] M8. Add context-aware whitespace handling
-- [ ] M9. Fix enhanced error reporting (Issue #203)
-- [ ] M10. Track line/column positions during parsing
-- [ ] M11. Provide context snippets in error messages
+- [x] M6. Fix selective whitespace preservation (Issue #202) - COMPLETED: Added TEXT_ELEMENTS set
+- [x] M7. Preserve whitespace in <text>, <tspan>, <pre>, <script>, <style> - COMPLETED: Using element name stack
+- [x] M8. Add context-aware whitespace handling - COMPLETED: Checks parent element context
+- [x] M9. Fix enhanced error reporting (Issue #203) - COMPLETED: Added DetailedParseError with Display implementation
+- [x] M10. Track line/column positions during parsing - COMPLETED: Added calculate_line_and_column method
+- [x] M11. Provide context snippets in error messages - COMPLETED: Added ErrorContext with source code display
 - [ ] M12. Fix namespace handling consistency (Issue #204)
 - [ ] M13. Unify namespace handling in single location
 - [ ] M14. Remove redundancy between namespaces and attributes maps
@@ -308,12 +308,12 @@
 **Dependencies:** Threads B and C must be completed first
 **Complexity:** Easy - documentation updates
 
-- [ ] U1. Update docs/plugins.md
-- [ ] U2. Add new plugin documentation
-- [ ] U3. Update implementation status
+- [x] U1. Update docs/plugins.md
+- [x] U2. Add new plugin documentation
+- [x] U3. Update implementation status
 - [ ] U4. Add parameter documentation
 - [ ] U5. Update docs/comparison.md
-- [ ] U6. Update plugin count (54/54)
+- [x] U6. Update plugin count (55/53)
 - [ ] U7. Update compatibility metrics
 - [ ] U8. Document performance characteristics
 - [ ] U9. Update README.md

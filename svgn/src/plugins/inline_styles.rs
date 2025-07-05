@@ -153,7 +153,7 @@ fn process_all_style_elements(
             }
         }
 
-        apply_css_rule_and_track(element, rule, params, &mut used_selectors)?;
+        traverse_and_apply_rules(element, rule, params, &mut used_selectors)?;
     }
 
     // Clean up if configured
@@ -276,50 +276,25 @@ fn apply_css_rule_and_track(
     _params: &InlineStylesParams,
     used_selectors: &mut HashSet<String>,
 ) -> PluginResult<()> {
-    apply_css_rule_and_track_impl(element, rule, _params, used_selectors, None, 0)
+    traverse_and_apply_rules(element, rule, _params, used_selectors)
 }
 
-/// Implementation of CSS rule application with parent tracking
-fn apply_css_rule_and_track_impl(
+/// Apply a CSS rule to a single element and track which selectors were used
+fn apply_rule_to_element(
     element: &mut Element,
     rule: &CssRuleData,
-    _params: &InlineStylesParams,
     used_selectors: &mut HashSet<String>,
-    parent: Option<&Element>,
-    index: usize,
 ) -> PluginResult<()> {
-    // Check if this element matches the selector
     let matches = if let Some(_selector_list) = &rule.parsed_selectors {
-        // TODO: Fix SelectorList iteration - using fallback for now
         element_matches_selector_simple(element, &rule.selector)
-        /*
-        // Use advanced selector matching
-        let wrapper = SvgElementWrapper::new(element);
-        selector_list.0.iter().any(|selector| {
-            let mut selector_caches = selectors::matching::SelectorCaches::default();
-            let mut context = MatchingContext::new(
-                MatchingMode::Normal,
-                None,
-                &mut selector_caches,
-                QuirksMode::NoQuirks,
-                NeedsSelectorFlags::No,
-                MatchingForInvalidation::No,
-            );
-            selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context)
-        })
-        */
     } else {
-        // Fallback to simple matching
         element_matches_selector_simple(element, &rule.selector)
     };
 
     if matches {
-        // Apply declarations to this element
         apply_declarations_to_element(element, &rule.declarations);
-        // Track which selectors were used
         used_selectors.insert(rule.selector.clone());
 
-        // Track if we used a class or ID selector for cleanup
         if rule.selector.starts_with('.') {
             let class_name = &rule.selector[1..];
             element
@@ -332,22 +307,34 @@ fn apply_css_rule_and_track_impl(
                 .insert("data-used-id".to_string(), id_name.to_string());
         }
     }
+    Ok(())
+}
 
-    // Process children with proper parent tracking
-    let mut child_index = 0;
-    for child in &mut element.children {
-        if let Node::Element(child_elem) = child {
-            apply_css_rule_and_track_impl(
+/// Recursively traverse the element tree and apply CSS rules
+fn traverse_and_apply_rules(
+    element: &mut Element,
+    rule: &CssRuleData,
+    params: &InlineStylesParams,
+    used_selectors: &mut HashSet<String>,
+) -> PluginResult<()> {
+    // Apply rule to the current element
+    apply_rule_to_element(element, rule, used_selectors)?;
+
+    // Process children recursively
+    let mut children_nodes = std::mem::take(&mut element.children);
+
+    for child_node in &mut children_nodes {
+        if let Node::Element(child_elem) = child_node {
+            traverse_and_apply_rules(
                 child_elem,
                 rule,
-                _params,
+                params,
                 used_selectors,
-                Some(element),
-                child_index,
             )?;
-            child_index += 1;
         }
     }
+
+    element.children = children_nodes;
 
     Ok(())
 }

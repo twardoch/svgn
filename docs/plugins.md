@@ -58,7 +58,7 @@ The SVGO v4 default preset runs plugins in this specific order:
 32. sortDefsChildren
 33. removeDesc
 
-Note: `removeUselessStrokeAndFill` is listed in SVGO's default preset but is not implemented in svgn. This functionality might be partially covered by other attribute removal plugins.
+
 
 ## Implementation Status
 

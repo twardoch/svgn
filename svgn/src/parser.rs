@@ -7,28 +7,106 @@
 
 use crate::ast::{Document, Element, Node};
 use quick_xml::events::{BytesStart, Event};
-use quick_xml::{Error as XmlError, Reader};
-use regex::Regex;
-use std::collections::HashMap;
+use quick_xml::Reader;
+use std::collections::{HashMap, HashSet};
+use std::fmt;
+use std::sync::LazyLock;
 use thiserror::Error;
 
-/// Parser error types
+/// Parse error types
 #[derive(Error, Debug)]
 pub enum ParseError {
     #[error("XML parsing error: {0}")]
-    XmlError(#[from] XmlError),
+    XmlError(#[from] quick_xml::Error),
+    
     #[error("Attribute parsing error: {0}")]
     AttrError(String),
+    
     #[error("Invalid UTF-8: {0}")]
     Utf8Error(#[from] std::str::Utf8Error),
+    
     #[error("Document structure error: {0}")]
     StructureError(String),
+    
     #[error("Unexpected end of document")]
     UnexpectedEnd,
+    
+    #[error("{0}")]
+    DetailedError(DetailedParseError),
+}
+
+
+/// Detailed parse error with context
+#[derive(Debug, Clone)]
+pub struct DetailedParseError {
+    /// File path (if available)
+    pub file_path: Option<String>,
+    /// Line number (1-based)
+    pub line: usize,
+    /// Column number (1-based)
+    pub column: usize,
+    /// Error message
+    pub message: String,
+    /// Source code context
+    pub context: Option<ErrorContext>,
+}
+
+/// Error context with source code snippet
+#[derive(Debug, Clone)]
+pub struct ErrorContext {
+    /// Lines of source code around the error
+    pub lines: Vec<String>,
+    /// Index of the error line in the lines vector
+    pub error_line_index: usize,
+    /// Column position in the error line
+    pub error_column: usize,
+}
+
+impl fmt::Display for DetailedParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Format: file.svg:line:column: error message
+        if let Some(ref path) = self.file_path {
+            write!(f, "{}:", path)?;
+        }
+        write!(f, "{}:{}: {}", self.line, self.column, self.message)?;
+        
+        // Add source context if available
+        if let Some(ref ctx) = self.context {
+            writeln!(f)?;
+            writeln!(f)?;
+            
+            // Display lines with line numbers
+            let start_line = self.line.saturating_sub(ctx.error_line_index);
+            for (i, line) in ctx.lines.iter().enumerate() {
+                let line_num = start_line + i;
+                let prefix = if i == ctx.error_line_index { ">" } else { " " };
+                writeln!(f, "{} {:3} | {}", prefix, line_num, line)?;
+                
+                // Add error pointer on the error line
+                if i == ctx.error_line_index {
+                    let spaces = " ".repeat(ctx.error_column + 6);
+                    writeln!(f, "{} ^", spaces)?;
+                }
+            }
+        }
+        
+        Ok(())
+    }
 }
 
 /// Parse result type
 pub type ParseResult<T> = Result<T, ParseError>;
+
+/// Elements where whitespace should be preserved
+static TEXT_ELEMENTS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+    HashSet::from([
+        // Text content elements
+        "text", "tspan", "textPath", "altGlyph", "tref", 
+        "glyph", "glyphRef", "altGlyphDef", "altGlyphItem",
+        // Other elements that need whitespace preservation
+        "pre", "title", "script", "style"
+    ])
+});
 
 /// SVG parser
 pub struct Parser {
@@ -38,6 +116,8 @@ pub struct Parser {
     preserve_comments: bool,
     /// Whether to expand XML entities
     expand_entities: bool,
+    /// File path (for error reporting)
+    file_path: Option<String>,
 }
 
 impl Parser {
@@ -47,6 +127,7 @@ impl Parser {
             preserve_whitespace: false,
             preserve_comments: false,
             expand_entities: true,
+            file_path: None,
         }
     }
 
@@ -67,6 +148,12 @@ impl Parser {
         self.expand_entities = expand;
         self
     }
+    
+    /// Set the file path for error reporting
+    pub fn file_path(mut self, path: Option<String>) -> Self {
+        self.file_path = path;
+        self
+    }
 
     /// Parse an SVG string into a Document
     pub fn parse(&self, input: &str) -> ParseResult<Document> {
@@ -81,11 +168,15 @@ impl Parser {
         let mut buf = Vec::new();
         let mut found_root = false;
         let mut entities: HashMap<String, String> = HashMap::new();
+        let mut element_name_stack: Vec<String> = Vec::new();
 
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(ref e)) => {
-                    let element = self.parse_start_element(e, &entities)?;
+                    let element = self.parse_start_element(e, &entities, input)?;
+                    
+                    // Track element name for whitespace preservation
+                    element_name_stack.push(element.name.clone());
 
                     if current_element.is_none() {
                         // This is the root element
@@ -99,6 +190,9 @@ impl Parser {
                     }
                 }
                 Ok(Event::End(_)) => {
+                    // Pop element name from stack
+                    element_name_stack.pop();
+                    
                     if let Some(finished_element) = current_element.take() {
                         if let Some(mut parent) = element_stack.pop() {
                             parent.add_child(Node::Element(finished_element));
@@ -111,7 +205,9 @@ impl Parser {
                     }
                 }
                 Ok(Event::Empty(ref e)) => {
-                    let element = self.parse_start_element(e, &entities)?;
+                    let element = self.parse_start_element(e, &entities, input)?;
+                    
+                    // Empty elements don't need name tracking since they have no content
 
                     if let Some(ref mut parent) = current_element {
                         parent.add_child(Node::Element(element));
@@ -133,7 +229,13 @@ impl Parser {
                         text_content = self.expand_entities_in_text(&text_content, &entities);
                     }
 
-                    if self.preserve_whitespace || !text_content.trim().is_empty() {
+                    // Check if we should preserve whitespace for this element
+                    let should_preserve_whitespace = self.preserve_whitespace || 
+                        element_name_stack.last()
+                            .map(|name| TEXT_ELEMENTS.contains(name.as_str()))
+                            .unwrap_or(false);
+
+                    if should_preserve_whitespace || !text_content.trim().is_empty() {
                         if let Some(ref mut element) = current_element {
                             element.add_child(Node::Text(text_content));
                         }
@@ -205,7 +307,15 @@ impl Parser {
                     // Handle general references (new in quick-xml v0.38.0)
                     // For SVG parsing, we typically ignore these
                 }
-                Err(e) => return Err(ParseError::XmlError(e)),
+                Err(e) => {
+                    // Try to get position information for better error reporting
+                    let byte_pos = reader.buffer_position().try_into().unwrap();
+                    return Err(self.create_detailed_error(
+                        input,
+                        byte_pos,
+                        format!("XML parsing error: {}", e),
+                    ));
+                }
                 // All event types are now handled explicitly
             }
             buf.clear();
@@ -221,13 +331,19 @@ impl Parser {
     }
 
     /// Parse a start element into an Element
-    fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>) -> ParseResult<Element> {
+    fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>, input: &str) -> ParseResult<Element> {
         let name = std::str::from_utf8(start.name().as_ref())?.to_string();
         let mut element = Element::new(&name);
 
         // Parse attributes
         for attr_result in start.attributes() {
-            let attr = attr_result.map_err(|e| ParseError::AttrError(e.to_string()))?;
+            let attr = match attr_result {
+                Ok(attr) => attr,
+                Err(e) => {
+                    // Since we can't get the exact position, use a generic error
+                    return Err(ParseError::AttrError(format!("Attribute parsing error: {}", e)));
+                }
+            };
             let key = std::str::from_utf8(attr.key.as_ref())?.to_string();
             let mut value = attr.unescape_value()?.to_string();
             
@@ -286,6 +402,67 @@ impl Parser {
         }
         
         result
+    }
+    
+    /// Calculate line and column from byte position
+    fn calculate_line_and_column(&self, input: &str, byte_pos: usize) -> (usize, usize) {
+        let mut line = 1;
+        let mut col = 1;
+        
+        for (i, ch) in input.char_indices() {
+            if i >= byte_pos {
+                break;
+            }
+            if ch == '\n' {
+                line += 1;
+                col = 1;
+            } else {
+                col += 1;
+            }
+        }
+        
+        (line, col)
+    }
+    
+    /// Create a detailed parse error with context
+    fn create_detailed_error(&self, input: &str, byte_pos: usize, message: String) -> ParseError {
+        let (line, column) = self.calculate_line_and_column(input, byte_pos);
+        
+        // Extract context lines
+        let lines: Vec<&str> = input.lines().collect();
+        let mut context_lines = Vec::new();
+        let mut error_line_index = 0;
+        
+        // Get 2 lines before and after the error
+        let start_line = line.saturating_sub(3);
+        let end_line = (line + 2).min(lines.len());
+        
+        for i in start_line..end_line {
+            if let Some(line_content) = lines.get(i) {
+                context_lines.push(line_content.to_string());
+                if i + 1 == line {
+                    error_line_index = context_lines.len() - 1;
+                }
+            }
+        }
+        
+        let context = if !context_lines.is_empty() {
+            Some(ErrorContext {
+                lines: context_lines,
+                error_line_index,
+                error_column: column.saturating_sub(1),
+            })
+        } else {
+            None
+        };
+        
+        ParseError::DetailedError(DetailedParseError {
+            file_path: self.file_path.clone(),
+            line,
+            column,
+            message,
+            context,
+        })
     }
 }
 
