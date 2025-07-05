@@ -119,12 +119,15 @@ fn collect_matching_paths(
     matching_paths: &mut Vec<Vec<usize>>,
 ) {
     if let Node::Element(element) = node {
-        let wrapper = SvgElementWrapper::new(element, None, 0);
+        let wrapper = SvgElementWrapper::new(element);
+        let mut selector_caches = selectors::matching::SelectorCaches::default();
         let mut context = selectors::matching::MatchingContext::new(
             selectors::matching::MatchingMode::Normal,
             None,
-            None,
+            &mut selector_caches,
             selectors::matching::QuirksMode::NoQuirks,
+            selectors::matching::NeedsSelectorFlags::No,
+            selectors::matching::MatchingForInvalidation::No,
         );
         
         // Check if any selector in the list matches

@@ -203,12 +203,13 @@ fn count_matching_elements_for_rule(element: &Element, rule: &CssRuleData) -> us
     if let Some(ref selector_list) = rule.parsed_selectors {
         // Use advanced selector matching
         walk_element_tree_with_parent(element, None, |elem, parent, index| {
-            let wrapper = SvgElementWrapper::new(elem, parent, index);
-            for selector in selector_list.0.iter() {
+            let wrapper = SvgElementWrapper::new(elem);
+            for selector in selector_list.iter() {
+                let mut selector_caches = selectors::matching::SelectorCaches::default();
                 let mut context = MatchingContext::new(
                     MatchingMode::Normal,
                     None,
-                    &mut selectors::NthIndexCache::default(),
+                    &mut selector_caches,
                     QuirksMode::NoQuirks,
                     NeedsSelectorFlags::No,
                     MatchingForInvalidation::No,
@@ -271,12 +272,13 @@ fn apply_css_rule_and_track_impl(
     // Check if this element matches the selector
     let matches = if let Some(ref selector_list) = rule.parsed_selectors {
         // Use advanced selector matching
-        let wrapper = SvgElementWrapper::new(element, parent, index);
-        selector_list.0.iter().any(|selector| {
+        let wrapper = SvgElementWrapper::new(element);
+        selector_list.iter().any(|selector| {
+            let mut selector_caches = selectors::matching::SelectorCaches::default();
             let mut context = MatchingContext::new(
                 MatchingMode::Normal,
                 None,
-                &mut selectors::NthIndexCache::default(),
+                &mut selector_caches,
                 QuirksMode::NoQuirks,
                 NeedsSelectorFlags::No,
                 MatchingForInvalidation::No,
@@ -564,7 +566,7 @@ fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
 
 /// Calculate specificity for a parsed selector list
 fn calculate_selector_list_specificity(selectors: &SelectorList<SvgSelectorImpl>) -> u32 {
-    selectors.0.iter()
+    selectors.iter()
         .map(calculate_parsed_selector_specificity)
         .max()
         .unwrap_or(0)

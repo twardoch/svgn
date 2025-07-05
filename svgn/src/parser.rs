@@ -110,8 +110,8 @@ impl Parser {
                     }
                 }
                 Ok(Event::Text(ref e)) => {
-                    let text = e.unescape();
-                    let text_content = text.map_err(|e| ParseError::XmlError(e))?.to_string();
+                    let text = e.unescape().map_err(|e| ParseError::XmlError(e))?;
+                    let text_content = text.into_owned();
 
                     if self.preserve_whitespace || !text_content.trim().is_empty() {
                         if let Some(ref mut element) = current_element {
@@ -167,7 +167,7 @@ impl Parser {
                     }
                 }
                 Ok(Event::DocType(ref e)) => {
-                    let doctype = e.unescape().map_err(|e| ParseError::XmlError(e))?.to_string();
+                    let doctype = e.unescape().map_err(|e| ParseError::XmlError(e))?.into_owned();
                     if !found_root {
                         // DOCTYPE should come before the root element
                         document.prologue.push(Node::DocType(doctype));
