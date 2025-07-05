@@ -4,13 +4,9 @@ use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
+#[derive(Default)]
 pub struct RemoveDimensionsPlugin;
 
-impl Default for RemoveDimensionsPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl RemoveDimensionsPlugin {
     pub fn new() -> Self {

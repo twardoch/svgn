@@ -186,92 +186,58 @@ Project Structure:
 │   │   ├── 📁 examples
 │   │   └── 📁 incremental
 │   │       ├── 📁 build_script_build-1bdvp8gtts0db
-│   │       │   └── 📁 
-│   │       │       s-h8vvlw1eif-12aqlvj-7bzc9opvynm3696
-│   │       │       xlt8erhcqb
+│   │       │   └── 📁 s-h8vvlw1eif-12aqlvj-7bzc9opvynm3696xlt8erhcqb
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 build_script_build-21pdzctxlcdmp
-│   │       │   └── 📁 
-│   │       │       s-h8vz5bw5da-0p69g6r-cx67xfynw4vssm3
-│   │       │       ju9fk0reia
+│   │       │   └── 📁 s-h8vz5bw5da-0p69g6r-cx67xfynw4vssm3ju9fk0reia
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 build_script_build-2lvgo5t97kf52
-│   │       │   └── 📁 
-│   │       │       s-h8ww1zu7wv-0c34mwy-b820y8amizfbbbq
-│   │       │       e4e3j4w9fu
+│   │       │   └── 📁 s-h8ww1zu7wv-0c34mwy-b820y8amizfbbbqe4e3j4w9fu
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 build_script_build-2no91pxjtlvbt
-│   │       │   └── 📁 
-│   │       │       s-h8vvl61geu-0updjie-754cmt0sl1sqig7
-│   │       │       4syuo84xtr
+│   │       │   └── 📁 s-h8vvl61geu-0updjie-754cmt0sl1sqig74syuo84xtr
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-04qkxn61x8ptz
-│   │       │   └── 📁 
-│   │       │       s-h8x14c7357-1ppoxzq-2aalvclu2ryyj25
-│   │       │       wyut2f7qa8
+│   │       │   └── 📁 s-h8x14c7357-1ppoxzq-2aalvclu2ryyj25wyut2f7qa8
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-0ply0uphy5qym
-│   │       │   └── 📁 
-│   │       │       s-h8vy5za5t7-0f3dhok-f2uek7626qhxmg0
-│   │       │       9wpsldq1h9
+│   │       │   └── 📁 s-h8vy5za5t7-0f3dhok-f2uek7626qhxmg09wpsldq1h9
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-0v7af11a5wett
-│   │       │   └── 📁 
-│   │       │       s-h8vz1ymvll-1rnyjrn-1qa97yztpzgsgtc
-│   │       │       dmv5eek20f
+│   │       │   └── 📁 s-h8vz1ymvll-1rnyjrn-1qa97yztpzgsgtcdmv5eek20f
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-2drs5cv96m6x6
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2y1j5-1jusbwk-0egcjqwfq4nf9i8
-│   │       │       fu3y3p4iys
+│   │       │   └── 📁 s-h8vxb2y1j5-1jusbwk-0egcjqwfq4nf9i8fu3y3p4iys
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-2gaps0wbpfl9o
-│   │       │   └── 📁 
-│   │       │       s-h8wlfix8xs-1pitcp5-9xq2t9cu8725z79
-│   │       │       j2z4hhol1e
+│   │       │   └── 📁 s-h8wlfix8xs-1pitcp5-9xq2t9cu8725z79j2z4hhol1e
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-3c4fq7xgqryar
-│   │       │   └── 📁 
-│   │       │       s-h8wz79qn6l-18x6huh-4ozm1a8csr704xv
-│   │       │       mhoi1rpisf
+│   │       │   └── 📁 s-h8wz79qn6l-18x6huh-4ozm1a8csr704xvmhoi1rpisf
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-3nt7vqt04i75y
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvx37-0pr0tw8-76477za0o45cmcz
-│   │       │       cozioy8gyc
+│   │       │   └── 📁 s-h8wv2mvx37-0pr0tw8-76477za0o45cmczcozioy8gyc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-0qdnrv6fbibj4
-│   │       │   └── 📁 
-│   │       │       s-h8vy5z9rzq-1gcazsl-5mvbcikd9kzr6cp
-│   │       │       bk3ct3evgv
+│   │       │   └── 📁 s-h8vy5z9rzq-1gcazsl-5mvbcikd9kzr6cpbk3ct3evgv
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-1fye0zngj15tq
 │   │       │   └── 📁 s-h8wz79so1m-1o5eing-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-1yospmh98a6ii
-│   │       │   └── 📁 
-│   │       │       s-h8x14c5x3z-1ehxsa6-dbehkrhnzy1lnnb
-│   │       │       5eqkatyts6
+│   │       │   └── 📁 s-h8x14c5x3z-1ehxsa6-dbehkrhnzy1lnnb5eqkatyts6
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-289jpq8zntzlt
-│   │       │   └── 📁 
-│   │       │       s-h8wlfix3li-1c0sudl-ehitses9di4nwy7
-│   │       │       aga1pqlckh
+│   │       │   └── 📁 s-h8wlfix3li-1c0sudl-ehitses9di4nwy7aga1pqlckh
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-29fzxkmxuq349
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvc56-07h3v4r-66e7w40in8v161m
-│   │       │       2tis062d9n
+│   │       │   └── 📁 s-h8wv2mvc56-07h3v4r-66e7w40in8v161m2tis062d9n
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-35ytdq8177af9
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2xsav-1mdpn86-bmhxkyfr6gcdasn
-│   │       │       55ilvmxanx
+│   │       │   └── 📁 s-h8vxb2xsav-1mdpn86-bmhxkyfr6gcdasn55ilvmxanx
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-3avu2nzkohr66
-│   │       │   └── 📁 
-│   │       │       s-h8vz1ymsyx-0yo3a0f-b79iu84hef26byj
-│   │       │       k3fkcdxpi5
+│   │       │   └── 📁 s-h8vz1ymsyx-0yo3a0f-b79iu84hef26byjk3fkcdxpi5
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 optimization-07fqd68iv2es5
 │   │       │   └── 📁 s-h8wz79r1ia-0an7y91-working
@@ -286,87 +252,55 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy5za0m5-1q20n6u-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-01jcsqph3ayfa
-│   │       │   └── 📁 
-│   │       │       s-h8vy5z9qci-0a34xmr-a1cqsx08tnf0g91
-│   │       │       xlc07tq4vv
+│   │       │   └── 📁 s-h8vy5z9qci-0a34xmr-a1cqsx08tnf0g91xlc07tq4vv
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-03r40vtg2kskg
-│   │       │   └── 📁 
-│   │       │       s-h8vz1ymfyp-0bkltf0-876921evfqexfm7
-│   │       │       ei5upl72w0
+│   │       │   └── 📁 s-h8vz1ymfyp-0bkltf0-876921evfqexfm7ei5upl72w0
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-17u8mdyh8nksy
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2xqol-1i80qxa-ahrzn0eoho4v4fs
-│   │       │       9icir4qh18
+│   │       │   └── 📁 s-h8vxb2xqol-1i80qxa-ahrzn0eoho4v4fs9icir4qh18
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-1mwooxcm57zl5
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvgxd-0rhvt38-9wkfxzdpppepf0l
-│   │       │       31d55g695r
+│   │       │   └── 📁 s-h8wv2mvgxd-0rhvt38-9wkfxzdpppepf0l31d55g695r
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-2b75l6iv6hmr9
-│   │       │   └── 📁 
-│   │       │       s-h8wlfixdhq-02byig5-3fx9onlvel2yz06
-│   │       │       y7je3vdgd0
+│   │       │   └── 📁 s-h8wlfixdhq-02byig5-3fx9onlvel2yz06y7je3vdgd0
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-3do6i2bze19d7
-│   │       │   └── 📁 
-│   │       │       s-h8wz79ov5k-0kbltx5-cb3kckv1wvfo7o8
-│   │       │       cro5nx7th4
+│   │       │   └── 📁 s-h8wz79ov5k-0kbltx5-cb3kckv1wvfo7o8cro5nx7th4
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-3h3qbxszk3i0n
-│   │       │   └── 📁 
-│   │       │       s-h8x14c696x-1ipjy1r-bhup2g5cjz0cm6z
-│   │       │       nfbk1xeqa5
+│   │       │   └── 📁 s-h8x14c696x-1ipjy1r-bhup2g5cjz0cm6znfbk1xeqa5
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-005rkcjeongye
-│   │       │   └── 📁 
-│   │       │       s-h8vz1u4zde-16l6y1l-delgivoc9912fy7
-│   │       │       ako87t5e5e
+│   │       │   └── 📁 s-h8vz1u4zde-16l6y1l-delgivoc9912fy7ako87t5e5e
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-01wbtozjph2i0
-│   │       │   └── 📁 
-│   │       │       s-h8vz1ymg8i-1qnqf76-e1n4i575zyfrj06
-│   │       │       zbz25iuss2
+│   │       │   └── 📁 s-h8vz1ymg8i-1qnqf76-e1n4i575zyfrj06zbz25iuss2
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-02mbnowxjxo1w
-│   │       │   └── 📁 
-│   │       │       s-h8x14c9kc2-0ppjht0-4shw7m4hxgxltmk
-│   │       │       lvrmkw08rh
+│   │       │   └── 📁 s-h8x14c9kc2-0ppjht0-4shw7m4hxgxltmklvrmkw08rh
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-07aksfelywj2d
 │   │       │   └── 📁 s-h8xy2362gb-0z88bd5-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-09muhj9jcze26
-│   │       │   └── 📁 
-│   │       │       s-h8wlfix1h9-1oreiby-47zko5a8unin3lk
-│   │       │       i782a7xkaq
+│   │       │   └── 📁 s-h8wlfix1h9-1oreiby-47zko5a8unin3lki782a7xkaq
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0aul98x5qlu32
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2y3bh-1oj3fjb-968480v27xguthh
-│   │       │       nlwcrok8zb
+│   │       │   └── 📁 s-h8vxb2y3bh-1oj3fjb-968480v27xguthhnlwcrok8zb
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0c2q0622tyvit
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvtwn-0tzl83i-ac5xelx7tu72c28
-│   │       │       0tb3dqlgjg
+│   │       │   └── 📁 s-h8wv2mvtwn-0tzl83i-ac5xelx7tu72c280tb3dqlgjg
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0clx1rfy3fl56
-│   │       │   └── 📁 
-│   │       │       s-h8vy0xu2m4-1fi6nc6-8kgtlewppt4f7cp
-│   │       │       8pcxu8dwqt
+│   │       │   └── 📁 s-h8vy0xu2m4-1fi6nc6-8kgtlewppt4f7cp8pcxu8dwqt
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0dt3a5dv8rnf7
-│   │       │   └── 📁 
-│   │       │       s-h8x0h2a6uf-0lo2sun-2e2hsts6fjgzbkl
-│   │       │       l3lth113eb
+│   │       │   └── 📁 s-h8x0h2a6uf-0lo2sun-2e2hsts6fjgzbkll3lth113eb
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0g1g5cqluatjo
-│   │       │   └── 📁 
-│   │       │       s-h8x0ai50ve-0lbwzb9-8x7l5vck32fuwut
-│   │       │       vvz6v5gjuk
+│   │       │   └── 📁 s-h8x0ai50ve-0lbwzb9-8x7l5vck32fuwutvvz6v5gjuk
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0h2kstmafyw4c
 │   │       │   └── 📁 s-h8wz79srnf-0wpzvln-working
@@ -375,29 +309,24 @@ Project Structure:
 │   │       │   └── 📁 s-h8wz72nft1-0qj20ip-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0s1ueb1mz1md4
-│   │       │   └── 📁 
-│   │       │       s-h8vy896qw9-1kmsvvl-78d3ssu25bffevf
-│   │       │       c5j3kfya90
+│   │       │   └── 📁 s-h8vy896qw9-1kmsvvl-78d3ssu25bffevfc5j3kfya90
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0s3aogn9y75wy
-│   │       │   ├── 📁 
-│   │       │   │   s-h8vy8ya2ij-1nzdwkf-ckwsc7co8pgrqfe
-│   │       │   │   hycmsf2q6e
+│   │       │   ├── 📁 s-h8vy8ya2ij-1nzdwkf-ckwsc7co8pgrqfehycmsf2q6e
 │   │       │   │   └── ... (depth limit reached)
 │   │       │   └── 📁 s-h8wlgzf38h-12q2c93-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0wwq0xehcwrym
-│   │       │   └── 📁 
-│   │       │       s-h8vvlffns1-1iqvdlu-3fr3gkwrj002cfn
-│   │       │       fs8v1d0vkw
+│   │       │   └── 📁 s-h8vvlffns1-1iqvdlu-3fr3gkwrj002cfnfs8v1d0vkw
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0x8b1gml46p0g
-│   │       │   └── 📁 
-│   │       │       s-h8x14ga7pj-0eoj6gr-4lcdxws18r4lk5q
-│   │       │       zgu6gzb9ac
+│   │       │   └── 📁 s-h8x14ga7pj-0eoj6gr-4lcdxws18r4lk5qzgu6gzb9ac
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0xr22q2li5f6e
 │   │       │   └── 📁 s-h8wz79slo7-18ndj1d-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0zat7emp7h45v
+│   │       │   └── 📁 s-h8xz5wrgrt-09omodr-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-10wch8w7zi0o3
 │   │       │   ├── 📁 s-h8xps9wjhj-1e4ijmt-working
@@ -405,24 +334,16 @@ Project Structure:
 │   │       │   └── 📁 s-h8xpsa9hzd-0djaz7t-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-13fgx0qv2imo9
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2xsm4-0vekycq-cekbhqoqob44304
-│   │       │       h74ca0p6yc
+│   │       │   └── 📁 s-h8vxb2xsm4-0vekycq-cekbhqoqob44304h74ca0p6yc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-16m4msdj71xla
-│   │       │   └── 📁 
-│   │       │       s-h8x148g3s1-0axxsv0-cs5asctj4synd3o
-│   │       │       80e2iuuxq6
+│   │       │   └── 📁 s-h8x148g3s1-0axxsv0-cs5asctj4synd3o80e2iuuxq6
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1bp5730z55td3
-│   │       │   └── 📁 
-│   │       │       s-h8vxsn8nmj-1aq357o-41dvo3qd8fjtp09
-│   │       │       3h600d4ccw
+│   │       │   └── 📁 s-h8vxsn8nmj-1aq357o-41dvo3qd8fjtp093h600d4ccw
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1d7ohcv94dgpe
-│   │       │   ├── 📁 
-│   │       │   │   s-h8x0gxsuwn-1hpsrr2-0771ohntjp0mv36
-│   │       │   │   ploag2lqan
+│   │       │   ├── 📁 s-h8x0gxsuwn-1hpsrr2-0771ohntjp0mv36ploag2lqan
 │   │       │   │   └── ... (depth limit reached)
 │   │       │   └── 📁 s-h8x0zpwen0-0zibnb4-working
 │   │       │       └── ... (depth limit reached)
@@ -440,70 +361,46 @@ Project Structure:
 │   │       │   └── 📁 s-h8xy23675k-15geyud-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1m9uirifvmxna
-│   │       │   └── 📁 
-│   │       │       s-h8x14c751h-09zxyre-3yfq3vvx8c5uxnz
-│   │       │       sto0kl97cc
+│   │       │   └── 📁 s-h8x14c751h-09zxyre-3yfq3vvx8c5uxnzsto0kl97cc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1we9em8jemp43
-│   │       │   └── 📁 
-│   │       │       s-h8vy5za2ro-01qee1t-3rc33npe6n78q2p
-│   │       │       3ehum71g3m
+│   │       │   └── 📁 s-h8vy5za2ro-01qee1t-3rc33npe6n78q2p3ehum71g3m
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-24jqwsv1fnqjr
-│   │       │   └── 📁 
-│   │       │       s-h8vxyatkyf-0z8ogr7-695cm7h1d224t0f
-│   │       │       43e3mmgq7e
+│   │       │   └── 📁 s-h8vxyatkyf-0z8ogr7-695cm7h1d224t0f43e3mmgq7e
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-27qkkyrxexkjd
-│   │       │   └── 📁 
-│   │       │       s-h8vy91o996-0tyxdve-2a0b38u7y7hyfb3
-│   │       │       mxx28kqjw3
+│   │       │   └── 📁 s-h8vy91o996-0tyxdve-2a0b38u7y7hyfb3mxx28kqjw3
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-28nazeeqzbwem
-│   │       │   └── 📁 
-│   │       │       s-h8vz1u8g4i-1bm356r-ew58w6faof2jdq9
-│   │       │       pcbygo6hqy
+│   │       │   └── 📁 s-h8vz1u8g4i-1bm356r-ew58w6faof2jdq9pcbygo6hqy
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-29hy9lsugk9os
-│   │       │   └── 📁 
-│   │       │       s-h8x14iny1n-0ti4tqj-0apngrpjxzvodow
-│   │       │       82fcyu6sez
+│   │       │   └── 📁 s-h8x14iny1n-0ti4tqj-0apngrpjxzvodow82fcyu6sez
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2duj3jprwpexu
-│   │       │   └── 📁 
-│   │       │       s-h8wlfixf6o-1mb62me-ecilleoye1it0yn
-│   │       │       t2jf6ohw64
+│   │       │   └── 📁 s-h8wlfixf6o-1mb62me-ecilleoye1it0ynt2jf6ohw64
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2fhbxgnwihdsh
 │   │       │   └── 📁 s-h8xxsbu0p0-0kxeayr-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2iffub482thnt
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvhno-1e9j7pz-arupovx8f0kkux5
-│   │       │       k8i3i6icrg
+│   │       │   └── 📁 s-h8wv2mvhno-1e9j7pz-arupovx8f0kkux5k8i3i6icrg
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2mzelzwefeknn
-│   │       │   └── 📁 
-│   │       │       s-h8vy5yac0u-0h7dwbh-6eacg6ze51g599o
-│   │       │       tndq4x839k
+│   │       │   └── 📁 s-h8vy5yac0u-0h7dwbh-6eacg6ze51g599otndq4x839k
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2ns5rfv87t9ta
-│   │       │   └── 📁 
-│   │       │       s-h8wz72ng4g-07lkann-9ghf9seyqlwr869
-│   │       │       60k800ngtr
+│   │       │   └── 📁 s-h8wz72ng4g-07lkann-9ghf9seyqlwr86960k800ngtr
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2rmy7yzgckr3o
-│   │       │   └── 📁 
-│   │       │       s-h8vy5yac4w-0rd2u1o-7pdsdub5b0b9bej
-│   │       │       hzkssh35gb
+│   │       │   └── 📁 s-h8vy5yac4w-0rd2u1o-7pdsdub5b0b9bejhzkssh35gb
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2tns3rwtx94yj
 │   │       │   └── 📁 s-h8xmxsmsyf-01nvo1p-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2u97lia1lgp1m
-│   │       │   └── 📁 
-│   │       │       s-h8vvldook1-17qd51w-4uhzy02cd4qrdun
-│   │       │       2axf78o8vn
+│   │       │   └── 📁 s-h8vvldook1-17qd51w-4uhzy02cd4qrdun2axf78o8vn
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-34f3amqcxmf28
 │   │       │   └── 📁 s-h8vz5c4113-1vh6154-working
@@ -513,145 +410,91 @@ Project Structure:
 │   │       │   │   └── ... (depth limit reached)
 │   │       │   └── 📁 s-h8xpskja9q-0jvmmg4-working
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-37e1j26di8d89
+│   │       │   └── 📁 s-h8xz5wro6z-12mpeqc-working
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-381scq06xq25y
-│   │       │   └── 📁 
-│   │       │       s-h8wlfhoauz-1lb9l0o-7ib9qoxuz4lztht
-│   │       │       8ygyqf7mam
+│   │       │   └── 📁 s-h8wlfhoauz-1lb9l0o-7ib9qoxuz4lztht8ygyqf7mam
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3a29bjdw1ebb3
-│   │       │   ├── 📁 
-│   │       │   │   s-h8vwflwlhj-0wj7zxn-0fenwmik8e5vzpe
-│   │       │   │   hqtqfupe5y
+│   │       │   ├── 📁 s-h8vwflwlhj-0wj7zxn-0fenwmik8e5vzpehqtqfupe5y
 │   │       │   │   └── ... (depth limit reached)
 │   │       │   └── 📁 s-h8vxyvuxyo-0kabapr-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3g8lbw6vupqyr
-│   │       │   └── 📁 
-│   │       │       s-h8vy13hne6-1cmetxo-9wppxolmwiabhne
-│   │       │       mwoxyhcvwn
+│   │       │   └── 📁 s-h8vy13hne6-1cmetxo-9wppxolmwiabhnemwoxyhcvwn
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3hb61y1xvrwcr
 │   │       │   └── 📁 s-h8xmxsmsm5-0xbpggn-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3jlqspzqbxclx
-│   │       │   └── 📁 
-│   │       │       s-h8x148dhtz-1dmextk-8kgp328ex7gnsu7
-│   │       │       kvz6j36it3
+│   │       │   └── 📁 s-h8x148dhtz-1dmextk-8kgp328ex7gnsu7kvz6j36it3
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3mdn4o2lu1v1e
-│   │       │   └── 📁 
-│   │       │       s-h8x0ahumhh-078zazs-4e2n4mkzzjnewu5
-│   │       │       qga3dlmdto
+│   │       │   └── 📁 s-h8x0ahumhh-078zazs-4e2n4mkzzjnewu5qga3dlmdto
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3mzybu9a7g9sf
-│   │       │   └── 📁 
-│   │       │       s-h8wlfhoauz-1tg106y-062hw5l9yc3c96k
-│   │       │       x174aeavu8
+│   │       │   └── 📁 s-h8wlfhoauz-1tg106y-062hw5l9yc3c96kx174aeavu8
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3ni3utjhvege9
-│   │       │   └── 📁 
-│   │       │       s-h8vy166hgl-1gsqdky-8tij859tjxgf8zx
-│   │       │       yvdh5e7d6p
+│   │       │   └── 📁 s-h8vy166hgl-1gsqdky-8tij859tjxgf8zxyvdh5e7d6p
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3sx0w5q7pw7eb
-│   │       │   └── 📁 
-│   │       │       s-h8vz1yma3e-0hxgbc0-5nii4f8a95hclr9
-│   │       │       1b9m98ntuv
+│   │       │   └── 📁 s-h8vz1yma3e-0hxgbc0-5nii4f8a95hclr91b9m98ntuv
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3tahqurn4wt44
-│   │       │   └── 📁 
-│   │       │       s-h8vy5za1xg-0ihqec2-a1fjgdguy17qnpn
-│   │       │       s80nkzd5xf
+│   │       │   └── 📁 s-h8vy5za1xg-0ihqec2-a1fjgdguy17qnpns80nkzd5xf
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-05t4q3ujpsvg9
-│   │       │   └── 📁 
-│   │       │       s-h8x14c6kl4-0geuwre-ejb4nmuk0n9ei68
-│   │       │       iw6wh7n4g7
+│   │       ├── 📁 svgo_compatibility_tests-05t4q3ujpsvg9
+│   │       │   └── 📁 s-h8x14c6kl4-0geuwre-ejb4nmuk0n9ei68iw6wh7n4g7
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-0plkr3wurhayh
-│   │       │   └── 📁 
-│   │       │       s-h8vy5za51b-1rao4cd-1oqsgf0i3u12da0
-│   │       │       k2o9tiu40q
+│   │       ├── 📁 svgo_compatibility_tests-0plkr3wurhayh
+│   │       │   └── 📁 s-h8vy5za51b-1rao4cd-1oqsgf0i3u12da0k2o9tiu40q
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-16cyj5ilsnpam
-│   │       │   └── 📁 
-│   │       │       s-h8wlfix3v7-0l3cmfz-6ce7ncjpqlwo1lh
-│   │       │       4j586v1tzc
+│   │       ├── 📁 svgo_compatibility_tests-16cyj5ilsnpam
+│   │       │   └── 📁 s-h8wlfix3v7-0l3cmfz-6ce7ncjpqlwo1lh4j586v1tzc
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-2el6kr49uyiww
+│   │       ├── 📁 svgo_compatibility_tests-2el6kr49uyiww
 │   │       │   └── 📁 s-h8wz79sah9-0mnrdln-working
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-2y3i4ms1acm2w
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2xs1d-0eoui62-55rvrmiq1clt9o6
-│   │       │       qx5pnqc3r9
+│   │       ├── 📁 svgo_compatibility_tests-2y3i4ms1acm2w
+│   │       │   └── 📁 s-h8vxb2xs1d-0eoui62-55rvrmiq1clt9o6qx5pnqc3r9
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-3dr4asvtde3oa
-│   │       │   └── 📁 
-│   │       │       s-h8vz1ymvze-1vgsp1c-46ba2ts5tlmokoc
-│   │       │       zekey20q99
+│   │       ├── 📁 svgo_compatibility_tests-3dr4asvtde3oa
+│   │       │   └── 📁 s-h8vz1ymvze-1vgsp1c-46ba2ts5tlmokoczekey20q99
 │   │       │       └── ... (depth limit reached)
-│   │       ├── 📁 
-│   │       │   svgo_compatibility_tests-3ivj451f73v9e
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvsvq-0byn9f7-f30g3hv1issfw9t
-│   │       │       t51enwpoxu
+│   │       ├── 📁 svgo_compatibility_tests-3ivj451f73v9e
+│   │       │   └── 📁 s-h8wv2mvsvq-0byn9f7-f30g3hv1issfw9tt51enwpoxu
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_css_debug-0z5zpsjshjwvm
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvi75-045pu6i-1fbaddolsga4a7c
-│   │       │       q4u64jtnxc
+│   │       │   └── 📁 s-h8wv2mvi75-045pu6i-1fbaddolsga4a7cq4u64jtnxc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_css_debug-1ober9ort6tmj
-│   │       │   └── 📁 
-│   │       │       s-h8wz79s5fd-0hgtc7z-bws2232q9piyr3a
-│   │       │       ktyguyp6ah
+│   │       │   └── 📁 s-h8wz79s5fd-0hgtc7z-bws2232q9piyr3aktyguyp6ah
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_css_debug-1wfss9twgmiia
-│   │       │   └── 📁 
-│   │       │       s-h8x14c6ho2-05xjo29-ehhbjpfmg3bvhmp
-│   │       │       af9bkv2o7i
+│   │       │   └── 📁 s-h8x14c6ho2-05xjo29-ehhbjpfmg3bvhmpaf9bkv2o7i
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-0bn9mgtuwuxsv
-│   │       │   └── 📁 
-│   │       │       s-h8wlfix7a2-1rf6qc8-0n61m4mnr29rzvg
-│   │       │       5fawpdny2t
+│   │       │   └── 📁 s-h8wlfix7a2-1rf6qc8-0n61m4mnr29rzvg5fawpdny2t
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-1kii98er1arnn
-│   │       │   └── 📁 
-│   │       │       s-h8wv2mvptj-0v8yalf-5zabw05wlhxepbg
-│   │       │       hws6rkpd7o
+│   │       │   └── 📁 s-h8wv2mvptj-0v8yalf-5zabw05wlhxepbghws6rkpd7o
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-1qzy2fdg29x5e
-│   │       │   └── 📁 
-│   │       │       s-h8vy5z9u21-11jodij-cvy8guk5tl64kah
-│   │       │       hqcm4dk1na
+│   │       │   └── 📁 s-h8vy5z9u21-11jodij-cvy8guk5tl64kahhqcm4dk1na
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-1v1us3lp5ztwb
-│   │       │   └── 📁 
-│   │       │       s-h8vz1ymb8v-0suv5ul-2ef09jm0rcozvh1
-│   │       │       mp0sfmty2h
+│   │       │   └── 📁 s-h8vz1ymb8v-0suv5ul-2ef09jm0rcozvh1mp0sfmty2h
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-1xih4easbz52t
-│   │       │   └── 📁 
-│   │       │       s-h8wz79s76q-0wd9k32-eebw0fvniz67n3o
-│   │       │       q1yb7ptmvv
+│   │       │   └── 📁 s-h8wz79s76q-0wd9k32-eebw0fvniz67n3oq1yb7ptmvv
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-2b05ra89z0gr5
-│   │       │   └── 📁 
-│   │       │       s-h8vxb2y10x-01h8pmm-25cymxyp3n51qcd
-│   │       │       akxgx9sw1y
+│   │       │   └── 📁 s-h8vxb2y10x-01h8pmm-25cymxyp3n51qcdakxgx9sw1y
 │   │       │       └── ... (depth limit reached)
 │   │       └── 📁 test_style_plugins-3or25hxn02lc4
-│   │           └── 📁 
-│   │               s-h8x14c70zv-0cznggh-ckv43gahtwqrduc
-│   │               fvepltqk6p
+│   │           └── 📁 s-h8x14c70zv-0cznggh-ckv43gahtwqrducfvepltqk6p
 │   │               └── ... (depth limit reached)
 │   ├── 📁 release
 │   │   ├── 📁 deps
@@ -3570,6 +3413,10 @@ workspace = true
 
 
 [dependencies.indexmap]
+workspace = true
+
+
+[dependencies.base64]
 workspace = true
 
 
@@ -11010,6 +10857,7 @@ static SHAPE_ELEMENTS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 ///
 /// It also handles inheritance and can optionally remove elements that have
 /// no visible stroke or fill (removeNone parameter).
+#[derive(Default)]
 pub struct RemoveUselessStrokeAndFillPlugin;
 
 #[derive(Debug)]
@@ -11052,7 +10900,6 @@ impl RemoveUselessStrokeAndFillPlugin {
         result
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn has_style_or_script(&self, element: &Element) -> bool {
         if element.name == "style" || element.name == "script" {
             return true;
@@ -11236,7 +11083,6 @@ impl RemoveUselessStrokeAndFillPlugin {
         no_stroke && no_fill
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn remove_marked_elements(&self, element: &mut Element, nodes_to_remove: &[*mut Element]) {
         element.children.retain(|child| {
             if let Node::Element(child_elem) = child {
@@ -11256,11 +11102,6 @@ impl RemoveUselessStrokeAndFillPlugin {
     }
 }
 
-impl Default for RemoveUselessStrokeAndFillPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl Plugin for RemoveUselessStrokeAndFillPlugin {
     fn name(&self) -> &'static str {

@@ -1,170 +1,180 @@
 Generating code snapshot in ./llms.txt ...
-╭──────────────────── CodeToPrompt ────────────────────╮
-│ Configuration for this run:                          │
-│ Root Directory:                                      │
-│ /Users/adam/Developer/vcs/github.twardoch/pub/svgn   │
-│ Include Patterns: ['*']                              │
-│ Exclude Patterns: ['*.svg', '.specstory', '*.md',    │
-│ '*.txt', 'ref', 'testdata', '*.lock']                │
-│ Respect .gitignore: True                             │
-│ Show Line Numbers: False                             │
-│ Count Tokens: True                                   │
-│ Compress Code: True                                  │
-│ Max Tokens: Unlimited                                │
-│ Tree Depth: 5                                        │
-│ Output Format: default                               │
-│ Interactive Mode: False                              │
-╰──────────────────────────────────────────────────────╯
+╭───────────────────────────────────── CodeToPrompt ──────────────────────────────────────╮
+│ Configuration for this run:                                                             │
+│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn                      │
+│ Include Patterns: ['*']                                                                 │
+│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref', 'testdata', '*.lock'] │
+│ Respect .gitignore: True                                                                │
+│ Show Line Numbers: False                                                                │
+│ Count Tokens: True                                                                      │
+│ Compress Code: True                                                                     │
+│ Max Tokens: Unlimited                                                                   │
+│ Tree Depth: 5                                                                           │
+│ Output Format: default                                                                  │
+│ Interactive Mode: False                                                                 │
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
 
-╭──────────────── Processing Complete ─────────────────╮
-│ Summary:                                             │
-│ Files Processed: 124                                 │
-│ Total Tokens: 127,605                                │
-│ Output Destination: llms.txt                         │
-│                                                      │
-│ Top 3 Files by Tokens:                               │
-│   - docs/assets/css/main.css (47,983 tokens)         │
-│   - svgn/src/collections.rs (5,362 tokens)           │
-│   - svgn/src/plugins/remove_unknowns_and_defaults.rs │
-│ (4,955 tokens)                                       │
-│                                                      │
-│ Top 5 Extensions by Tokens:                          │
-│   - .rs (51,371 tokens)                              │
-│   - .css (49,238 tokens)                             │
-│   - .sh (9,049 tokens)                               │
-│   - .html (7,592 tokens)                             │
-│   - .yml (3,068 tokens)                              │
-╰──────────────────────────────────────────────────────╯
+╭──────────────────────── Processing Complete ────────────────────────╮
+│ Summary:                                                            │
+│ Files Processed: 124                                                │
+│ Total Tokens: 127,568                                               │
+│ Output Destination: llms.txt                                        │
+│                                                                     │
+│ Top 3 Files by Tokens:                                              │
+│   - docs/assets/css/main.css (47,983 tokens)                        │
+│   - svgn/src/collections.rs (5,362 tokens)                          │
+│   - svgn/src/plugins/remove_unknowns_and_defaults.rs (4,955 tokens) │
+│                                                                     │
+│ Top 5 Extensions by Tokens:                                         │
+│   - .rs (51,325 tokens)                                             │
+│   - .css (49,238 tokens)                                            │
+│   - .sh (9,049 tokens)                                              │
+│   - .html (7,592 tokens)                                            │
+│   - .yml (3,068 tokens)                                             │
+╰─────────────────────────────────────────────────────────────────────╯
 Building the svgn project...
-    Blocking waiting for file lock on package cache
-    Blocking waiting for file lock on package cache
-    Blocking waiting for file lock on package cache
-    Blocking waiting for file lock on package cache
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
-error[E0433]: failed to resolve: use of unresolved module or unlinked crate `base64`
-   --> svgn/src/optimizer.rs:227:9
-    |
-227 |     use base64::{engine::general_purpose::STANDARD, Engine as _};
-    |         ^^^^^^ use of unresolved module or unlinked crate `base64`
-    |
-    = help: if you wanted to use a crate named `base64`, use `cargo add base64` to add it to your `Cargo.toml`
+warning: unused imports: `MatchingContext`, `MatchingForInvalidation`, `MatchingMode`, `NeedsSelectorFlags`, and `QuirksMode`
+  --> svgn/src/plugins/inline_styles.rs:25:5
+   |
+25 |     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
+   |     ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
 
-error[E0432]: unresolved import `base64`
-   --> svgn/src/optimizer.rs:227:9
-    |
-227 |     use base64::{engine::general_purpose::STANDARD, Engine as _};
-    |         ^^^^^^ use of unresolved module or unlinked crate `base64`
-    |
-    = help: if you wanted to use a crate named `base64`, use `cargo add base64` to add it to your `Cargo.toml`
+warning: unused imports: `SvgElementWrapper` and `walk_element_tree_with_parent`
+  --> svgn/src/plugins/inline_styles.rs:35:5
+   |
+35 |     walk_element_tree_with_parent, SvgElementWrapper, SvgSelectorImpl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
 
 warning: unused import: `MatchingContext`
    --> svgn/src/plugins/inline_styles_selector.rs:502:9
     |
 502 |         MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
     |         ^^^^^^^^^^^^^^^
-    |
-    = note: `#[warn(unused_imports)]` on by default
 
-error[E0599]: no method named `unescape` found for reference `&BytesText<'_>` in the current scope
-   --> svgn/src/parser.rs:113:34
+error[E0599]: no method named `expand_entities_in_text` found for reference `&parser::Parser` in the current scope
+   --> svgn/src/parser.rs:132:45
     |
-113 |                     let text = e.unescape().map_err(|e| ParseError::XmlError(e))?;
-    |                                  ^^^^^^^^ method not found in `&BytesText<'_>`
+132 |                         text_content = self.expand_entities_in_text(&text_content, &entities);
+    |                                             ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: there is a method `expand_entities` with a similar name, but with different arguments
+   --> svgn/src/parser.rs:65:5
+    |
+65  |     pub fn expand_entities(mut self, expand: bool) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error[E0599]: no method named `unescape` found for reference `&BytesText<'_>` in the current scope
-   --> svgn/src/parser.rs:171:26
+error[E0599]: no method named `parse_entities_from_doctype` found for reference `&parser::Parser` in the current scope
+   --> svgn/src/parser.rs:194:30
     |
-170 |                       let doctype = e
-    |  ___________________________________-
-171 | |                         .unescape()
-    | |                         -^^^^^^^^ method not found in `&BytesText<'_>`
-    | |_________________________|
-    |
+194 |                         self.parse_entities_from_doctype(&doctype, &mut entities);
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&Parser`
 
-error[E0593]: closure is expected to take 2 arguments, but it takes 3 arguments
-   --> svgn/src/plugins/inline_styles.rs:218:9
+warning: unused variable: `parent`
+   --> svgn/src/plugins/inline_styles.rs:288:5
     |
-218 |           walk_element_tree_with_parent(element, None, |elem, parent, index| {
-    |           ^                                            --------------------- takes 3 arguments
-    |  _________|
-    | |
-219 | |             let wrapper = SvgElementWrapper::new(elem);
-220 | |             for selector in selector_list.iter() {
-221 | |                 let mut selector_caches = selectors::matching::SelectorCaches::default();
-...   |
-236 | |         });
-    | |__________^ expected closure that takes 2 arguments
-
-error[E0599]: no method named `iter` found for reference `&SelectorList<SvgSelectorImpl>` in the current scope
-   --> svgn/src/plugins/inline_styles.rs:220:43
-    |
-220 |             for selector in selector_list.iter() {
-    |                                           ^^^^ method not found in `&SelectorList<SvgSelectorImpl>`
-
-error[E0599]: no method named `iter` found for reference `&SelectorList<SvgSelectorImpl>` in the current scope
-   --> svgn/src/plugins/inline_styles.rs:290:23
-    |
-290 |         selector_list.iter().any(|selector| {
-    |                       ^^^^ method not found in `&SelectorList<SvgSelectorImpl>`
-
-error[E0599]: no method named `iter` found for reference `&SelectorList<SvgSelectorImpl>` in the current scope
-   --> svgn/src/plugins/inline_styles.rs:597:10
-    |
-596 | /     selectors
-597 | |         .iter()
-    | |         -^^^^ method not found in `&SelectorList<SvgSelectorImpl>`
-    | |_________|
-    |
-
-error[E0599]: no method named `iter` found for reference `&SelectorList<SvgSelectorImpl>` in the current scope
-   --> svgn/src/plugins/remove_attributes_by_selector.rs:158:39
-    |
-158 |         for selector in selector_list.iter() {
-    |                                       ^^^^ method not found in `&SelectorList<SvgSelectorImpl>`
-
-error[E0277]: the trait bound `SvgSelectorImpl: selectors::Parser<'_>` is not satisfied
-   --> svgn/src/plugins/remove_attributes_by_selector.rs:226:17
-    |
-225 |             let selector_list = match SelectorList::<SvgSelectorImpl>::parse(
-    |                                       -------------------------------------- required by a bound introduced by this call
-226 |                 &SvgSelectorImpl,
-    |                 ^^^^^^^^^^^^^^^^ the trait `selectors::Parser<'_>` is not implemented for `SvgSelectorImpl`
-    |
-note: required by a bound in `SelectorList::<Impl>::parse`
-   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.30.0/parser.rs:511:12
-    |
-505 |     pub fn parse<'i, 't, P>(
-    |            ----- required by a bound in this associated function
-...
-511 |         P: Parser<'i, Impl = Impl>,
-    |            ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `SelectorList::<Impl>::parse`
-
-error[E0277]: the trait bound `SvgSelectorImpl: selectors::Parser<'_>` is not satisfied
-   --> svgn/src/plugins/remove_attributes_by_selector.rs:225:39
-    |
-225 |               let selector_list = match SelectorList::<SvgSelectorImpl>::parse(
-    |  _______________________________________^
-226 | |                 &SvgSelectorImpl,
-227 | |                 &mut parser,
-228 | |                 selectors::parser::ParseRelative::No,
-229 | |             ) {
-    | |_____________^ the trait `selectors::Parser<'_>` is not implemented for `SvgSelectorImpl`
-
-warning: unused variable: `media_rule`
-   --> svgn/src/plugins/inline_styles.rs:531:28
-    |
-531 |             CssRule::Media(media_rule) => {
-    |                            ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_media_rule`
+288 |     parent: Option<&Element>,
+    |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_parent`
     |
     = note: `#[warn(unused_variables)]` on by default
 
-warning: unused variable: `selector_str`
-   --> svgn/src/plugins/inline_styles.rs:587:19
+warning: unused variable: `index`
+   --> svgn/src/plugins/inline_styles.rs:289:5
     |
-587 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
+289 |     index: usize,
+    |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_index`
+
+error[E0502]: cannot borrow `*element` as immutable because it is also borrowed as mutable
+   --> svgn/src/plugins/inline_styles.rs:345:22
+    |
+338 |     for child in &mut element.children {
+    |                  ---------------------
+    |                  |
+    |                  mutable borrow occurs here
+    |                  mutable borrow later used here
+...
+345 |                 Some(element),
+    |                      ^^^^^^^ immutable borrow occurs here
+
+warning: unused variable: `media_rule`
+   --> svgn/src/plugins/inline_styles.rs:540:28
+    |
+540 |             CssRule::Media(media_rule) => {
+    |                            ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_media_rule`
+
+warning: unused variable: `selector_str`
+   --> svgn/src/plugins/inline_styles.rs:596:19
+    |
+596 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
     |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_selector_str`
 
-Some errors have detailed explanations: E0277, E0432, E0433, E0593, E0599.
-For more information about an error, try `rustc --explain E0277`.
-warning: `svgn` (lib) generated 3 warnings
-error: could not compile `svgn` (lib) due to 11 previous errors; 3 warnings emitted
+warning: unused variable: `wrapper`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:145:13
+    |
+145 |         let wrapper = SvgElementWrapper::new(element);
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_wrapper`
+
+warning: unused variable: `context`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:147:17
+    |
+147 |         let mut context: selectors::matching::MatchingContext<'_, SvgSelectorImpl> = selectors::matching::MatchingContext::new(
+    |                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_context`
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:147:13
+    |
+147 |         let mut context: selectors::matching::MatchingContext<'_, SvgSelectorImpl> = selectors::matching::MatchingContext::new(
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:157:13
+    |
+157 |         let mut matches = false;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `parser`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:256:21
+    |
+256 |             let mut parser = cssparser::Parser::new(&mut parser_input);
+    |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_parser`
+
+warning: unused variable: `parsing_mode`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:257:17
+    |
+257 |             let parsing_mode = selectors::parser::ParseRelative::No;
+    |                 ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_parsing_mode`
+
+warning: unused variable: `parser`
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:262:21
+    |
+262 |             let mut parser = cssparser::Parser::new(&mut input);
+    |                     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_parser`
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:256:17
+    |
+256 |             let mut parser = cssparser::Parser::new(&mut parser_input);
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:262:17
+    |
+262 |             let mut parser = cssparser::Parser::new(&mut input);
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+Some errors have detailed explanations: E0502, E0599.
+For more information about an error, try `rustc --explain E0502`.
+warning: `svgn` (lib) generated 16 warnings
+error: could not compile `svgn` (lib) due to 3 previous errors; 16 warnings emitted

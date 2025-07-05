@@ -6,20 +6,15 @@ use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
+#[derive(Default)]
 pub struct ConvertOneStopGradientsPlugin;
 
-impl Default for ConvertOneStopGradientsPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl ConvertOneStopGradientsPlugin {
     pub fn new() -> Self {
         Self
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn process_element(
         &self,
         element: &mut Element,
@@ -155,7 +150,6 @@ impl ConvertOneStopGradientsPlugin {
         }
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn remove_gradients(
         &self,
         element: &mut Element,
@@ -181,7 +175,6 @@ impl ConvertOneStopGradientsPlugin {
         }
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn remove_empty_defs(&self, element: &mut Element) {
         // Remove empty defs elements
         element.children.retain(|child| {

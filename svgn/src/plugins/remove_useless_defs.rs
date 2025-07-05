@@ -70,7 +70,6 @@ impl RemoveUselessDefsPlugin {
         }
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn collect_useful_nodes(&self, element: &Element) -> Vec<Node> {
         let mut useful_nodes = Vec::new();
 

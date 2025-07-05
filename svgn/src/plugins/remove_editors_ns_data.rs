@@ -12,13 +12,9 @@ pub struct RemoveEditorsNSDataConfig {
     pub additional_namespaces: Vec<String>,
 }
 
+#[derive(Default)]
 pub struct RemoveEditorsNSDataPlugin;
 
-impl Default for RemoveEditorsNSDataPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl RemoveEditorsNSDataPlugin {
     pub fn new() -> Self {

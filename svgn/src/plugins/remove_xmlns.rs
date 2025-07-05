@@ -33,7 +33,6 @@ impl Plugin for RemoveXMLNSPlugin {
 }
 
 impl RemoveXMLNSPlugin {
-    #[allow(clippy::only_used_in_recursion)]
     fn process_element(&self, element: &mut Element) {
         // Remove xmlns attribute from SVG elements
         if element.name == "svg" {

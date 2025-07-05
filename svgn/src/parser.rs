@@ -8,6 +8,8 @@
 use crate::ast::{Document, Element, Node};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Error as XmlError, Reader};
+use regex::Regex;
+use std::collections::HashMap;
 use thiserror::Error;
 
 /// Parser error types
@@ -34,6 +36,8 @@ pub struct Parser {
     preserve_whitespace: bool,
     /// Whether to preserve comments
     preserve_comments: bool,
+    /// Whether to expand XML entities
+    expand_entities: bool,
 }
 
 impl Parser {
@@ -42,6 +46,7 @@ impl Parser {
         Self {
             preserve_whitespace: false,
             preserve_comments: false,
+            expand_entities: true,
         }
     }
 
@@ -57,6 +62,12 @@ impl Parser {
         self
     }
 
+    /// Set whether to expand XML entities
+    pub fn expand_entities(mut self, expand: bool) -> Self {
+        self.expand_entities = expand;
+        self
+    }
+
     /// Parse an SVG string into a Document
     pub fn parse(&self, input: &str) -> ParseResult<Document> {
         let mut reader = Reader::from_str(input);
@@ -69,11 +80,12 @@ impl Parser {
         let mut current_element: Option<Element> = None;
         let mut buf = Vec::new();
         let mut found_root = false;
+        let mut entities: HashMap<String, String> = HashMap::new();
 
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(ref e)) => {
-                    let element = self.parse_start_element(e)?;
+                    let element = self.parse_start_element(e, &entities)?;
 
                     if current_element.is_none() {
                         // This is the root element
@@ -99,7 +111,7 @@ impl Parser {
                     }
                 }
                 Ok(Event::Empty(ref e)) => {
-                    let element = self.parse_start_element(e)?;
+                    let element = self.parse_start_element(e, &entities)?;
 
                     if let Some(ref mut parent) = current_element {
                         parent.add_child(Node::Element(element));
@@ -110,8 +122,16 @@ impl Parser {
                     }
                 }
                 Ok(Event::Text(ref e)) => {
-                    let text = e.unescape().map_err(|e| ParseError::XmlError(e))?;
-                    let text_content = text.into_owned();
+                    // Convert bytes to string and unescape
+                    let text_str = std::str::from_utf8(e.as_ref())?;
+                    let text = quick_xml::escape::unescape(text_str)
+                        .unwrap_or_else(|_| std::borrow::Cow::Borrowed(text_str));
+                    let mut text_content = text.into_owned();
+                    
+                    // Expand custom entities if enabled
+                    if self.expand_entities && !entities.is_empty() {
+                        text_content = self.expand_entities_in_text(&text_content, &entities);
+                    }
 
                     if self.preserve_whitespace || !text_content.trim().is_empty() {
                         if let Some(ref mut element) = current_element {
@@ -167,10 +187,14 @@ impl Parser {
                     }
                 }
                 Ok(Event::DocType(ref e)) => {
-                    let doctype = e
-                        .unescape()
-                        .map_err(|e| ParseError::XmlError(e))?
-                        .into_owned();
+                    // For DOCTYPE, just convert bytes to string without unescaping
+                    let doctype = std::str::from_utf8(e.as_ref())?.to_string();
+                    
+                    // Parse entity declarations from DOCTYPE if entity expansion is enabled
+                    if self.expand_entities {
+                        self.parse_entities_from_doctype(&doctype, &mut entities);
+                    }
+                    
                     if !found_root {
                         // DOCTYPE should come before the root element
                         document.prologue.push(Node::DocType(doctype));
@@ -197,7 +221,7 @@ impl Parser {
     }
 
     /// Parse a start element into an Element
-    fn parse_start_element(&self, start: &BytesStart) -> ParseResult<Element> {
+    fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>) -> ParseResult<Element> {
         let name = std::str::from_utf8(start.name().as_ref())?.to_string();
         let mut element = Element::new(&name);
 
@@ -205,7 +229,12 @@ impl Parser {
         for attr_result in start.attributes() {
             let attr = attr_result.map_err(|e| ParseError::AttrError(e.to_string()))?;
             let key = std::str::from_utf8(attr.key.as_ref())?.to_string();
-            let value = attr.unescape_value()?.to_string();
+            let mut value = attr.unescape_value()?.to_string();
+            
+            // Expand custom entities in attribute values if enabled
+            if self.expand_entities && !entities.is_empty() {
+                value = self.expand_entities_in_text(&value, entities);
+            }
 
             // Handle namespace declarations
             if key.starts_with("xmlns") {
@@ -222,6 +251,41 @@ impl Parser {
         }
 
         Ok(element)
+    }
+    
+    /// Parse entity declarations from DOCTYPE
+    fn parse_entities_from_doctype(&self, doctype: &str, entities: &mut HashMap<String, String>) {
+        // Simple regex-based parsing for entity declarations
+        // This handles patterns like: <!ENTITY name "value">
+        let entity_pattern = regex::Regex::new(r#"<!ENTITY\s+(\w+)\s+"([^"]+)"\s*>"#).unwrap();
+        
+        for capture in entity_pattern.captures_iter(doctype) {
+            if let (Some(name), Some(value)) = (capture.get(1), capture.get(2)) {
+                entities.insert(name.as_str().to_string(), value.as_str().to_string());
+            }
+        }
+        
+        // Also handle single-quoted entities: <!ENTITY name 'value'>
+        let entity_pattern_single = regex::Regex::new(r#"<!ENTITY\s+(\w+)\s+'([^']+)'\s*>"#).unwrap();
+        
+        for capture in entity_pattern_single.captures_iter(doctype) {
+            if let (Some(name), Some(value)) = (capture.get(1), capture.get(2)) {
+                entities.insert(name.as_str().to_string(), value.as_str().to_string());
+            }
+        }
+    }
+    
+    /// Expand entity references in text
+    fn expand_entities_in_text(&self, text: &str, entities: &HashMap<String, String>) -> String {
+        let mut result = text.to_string();
+        
+        // Replace custom entity references (&entity;)
+        for (name, value) in entities {
+            let entity_ref = format!("&{};", name);
+            result = result.replace(&entity_ref, value);
+        }
+        
+        result
     }
 }
 

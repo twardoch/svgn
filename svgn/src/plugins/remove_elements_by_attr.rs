@@ -13,13 +13,9 @@ pub struct RemoveElementsByAttrConfig {
     pub classes: Vec<String>,
 }
 
+#[derive(Default)]
 pub struct RemoveElementsByAttrPlugin;
 
-impl Default for RemoveElementsByAttrPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl RemoveElementsByAttrPlugin {
     pub fn new() -> Self {

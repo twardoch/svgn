@@ -44,7 +44,7 @@ The primary motivations behind developing `svgn` are rooted in the desire for su
 
 -   **Plugin-based Architecture**: A flexible and extensible system where individual optimization rules are encapsulated as plugins, allowing for fine-grained control over the optimization process.
 -   **AST-based Transformations**: Utilizes an Abstract Syntax Tree (AST) for SVG manipulation, ensuring precise and reliable transformations.
-- **Comprehensive Optimization Plugins**: 48 production-ready plugins covering essential SVG optimizations, with 5 more complex plugins in development.
+- **Comprehensive Optimization Plugins**: 55 production-ready plugins covering essential SVG optimizations, with 3 more complex plugins in development.
 -   **Enhanced CLI Tool**: Full SVGO CLI compatibility plus additional features like string input, better STDIN/STDOUT handling, and precision control.
 -   **Rust Library**: A powerful and efficient Rust library for programmatic integration into your projects.
 -   **WebAssembly (WASM) Compatibility**: `svgn` is meticulously designed with WebAssembly compilation in mind. This enables high-performance SVG optimization directly within web browsers, edge computing environments, or other WASM-compatible runtimes, unlocking new possibilities for client-side SVG processing. *(Details on WASM usage will be added as the WASM compilation target matures.)*

@@ -10,6 +10,7 @@ use crate::plugin::{Plugin, PluginInfo, PluginResult};
 use serde_json::Value;
 
 /// Plugin that removes all `<style>` elements from the SVG
+#[derive(Default)]
 pub struct RemoveStyleElement;
 
 impl Plugin for RemoveStyleElement {

@@ -53,7 +53,6 @@ impl Plugin for RemoveUnusedNSPlugin {
 }
 
 impl RemoveUnusedNSPlugin {
-    #[allow(clippy::only_used_in_recursion)]
     fn check_usage(&self, element: &Element, unused_namespaces: &mut HashSet<String>) {
         // Check if element name uses a namespace
         if element.name.contains(':') {

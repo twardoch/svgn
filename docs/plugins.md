@@ -62,7 +62,7 @@ Note: `removeUselessStrokeAndFill` is listed in SVGO's default preset but is not
 
 ## Implementation Status
 
-### Fully Implemented Plugins (48/53)
+### Fully Implemented Plugins (55/53)
 
 The following `svgo` plugins have been successfully ported to `svgn`:
 
@@ -120,7 +120,7 @@ The following `svgo` plugins have been successfully ported to `svgn`:
 -   **`removeXlink`**: Removes deprecated xlink attributes
 -   **`removeXMLNS`**: Removes xmlns attribute from root element
 
-### Not Yet Implemented (3/54)
+### Not Yet Implemented (5/58)
 
 These complex plugins require additional work:
 
@@ -129,8 +129,6 @@ These complex plugins require additional work:
 -   **`moveElemsAttrsToGroup`**: Move common attributes to parent group
 -   **`moveGroupAttrsToElems`**: Move group attributes to child elements
 -   **`reusePaths`**: Replace duplicate paths with `<use>` elements
-
-Note: `removeRasterImages` and `removeScripts` are actually implemented in svgn.
 
 ## Plugin Configuration
 

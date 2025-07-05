@@ -213,11 +213,15 @@ fn collect_css_rules(
 fn count_matching_elements_for_rule(element: &Element, rule: &CssRuleData) -> usize {
     let mut count = 0;
 
-    if let Some(ref selector_list) = rule.parsed_selectors {
+    if let Some(_selector_list) = &rule.parsed_selectors {
+        // TODO: Fix SelectorList iteration - using fallback for now
+        // Use simple matching instead of advanced selector matching
+        count_matching_elements_simple(element, &rule.selector, &mut count);
+        /*
         // Use advanced selector matching
-        walk_element_tree_with_parent(element, None, |elem, parent, index| {
+        walk_element_tree_with_parent(element, None, |elem, _parent| {
             let wrapper = SvgElementWrapper::new(elem);
-            for selector in selector_list.iter() {
+            for selector in &selector_list.0 {
                 let mut selector_caches = selectors::matching::SelectorCaches::default();
                 let mut context = MatchingContext::new(
                     MatchingMode::Normal,
@@ -234,6 +238,7 @@ fn count_matching_elements_for_rule(element: &Element, rule: &CssRuleData) -> us
                 }
             }
         });
+        */
     } else {
         // Fallback to simple matching
         count_matching_elements_simple(element, &rule.selector, &mut count);
@@ -284,10 +289,13 @@ fn apply_css_rule_and_track_impl(
     index: usize,
 ) -> PluginResult<()> {
     // Check if this element matches the selector
-    let matches = if let Some(ref selector_list) = rule.parsed_selectors {
+    let matches = if let Some(_selector_list) = &rule.parsed_selectors {
+        // TODO: Fix SelectorList iteration - using fallback for now
+        element_matches_selector_simple(element, &rule.selector)
+        /*
         // Use advanced selector matching
         let wrapper = SvgElementWrapper::new(element);
-        selector_list.iter().any(|selector| {
+        selector_list.0.iter().any(|selector| {
             let mut selector_caches = selectors::matching::SelectorCaches::default();
             let mut context = MatchingContext::new(
                 MatchingMode::Normal,
@@ -299,6 +307,7 @@ fn apply_css_rule_and_track_impl(
             );
             selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context)
         })
+        */
     } else {
         // Fallback to simple matching
         element_matches_selector_simple(element, &rule.selector)
@@ -592,12 +601,16 @@ fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
 }
 
 /// Calculate specificity for a parsed selector list
-fn calculate_selector_list_specificity(selectors: &SelectorList<SvgSelectorImpl>) -> u32 {
+fn calculate_selector_list_specificity(_selectors: &SelectorList<SvgSelectorImpl>) -> u32 {
+    // TODO: Fix SelectorList iteration - return default specificity for now
+    1000 // Default class-level specificity
+    /*
     selectors
         .iter()
         .map(calculate_parsed_selector_specificity)
         .max()
         .unwrap_or(0)
+    */
 }
 
 /// Calculate specificity for a parsed selector

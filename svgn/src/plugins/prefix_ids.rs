@@ -29,13 +29,9 @@ impl Default for PrefixIdsConfig {
     }
 }
 
+#[derive(Default)]
 pub struct PrefixIdsPlugin;
 
-impl Default for PrefixIdsPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl PrefixIdsPlugin {
     pub fn new() -> Self {

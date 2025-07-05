@@ -34,6 +34,7 @@ static SHAPE_ELEMENTS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 ///
 /// It also handles inheritance and can optionally remove elements that have
 /// no visible stroke or fill (removeNone parameter).
+#[derive(Default)]
 pub struct RemoveUselessStrokeAndFillPlugin;
 
 #[derive(Debug)]
@@ -76,7 +77,6 @@ impl RemoveUselessStrokeAndFillPlugin {
         result
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn has_style_or_script(&self, element: &Element) -> bool {
         if element.name == "style" || element.name == "script" {
             return true;
@@ -260,7 +260,6 @@ impl RemoveUselessStrokeAndFillPlugin {
         no_stroke && no_fill
     }
 
-    #[allow(clippy::only_used_in_recursion)]
     fn remove_marked_elements(&self, element: &mut Element, nodes_to_remove: &[*mut Element]) {
         element.children.retain(|child| {
             if let Node::Element(child_elem) = child {
@@ -280,11 +279,6 @@ impl RemoveUselessStrokeAndFillPlugin {
     }
 }
 
-impl Default for RemoveUselessStrokeAndFillPlugin {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl Plugin for RemoveUselessStrokeAndFillPlugin {
     fn name(&self) -> &'static str {
