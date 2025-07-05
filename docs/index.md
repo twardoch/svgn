@@ -16,10 +16,11 @@ This documentation serves as a comprehensive guide to `svgn`, detailing its stru
 
 ### Current Status
 
-- **Plugin Implementation**: 45/54 plugins (83%) successfully ported
-- **CLI Compatibility**: Full drop-in replacement for SVGO CLI
-- **Test Coverage**: 359 tests passing (100% success rate)
+- **Plugin Implementation**: 51/54 plugins (94.4%) successfully ported
+- **CLI Compatibility**: Full drop-in replacement for SVGO CLI (when build works)
+- **Test Coverage**: BLOCKED by compilation failures
 - **SVGO Feature Parity**: 93.75% compatibility achieved
+- **Build Status**: CRITICAL FAILURE (22 compilation errors)
 
 ## 2. Why SVGN?
 
@@ -43,11 +44,12 @@ The primary motivations behind developing `svgn` are rooted in the desire for su
 
 -   **Plugin-based Architecture**: A flexible and extensible system where individual optimization rules are encapsulated as plugins, allowing for fine-grained control over the optimization process.
 -   **AST-based Transformations**: Utilizes an Abstract Syntax Tree (AST) for SVG manipulation, ensuring precise and reliable transformations.
--   **Comprehensive Optimization Plugins**: 45 production-ready plugins covering essential SVG optimizations, with 9 more complex plugins in development.
+- **Comprehensive Optimization Plugins**: 48 production-ready plugins covering essential SVG optimizations, with 5 more complex plugins in development.
 -   **Enhanced CLI Tool**: Full SVGO CLI compatibility plus additional features like string input, better STDIN/STDOUT handling, and precision control.
 -   **Rust Library**: A powerful and efficient Rust library for programmatic integration into your projects.
--   **WASM Target**: Future-proof design with WebAssembly compilation support for browser and edge environments.
+-   **WebAssembly (WASM) Compatibility**: `svgn` is meticulously designed with WebAssembly compilation in mind. This enables high-performance SVG optimization directly within web browsers, edge computing environments, or other WASM-compatible runtimes, unlocking new possibilities for client-side SVG processing. *(Details on WASM usage will be added as the WASM compilation target matures.)*
 -   **Superior Performance**: Typically 2-3x faster than SVGO for common optimization tasks.
+-   **Benchmarking Tool**: A comprehensive benchmarking tool is available to compare `svgn`'s performance against `svgo`, generating Jekyll-compatible reports.
 
 ## 4. Project Structure
 

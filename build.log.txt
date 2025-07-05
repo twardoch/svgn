@@ -1,37 +1,41 @@
 Generating code snapshot in ./llms.txt ...
-╭───────────────────────────────────── CodeToPrompt ──────────────────────────────────────╮
-│ Configuration for this run:                                                             │
-│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn                      │
-│ Include Patterns: ['*']                                                                 │
-│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref', 'testdata', '*.lock'] │
-│ Respect .gitignore: True                                                                │
-│ Show Line Numbers: False                                                                │
-│ Count Tokens: True                                                                      │
-│ Compress Code: True                                                                     │
-│ Max Tokens: Unlimited                                                                   │
-│ Tree Depth: 5                                                                           │
-│ Output Format: default                                                                  │
-│ Interactive Mode: False                                                                 │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────── CodeToPrompt ────────────────────╮
+│ Configuration for this run:                          │
+│ Root Directory:                                      │
+│ /Users/adam/Developer/vcs/github.twardoch/pub/svgn   │
+│ Include Patterns: ['*']                              │
+│ Exclude Patterns: ['*.svg', '.specstory', '*.md',    │
+│ '*.txt', 'ref', 'testdata', '*.lock']                │
+│ Respect .gitignore: True                             │
+│ Show Line Numbers: False                             │
+│ Count Tokens: True                                   │
+│ Compress Code: True                                  │
+│ Max Tokens: Unlimited                                │
+│ Tree Depth: 5                                        │
+│ Output Format: default                               │
+│ Interactive Mode: False                              │
+╰──────────────────────────────────────────────────────╯
 
-╭──────────────────────── Processing Complete ────────────────────────╮
-│ Summary:                                                            │
-│ Files Processed: 108                                                │
-│ Total Tokens: 68,558                                                │
-│ Output Destination: llms.txt                                        │
-│                                                                     │
-│ Top 3 Files by Tokens:                                              │
-│   - svgn/src/collections.rs (5,362 tokens)                          │
-│   - svgn/src/plugins/remove_unknowns_and_defaults.rs (4,955 tokens) │
-│   - svgn/src/plugins/cleanup_list_of_values.rs (3,957 tokens)       │
-│                                                                     │
-│ Top 5 Extensions by Tokens:                                         │
-│   - .rs (51,332 tokens)                                             │
-│   - .sh (7,467 tokens)                                              │
-│   - .yml (2,953 tokens)                                             │
-│   - .bak (2,786 tokens)                                             │
-│   - .cmd (2,652 tokens)                                             │
-╰─────────────────────────────────────────────────────────────────────╯
+╭──────────────── Processing Complete ─────────────────╮
+│ Summary:                                             │
+│ Files Processed: 108                                 │
+│ Total Tokens: 69,712                                 │
+│ Output Destination: llms.txt                         │
+│                                                      │
+│ Top 3 Files by Tokens:                               │
+│   - svgn/src/collections.rs (5,362 tokens)           │
+│   - svgn/src/plugins/remove_unknowns_and_defaults.rs │
+│ (4,955 tokens)                                       │
+│   - svgn/src/plugins/cleanup_list_of_values.rs       │
+│ (3,957 tokens)                                       │
+│                                                      │
+│ Top 5 Extensions by Tokens:                          │
+│   - .rs (51,332 tokens)                              │
+│   - .sh (8,606 tokens)                               │
+│   - .yml (2,968 tokens)                              │
+│   - .bak (2,786 tokens)                              │
+│   - .cmd (2,652 tokens)                              │
+╰──────────────────────────────────────────────────────╯
 Building the svgn project...
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
 warning: unused imports: `SelectorImpl` and `Selector`
@@ -67,9 +71,9 @@ warning: unused import: `cssparser::ToCss`
    |     ^^^^^^^^^^^^^^^^
 
 warning: unused import: `MatchingContext`
-   --> svgn/src/plugins/inline_styles_selector.rs:433:31
+   --> svgn/src/plugins/inline_styles_selector.rs:452:31
     |
-433 |     use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, MatchingForInvalidation};
+452 |     use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, MatchingForInvalidation};
     |                               ^^^^^^^^^^^^^^^
 
 warning: unused import: `SelectorImpl`
@@ -79,9 +83,9 @@ warning: unused import: `SelectorImpl`
    |                                       ^^^^^^^^^^^^
 
 error[E0277]: the trait bound `SvgIdentifier: precomputed_hash::PrecomputedHash` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:137:23
+   --> svgn/src/plugins/inline_styles_selector.rs:156:23
     |
-137 |     type Identifier = SvgIdentifier;
+156 |     type Identifier = SvgIdentifier;
     |                       ^^^^^^^^^^^^^ the trait `precomputed_hash::PrecomputedHash` is not implemented for `SvgIdentifier`
     |
     = help: the following other types implement trait `precomputed_hash::PrecomputedHash`:
@@ -98,9 +102,9 @@ note: required by a bound in `selectors::SelectorImpl::Identifier`
     = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `SvgLocalName: precomputed_hash::PrecomputedHash` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:138:22
+   --> svgn/src/plugins/inline_styles_selector.rs:157:22
     |
-138 |     type LocalName = SvgLocalName;
+157 |     type LocalName = SvgLocalName;
     |                      ^^^^^^^^^^^^ the trait `precomputed_hash::PrecomputedHash` is not implemented for `SvgLocalName`
     |
     = help: the following other types implement trait `precomputed_hash::PrecomputedHash`:
@@ -116,47 +120,10 @@ note: required by a bound in `selectors::SelectorImpl::LocalName`
     | |_^ required by this bound in `SelectorImpl::LocalName`
     = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `SvgLocalName: Borrow<str>` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:138:22
-    |
-138 |     type LocalName = SvgLocalName;
-    |                      ^^^^^^^^^^^^ the trait `Borrow<str>` is not implemented for `SvgLocalName`
-    |
-note: required by a bound in `selectors::SelectorImpl::LocalName`
-   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.30.0/parser.rs:263:1
-    |
-263 | / with_bounds! {
-264 | |     [Clone + Eq]
-265 | |     [for<'a> From<&'a str>]
-266 | | }
-    | |_^ required by this bound in `SelectorImpl::LocalName`
-    = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `SvgNamespacePrefix: std::default::Default` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:139:28
-    |
-139 |     type NamespacePrefix = SvgNamespacePrefix;
-    |                            ^^^^^^^^^^^^^^^^^^ the trait `std::default::Default` is not implemented for `SvgNamespacePrefix`
-    |
-note: required by a bound in `selectors::SelectorImpl::NamespacePrefix`
-   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.30.0/parser.rs:263:1
-    |
-263 | / with_bounds! {
-264 | |     [Clone + Eq]
-265 | |     [for<'a> From<&'a str>]
-266 | | }
-    | |_^ required by this bound in `SelectorImpl::NamespacePrefix`
-    = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: consider annotating `SvgNamespacePrefix` with `#[derive(Default)]`
-    |
-27  + #[derive(Default)]
-28  | pub struct SvgNamespacePrefix(pub String);
-    |
-
 error[E0277]: the trait bound `SvgNamespaceUrl: precomputed_hash::PrecomputedHash` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:140:25
+   --> svgn/src/plugins/inline_styles_selector.rs:159:25
     |
-140 |     type NamespaceUrl = SvgNamespaceUrl;
+159 |     type NamespaceUrl = SvgNamespaceUrl;
     |                         ^^^^^^^^^^^^^^^ the trait `precomputed_hash::PrecomputedHash` is not implemented for `SvgNamespaceUrl`
     |
     = help: the following other types implement trait `precomputed_hash::PrecomputedHash`:
@@ -172,152 +139,31 @@ note: required by a bound in `selectors::SelectorImpl::NamespaceUrl`
     | |_^ required by this bound in `SelectorImpl::NamespaceUrl`
     = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0277]: the trait bound `SvgNamespaceUrl: Borrow<str>` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:140:25
-    |
-140 |     type NamespaceUrl = SvgNamespaceUrl;
-    |                         ^^^^^^^^^^^^^^^ the trait `Borrow<str>` is not implemented for `SvgNamespaceUrl`
-    |
-note: required by a bound in `selectors::SelectorImpl::NamespaceUrl`
-   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.30.0/parser.rs:263:1
-    |
-263 | / with_bounds! {
-264 | |     [Clone + Eq]
-265 | |     [for<'a> From<&'a str>]
-266 | | }
-    | |_^ required by this bound in `SelectorImpl::NamespaceUrl`
-    = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `SvgNamespaceUrl: std::default::Default` is not satisfied
-   --> svgn/src/plugins/inline_styles_selector.rs:140:25
-    |
-140 |     type NamespaceUrl = SvgNamespaceUrl;
-    |                         ^^^^^^^^^^^^^^^ the trait `std::default::Default` is not implemented for `SvgNamespaceUrl`
-    |
-note: required by a bound in `selectors::SelectorImpl::NamespaceUrl`
-   --> /Users/adam/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/selectors-0.30.0/parser.rs:263:1
-    |
-263 | / with_bounds! {
-264 | |     [Clone + Eq]
-265 | |     [for<'a> From<&'a str>]
-266 | | }
-    | |_^ required by this bound in `SelectorImpl::NamespaceUrl`
-    = note: this error originates in the macro `with_all_bounds` which comes from the expansion of the macro `with_bounds` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: consider annotating `SvgNamespaceUrl` with `#[derive(Default)]`
-    |
-30  + #[derive(Default)]
-31  | pub struct SvgNamespaceUrl(pub String);
-    |
-
-error[E0053]: method `attr_matches` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:288:13
-    |
-288 |         ns: &NamespaceConstraint<&String>,
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `SvgNamespaceUrl`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &NamespaceConstraint<&SvgNamespaceUrl>, &SvgLocalName, &AttrSelectorOperation<&SvgAttrValue>) -> _`
-               found signature `fn(&SvgElement<'_>, &NamespaceConstraint<&std::string::String>, &std::string::String, &AttrSelectorOperation<&std::string::String>) -> _`
-help: change the parameter type to match the trait
-    |
-288 -         ns: &NamespaceConstraint<&String>,
-288 +         ns: &NamespaceConstraint<&SvgNamespaceUrl>,
-    |
-
-error[E0053]: method `has_id` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:378:26
-    |
-378 |     fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
-    |                          ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier, CaseSensitivity) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String, CaseSensitivity) -> _`
-help: change the parameter type to match the trait
-    |
-378 -     fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
-378 +     fn has_id(&self, id: &SvgIdentifier, _case_sensitivity: CaseSensitivity) -> bool {
-    |
-
-error[E0053]: method `has_class` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:382:31
-    |
-382 |     fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
-    |                               ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier, CaseSensitivity) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String, CaseSensitivity) -> _`
-help: change the parameter type to match the trait
-    |
-382 -     fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
-382 +     fn has_class(&self, name: &SvgIdentifier, _case_sensitivity: CaseSensitivity) -> bool {
-    |
-
-error[E0053]: method `imported_part` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:391:36
-    |
-391 |     fn imported_part(&self, _name: &String) -> Option<String> {
-    |                                    ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier) -> std::option::Option<SvgIdentifier>`
-               found signature `fn(&SvgElement<'_>, &std::string::String) -> std::option::Option<std::string::String>`
-help: change the parameter type to match the trait
-    |
-391 -     fn imported_part(&self, _name: &String) -> Option<String> {
-391 +     fn imported_part(&self, _name: &SvgIdentifier) -> Option<String> {
-    |
-
-error[E0053]: method `is_part` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:395:30
-    |
-395 |     fn is_part(&self, _name: &String) -> bool {
-    |                              ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String) -> _`
-help: change the parameter type to match the trait
-    |
-395 -     fn is_part(&self, _name: &String) -> bool {
-395 +     fn is_part(&self, _name: &SvgIdentifier) -> bool {
-    |
-
-error[E0053]: method `has_custom_state` has an incompatible type for trait
-   --> svgn/src/plugins/inline_styles_selector.rs:399:39
-    |
-399 |     fn has_custom_state(&self, _name: &String) -> bool {
-    |                                       ^^^^^^^ expected `SvgIdentifier`, found `std::string::String`
-    |
-    = note: expected signature `fn(&SvgElement<'_>, &SvgIdentifier) -> _`
-               found signature `fn(&SvgElement<'_>, &std::string::String) -> _`
-help: change the parameter type to match the trait
-    |
-399 -     fn has_custom_state(&self, _name: &String) -> bool {
-399 +     fn has_custom_state(&self, _name: &SvgIdentifier) -> bool {
-    |
-
 error[E0433]: failed to resolve: use of unresolved module or unlinked crate `precomputed_hash`
-  --> svgn/src/plugins/inline_styles_selector.rs:69:6
+  --> svgn/src/plugins/inline_styles_selector.rs:75:6
    |
-69 | impl precomputed_hash::PrecomputedHash for SvgIdentifier {
+75 | impl precomputed_hash::PrecomputedHash for SvgIdentifier {
    |      ^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `precomputed_hash`
    |
    = help: if you wanted to use a crate named `precomputed_hash`, use `cargo add precomputed_hash` to add it to your `Cargo.toml`
 
 error[E0433]: failed to resolve: use of unresolved module or unlinked crate `precomputed_hash`
-  --> svgn/src/plugins/inline_styles_selector.rs:79:6
+  --> svgn/src/plugins/inline_styles_selector.rs:85:6
    |
-79 | impl precomputed_hash::PrecomputedHash for SvgLocalName {
+85 | impl precomputed_hash::PrecomputedHash for SvgLocalName {
    |      ^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `precomputed_hash`
    |
    = help: if you wanted to use a crate named `precomputed_hash`, use `cargo add precomputed_hash` to add it to your `Cargo.toml`
 
 error[E0433]: failed to resolve: use of unresolved module or unlinked crate `precomputed_hash`
-  --> svgn/src/plugins/inline_styles_selector.rs:89:6
+  --> svgn/src/plugins/inline_styles_selector.rs:95:6
    |
-89 | impl precomputed_hash::PrecomputedHash for SvgNamespaceUrl {
+95 | impl precomputed_hash::PrecomputedHash for SvgNamespaceUrl {
    |      ^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `precomputed_hash`
    |
    = help: if you wanted to use a crate named `precomputed_hash`, use `cargo add precomputed_hash` to add it to your `Cargo.toml`
 
-Some errors have detailed explanations: E0053, E0277, E0433.
-For more information about an error, try `rustc --explain E0053`.
+Some errors have detailed explanations: E0277, E0433.
+For more information about an error, try `rustc --explain E0277`.
 warning: `svgn` (lib) generated 7 warnings
-error: could not compile `svgn` (lib) due to 16 previous errors; 7 warnings emitted
+error: could not compile `svgn` (lib) due to 6 previous errors; 7 warnings emitted

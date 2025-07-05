@@ -49,3 +49,6 @@ aux_links:
 collections:
   data:
     output: true
+  benchmarks:
+    output: true
+    nav_order: 7

@@ -63,7 +63,7 @@ Consider using `svgn` if:
 -   You plan to deploy SVG optimization to WebAssembly (WASM) for client-side or edge computing scenarios.
 -   You value strong type safety and compile-time error checking.
 -   You need a drop-in CLI replacement for SVGO with enhanced features like better STDIN/STDOUT handling.
--   The 46 currently implemented plugins cover your optimization needs.
+-   -   The 48 currently implemented plugins cover your optimization needs.
 
 ## When to Choose SVGO?
 
@@ -71,7 +71,7 @@ Consider using `svgn` if:
 
 -   You are already heavily invested in the Node.js/JavaScript ecosystem.
 -   Your performance requirements are met by `svgo`'s current capabilities.
--   You require one of the 7 plugins not yet implemented in `svgn` (particularly convertTransform, inlineStyles, or removeUselessStrokeAndFill which are in SVGO's default preset).
+-   You require one of the 3 plugins not yet implemented in `svgn`.
 -   You need immediate access to the latest `svgo` features and plugins as they are released.
 -   You prefer the flexibility and rapid development cycles often associated with JavaScript.
 

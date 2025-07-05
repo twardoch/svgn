@@ -441,9 +441,26 @@ The CLI is now a drop-in replacement for SVGO's CLI with identical syntax and be
 
 ### 12.3. Next
 - Actual path optimization logic (with lyon, geometry, etc.) should be incrementally implemented in this plugin skeleton going forward.
-# svgn Changelog
 
-## 13. Initial Testing and Setup (2025-07-03)
+## 13. Benchmarking Tool Implementation (2025-07-05)
+
+### 13.1. Comprehensive Benchmarking Tool ✅
+- **Implemented new script**: `scripts/benchmark.sh`
+- **Compares**: `svgo` (via `bun`) and `svgn` speed and optimization effectiveness.
+- **Features**:
+  - Measures execution time for each tool on individual SVG files.
+  - Compares original file size with optimized file size.
+  - Calculates percentage reduction in file size.
+  - Supports cross-platform `date` and `stat` commands (macOS and Linux).
+  - Enforces a minimum number of SVG files for meaningful benchmarks.
+- **Output**: Generates a Jekyll-compatible Markdown report in `docs/benchmarks/` with detailed results per file and an overall summary.
+
+### 13.2. Documentation Updates ✅
+- **Updated `docs/_config.yml`**: Added a `benchmarks` collection to the Jekyll configuration to enable navigation links for the generated reports.
+- **Updated `PLAN.md`**: Marked the benchmarking tool implementation as complete.
+- **Updated `TODO.md`**: Removed the benchmarking tool task.
+
+## 14. Initial Testing and Setup (2025-07-03)
 - Ran `yarn test` in `ref/svgo`.
 - Documented `ref/svgo` test failures and warnings in `ref/svgo/TODO.md`.
 - Ran `cargo test` in `svgn`.
@@ -451,9 +468,9 @@ The CLI is now a drop-in replacement for SVGO's CLI with identical syntax and be
 - Updated `TODO.md` and `PLAN.md` with test results and issues.
 - Re-ran tests and confirmed existing issues in `ref/svgo` and `svgn`.
 
-## 14. Plugin Implementation Progress (2025-07-03)
+## 15. Plugin Implementation Progress (2025-07-03)
 
-### 14.1. Phase 1: Foundation Complete (43/54 plugins implemented)
+### 15.1. Phase 1: Foundation Complete (43/54 plugins implemented)
 - **Core Infrastructure**: Parser, AST, stringifier, and plugin system
 - **Test Coverage**: 328+ tests passing
 - **Plugin Categories Completed**:
@@ -465,7 +482,7 @@ The CLI is now a drop-in replacement for SVGO's CLI with identical syntax and be
   - Namespace handlers (removeUnusedNS, removeXlink, removeXMLNS)
   - Structural optimizers (collapseGroups, removeHiddenElems, removeOffCanvasPaths)
 
-### 14.2. Technical Achievements
+### 15.2. Technical Achievements
 - ✅ Fixed Plugin trait compilation issues and enhanced with PluginInfo parameter
 - ✅ Fixed HashMap ordering issue by migrating to IndexMap for attribute preservation
 - ✅ Implemented comprehensive regex-based pattern matching for removeAttrs
@@ -474,14 +491,14 @@ The CLI is now a drop-in replacement for SVGO's CLI with identical syntax and be
 - ✅ Added PRESENTATION_ATTRS collection for SVG presentation attributes
 - ✅ Added comprehensive color conversion algorithms with full SVG color name support
 
-### 14.3. Current Status  
+### 15.3. Current Status  
 - **Progress**: 45/54 plugins (83%) implemented  
 - **Tests**: 325 tests passing
 - **Ready**: For advanced complex plugin implementation phase
 
-## 15. Complex Plugin Implementation Phase (2025-07-03)
+## 16. Complex Plugin Implementation Phase (2025-07-03)
 
-### 15.1. Phase Summary ✅
+### 16.1. Phase Summary ✅
 In this intensive development session, we successfully implemented 2 complex plugins and resolved all build issues:
 
 1. **convertShapeToPath Plugin** - Complete shape-to-path conversion with SVGO compatibility
@@ -489,15 +506,15 @@ In this intensive development session, we successfully implemented 2 complex plu
 3. **Build Stabilization** - Fixed all compilation errors and warnings
 4. **Test Coverage** - Maintained 100% test pass rate with 325 total tests
 
-### 15.2. Progress Metrics
+### 16.2. Progress Metrics
 - **Before**: 43/54 plugins (80%)  
 - **After**: 45/54 plugins (83%)
 - **Tests**: +10 new tests (315 → 325)
 - **Remaining**: 9 complex plugins
 
-## 16. Complex Plugin Implementation (2025-07-03)
+## 17. Complex Plugin Implementation (2025-07-03)
 
-### 16.1. convertShapeToPath Plugin Implementation ✅
+### 17.1. convertShapeToPath Plugin Implementation ✅
 - **Implemented**: Complete convertShapeToPath plugin with full SVGO compatibility
 - **Features**: 
   - Converts rectangles, lines, polylines, polygons to path elements
@@ -508,7 +525,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 - **Tests**: 8 comprehensive unit tests covering all shape types and edge cases
 - **Progress**: 45/54 plugins complete (83%), 9 complex plugins remaining
 
-### 16.2. minifyStyles Plugin Implementation ✅
+### 17.2. minifyStyles Plugin Implementation ✅
 - **Implemented**: Basic CSS minification plugin with regex-based approach
 - **Features**:
   - Removes CSS comments (configurable via comments parameter)
@@ -520,9 +537,9 @@ In this intensive development session, we successfully implemented 2 complex plu
 - **Tests**: 10 comprehensive unit tests covering various CSS minification scenarios
 - **Progress**: 45/54 plugins complete (83%), 9 complex plugins remaining
 
-## 17. Comprehensive Test Suite Implementation (2025-07-03)
+## 18. Comprehensive Test Suite Implementation (2025-07-03)
 
-### 17.1. Major Testing Infrastructure Expansion ✅
+### 18.1. Major Testing Infrastructure Expansion ✅
 
 **Overview**: Implemented extensive SVGO-compatible test suite with 13 new test files and comprehensive integration testing.
 
@@ -541,7 +558,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 12. `plugins/remove_dimensions.rs` - Dimension removal testing (7 tests)
 13. `plugins/remove_empty_attrs.rs` - Empty attribute removal testing (6 tests)
 
-### 17.2. Testing Framework Features ✅
+### 18.2. Testing Framework Features ✅
 
 **SVGO Fixture Compatibility:**
 - ✅ Implemented SVGO-style test fixture parser (input @@@ expected @@@ params format)
@@ -564,7 +581,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 - ✅ Edge case and error resilience testing
 - ✅ Performance characteristic validation
 
-### 17.3. Test Coverage Metrics ✅
+### 18.3. Test Coverage Metrics ✅
 
 **Before Enhancement:**
 - Test Files: ~5 basic test files
@@ -577,7 +594,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 - Integration Tests: ~40+ new high-level tests
 - Coverage: Full SVGO compatibility validation
 
-### 17.4. Key Technical Achievements ✅
+### 18.4. Key Technical Achievements ✅
 
 1. **SVGO Pattern Compatibility**: Tests follow exact patterns from SVGO test suite
 2. **Fixture Format Support**: Can parse and execute SVGO-style test fixtures  
@@ -586,7 +603,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 5. **Error Resilience**: Graceful handling of edge cases and malformed input
 6. **Idempotence Verification**: Ensures optimizations are stable and repeatable
 
-### 17.5. Test Infrastructure Benefits ✅
+### 18.5. Test Infrastructure Benefits ✅
 
 - **Regression Prevention**: Comprehensive test coverage prevents future breakage
 - **SVGO Compatibility**: Verified feature parity with original SVGO behavior
@@ -594,15 +611,15 @@ In this intensive development session, we successfully implemented 2 complex plu
 - **Plugin Validation**: Individual plugin correctness verification
 - **Integration Assurance**: Multi-component interaction validation
 
-### 17.6. Current Status ✅
+### 18.6. Current Status ✅
 - **Total Test Files**: 13 test files covering all aspects of functionality
 - **Library Tests**: 325 tests passing (100% pass rate maintained)
 - **Plugin Coverage**: 8+ plugins with dedicated test modules
 - **Framework Maturity**: Ready for continued plugin development with full test safety net
 
-## 18. Critical Bug Fixes and CLI Stabilization (2025-07-03)
+## 19. Critical Bug Fixes and CLI Stabilization (2025-07-03)
 
-### 18.1. CLI Functionality Restored ✅
+### 19.1. CLI Functionality Restored ✅
 
 **Major Issue Resolution**: Fixed critical CLI failure that prevented basic SVG processing.
 
@@ -617,11 +634,11 @@ In this intensive development session, we successfully implemented 2 complex plu
 
 **Impact**: CLI now successfully processes complex SVGs with 24% size reduction on test files.
 
-### 18.2. Critical SVGO Compatibility Fixes ✅
+### 19.2. Critical SVGO Compatibility Fixes ✅
 
 **Test Success Rate**: Improved from 62.5% (10/16) to 93.75% (15/16) on SVGO compatibility tests.
 
-#### 18.2.1. Fixed Issues:
+#### 19.2.1. Fixed Issues:
 
 1. **Whitespace Preservation** ✅
    - **Problem**: Tests expected pretty-printed output but received minified format
@@ -643,10 +660,10 @@ In this intensive development session, we successfully implemented 2 complex plu
    - **Solution**: Fixed ID generation sequence to start with correct initial value
    - **Impact**: ID minification now matches SVGO behavior exactly
 
-### 18.3. Remaining Minor Issue
+### 19.3. Remaining Minor Issue
 - **Attribute Order Preservation**: One test expects exact attribute order preservation when no optimization occurs (15/16 tests passing)
 
-### 18.4. Performance and Quality Metrics ✅
+### 19.4. Performance and Quality Metrics ✅
 
 **Before Fixes:**
 - CLI: ❌ Failed on complex SVGs
@@ -658,7 +675,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 - Compatibility Tests: 15/16 passing (93.75%)
 - Build Status: ✅ Stable with minor remaining issue
 
-### 18.5. Technical Achievements ✅
+### 19.5. Technical Achievements ✅
 
 1. **Parser Enhancement**: Fixed comment preservation configuration
 2. **Stringifier Improvement**: Enhanced text formatting and attribute ordering
@@ -666,7 +683,7 @@ In this intensive development session, we successfully implemented 2 complex plu
 4. **Configuration Management**: Improved default preset handling
 5. **Test Framework**: Smart pretty-printing logic based on expected changes
 
-### 18.6. Current System Status ✅
+### 19.6. Current System Status ✅
 - **Plugin Implementation**: 45/54 plugins (83%)
 - **CLI Functionality**: ✅ Working with complex SVGs
 - **Test Coverage**: 325 library tests + 15/16 compatibility tests passing

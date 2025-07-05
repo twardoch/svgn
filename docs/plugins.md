@@ -19,7 +19,7 @@ In `svgn`, plugins are implemented as Rust functions or structs that operate on 
 
 `svgn`, like `svgo`, includes a default preset of plugins that are generally safe and provide good optimization results. This preset is applied by default when no custom plugin configuration is provided. 
 
-The default preset currently includes most implemented plugins but is more conservative than SVGO's default preset. SVGN includes 21 plugins in its default preset compared to SVGO's 35 plugins. Several complex plugins from SVGO's default preset (convertTransform, inlineStyles, mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems, removeUselessStrokeAndFill) are not yet implemented and are excluded from the default configuration.
+The default preset currently includes most implemented plugins but is more conservative than SVGO's default preset. SVGN's default preset is being actively aligned with SVGO's. Currently, several complex plugins from SVGO's default preset (mergePaths, moveElemsAttrsToGroup, moveGroupAttrsToElems) are not yet implemented and are excluded from the default configuration.
 
 ### SVGO v4 Default Preset Order
 
@@ -62,7 +62,7 @@ Note: `removeUselessStrokeAndFill` is listed in SVGO's default preset but is not
 
 ## Implementation Status
 
-### Fully Implemented Plugins (46/53)
+### Fully Implemented Plugins (48/53)
 
 The following `svgo` plugins have been successfully ported to `svgn`:
 
@@ -120,17 +120,14 @@ The following `svgo` plugins have been successfully ported to `svgn`:
 -   **`removeXlink`**: Removes deprecated xlink attributes
 -   **`removeXMLNS`**: Removes xmlns attribute from root element
 
-### Not Yet Implemented (7/53)
+### Not Yet Implemented (3/54)
 
 These complex plugins require additional work:
 
 -   **`applyTransforms`**: Applies transform matrices to path coordinates and shapes
--   **`convertTransform`**: Transform matrix optimization and simplification
--   **`inlineStyles`**: Inline styles from `<style>` elements to style attributes
 -   **`mergePaths`**: Merge multiple paths into one
 -   **`moveElemsAttrsToGroup`**: Move common attributes to parent group
 -   **`moveGroupAttrsToElems`**: Move group attributes to child elements
--   **`removeUselessStrokeAndFill`**: Removes useless stroke and fill attributes
 -   **`reusePaths`**: Replace duplicate paths with `<use>` elements
 
 Note: `removeRasterImages` and `removeScripts` are actually implemented in svgn.

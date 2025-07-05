@@ -211,4 +211,4 @@ fn main() {
 
 `svgn` is designed to be compiled to WebAssembly, allowing you to run SVG optimization directly in the browser or other WASM environments. This provides a significant performance boost compared to JavaScript-based optimizers in the browser.
 
-*(Details on WASM usage will be added as the WASM compilation target matures.)*
+Further details on WASM usage will be added as the compilation target matures.
