@@ -60,10 +60,10 @@
 
 #### Phase 1A.3: SVG DOM Integration (3 days)
 - [x] Implement custom Element trait for selectors crate ✅ COMPLETED
-- [ ] Create SVG element matching infrastructure - IN PROGRESS
-- [ ] Build CSS selector to SVG element matching engine
-- [ ] Implement CSS specificity calculation and cascade resolution
-- [ ] Add support for class and ID attribute matching
+- [ ] Complete basic selector matching logic in `inlineStyles` for class selectors (MVP for `.st0 {}`)
+- [ ] Apply matched CSS rules as inline SVG attributes using existing converter (minimal path)
+- [ ] Add support for ID selectors (`#foo`) if not yet handled
+- [ ] Verify with direct test
 
 #### Phase 1A.4: CSS-to-SVG Conversion (2 days)
 - [ ] Create CSS property to SVG attribute mapping
@@ -77,7 +77,7 @@
 - [ ] Implement `onlyMatchedOnce` optimization logic
 - [ ] Remove empty `<style>` elements after processing
 
-#### Phase 1A.6: Testing and Validation (3 days)
+- [ ] Add minimal test (`inline_styles.rs`) porting SVGO fixture for `.st0 { fill:blue; }` pattern
 - [ ] Create comprehensive test suite with SVGO compatibility tests
 - [ ] Add edge case testing (nested styles, complex selectors, etc.)
 - [ ] Implement regression tests against SVGO reference output  

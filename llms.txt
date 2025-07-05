@@ -137,6 +137,7 @@ Project Structure:
 │   │   │   ├── 📄 convert_ellipse_to_circle.rs
 │   │   │   ├── 📄 convert_one_stop_gradients.rs
 │   │   │   ├── 📄 convert_path_data.rs
+│   │   │   ├── 📄 inline_styles.rs
 │   │   │   ├── 📄 remove_attributes_by_selector.rs
 │   │   │   ├── 📄 remove_comments.rs
 │   │   │   ├── 📄 remove_deprecated_attrs.rs
@@ -171,7 +172,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vvl61geu-0updjie-754cmt0sl1sqig74syuo84xtr
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-04qkxn61x8ptz
-│   │       │   └── 📁 s-h8wyqemfhw-07altvi-5goj9gt74ydtktx4lbv0okxz4
+│   │       │   └── 📁 s-h8wzpwt6i2-1n2a64n-6glinfgxxr3ttbh3clbimzfx9
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-0ply0uphy5qym
 │   │       │   └── 📁 s-h8vy5za5t7-0f3dhok-f2uek7626qhxmg09wpsldq1h9
@@ -185,14 +186,20 @@ Project Structure:
 │   │       ├── 📁 fixture_tests-2gaps0wbpfl9o
 │   │       │   └── 📁 s-h8wlfix8xs-1pitcp5-9xq2t9cu8725z79j2z4hhol1e
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 fixture_tests-3c4fq7xgqryar
+│   │       │   └── 📁 s-h8wz79qn6l-18x6huh-4ozm1a8csr704xvmhoi1rpisf
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-3nt7vqt04i75y
 │   │       │   └── 📁 s-h8wv2mvx37-0pr0tw8-76477za0o45cmczcozioy8gyc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-0qdnrv6fbibj4
 │   │       │   └── 📁 s-h8vy5z9rzq-1gcazsl-5mvbcikd9kzr6cpbk3ct3evgv
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 integration_test-1fye0zngj15tq
+│   │       │   └── 📁 s-h8wz79so1m-1o5eing-working
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-1yospmh98a6ii
-│   │       │   └── 📁 s-h8wyqenpdj-1vndnyk-17lujb4djd8ymfsb7cwmphwq6
+│   │       │   └── 📁 s-h8wzpwr1ot-1xa1zvl-1jt2skj6payar8q5mo91qvpt1
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-289jpq8zntzlt
 │   │       │   └── 📁 s-h8wlfix3li-1c0sudl-ehitses9di4nwy7aga1pqlckh
@@ -205,6 +212,9 @@ Project Structure:
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-3avu2nzkohr66
 │   │       │   └── 📁 s-h8vz1ymsyx-0yo3a0f-b79iu84hef26byjk3fkcdxpi5
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 optimization-07fqd68iv2es5
+│   │       │   └── 📁 s-h8wz79r1ia-0an7y91-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 optimization-17w1dpl2szylt
 │   │       │   └── 📁 s-h8wlfixcyv-1l6145r-working
@@ -230,8 +240,11 @@ Project Structure:
 │   │       ├── 📁 plugins-2b75l6iv6hmr9
 │   │       │   └── 📁 s-h8wlfixdhq-02byig5-3fx9onlvel2yz06y7je3vdgd0
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 plugins-3do6i2bze19d7
+│   │       │   └── 📁 s-h8wz79ov5k-0kbltx5-cb3kckv1wvfo7o8cro5nx7th4
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-3h3qbxszk3i0n
-│   │       │   └── 📁 s-h8wyqemoj2-0y67lud-27wzykomeqsl9u4jr6gwz1x9b
+│   │       │   └── 📁 s-h8wzpwshda-1dcbahg-a3yyo5q0ytwy259oeiue6n1ry
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-005rkcjeongye
 │   │       │   └── 📁 s-h8vz1u4zde-16l6y1l-delgivoc9912fy7ako87t5e5e
@@ -240,7 +253,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vz1ymg8i-1qnqf76-e1n4i575zyfrj06zbz25iuss2
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-02mbnowxjxo1w
-│   │       │   └── 📁 s-h8wyqenfs0-1hf440s-3c6n1lwk4z1l6fchrl4ifp991
+│   │       │   └── 📁 s-h8wzpwtb53-1f86ejz-c1q7mfs7zw5wizq3bo860gvky
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-09muhj9jcze26
 │   │       │   └── 📁 s-h8wlfix1h9-1oreiby-47zko5a8unin3lki782a7xkaq
@@ -260,8 +273,11 @@ Project Structure:
 │   │       ├── 📁 svgn-0g1g5cqluatjo
 │   │       │   └── 📁 s-h8wpu9q2p6-0ghpiqk-4ongrjstfbmzgvuh8fpdeti35
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0h2kstmafyw4c
+│   │       │   └── 📁 s-h8wz79srnf-0wpzvln-working
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0n2li25y90h3k
-│   │       │   └── 📁 s-h8ww3q1bye-02dee9b-working
+│   │       │   └── 📁 s-h8wz72nft1-0qj20ip-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0s1ueb1mz1md4
 │   │       │   └── 📁 s-h8vy896qw9-1kmsvvl-78d3ssu25bffevfc5j3kfya90
@@ -275,13 +291,16 @@ Project Structure:
 │   │       │   └── 📁 s-h8vvlffns1-1iqvdlu-3fr3gkwrj002cfnfs8v1d0vkw
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0x8b1gml46p0g
-│   │       │   └── 📁 s-h8wvgar5mq-1j597jw-working
+│   │       │   └── 📁 s-h8wzq40q07-1dex6ne-dypo15xp201wpba25ie9zzc0u
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-0xr22q2li5f6e
+│   │       │   └── 📁 s-h8wz79slo7-18ndj1d-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-13fgx0qv2imo9
 │   │       │   └── 📁 s-h8vxb2xsm4-0vekycq-cekbhqoqob44304h74ca0p6yc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-16m4msdj71xla
-│   │       │   └── 📁 s-h8wyqd5fur-0h2gnjj-c0x1kskycga3iggd1ok1s5tbz
+│   │       │   └── 📁 s-h8wzpr5vty-011k1vb-5vw25jd8wrk68aeoybwro9eto
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1bp5730z55td3
 │   │       │   └── 📁 s-h8vxsn8nmj-1aq357o-41dvo3qd8fjtp093h600d4ccw
@@ -292,7 +311,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8wuvu02jd-1hjemqs-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1m9uirifvmxna
-│   │       │   └── 📁 s-h8wyqencj0-1ajqh6f-c6q72y059r0mbl93nx3w75yv0
+│   │       │   └── 📁 s-h8wzpwryg2-02ikqz3-b45a50qbxweapacaq471q9ei5
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1we9em8jemp43
 │   │       │   └── 📁 s-h8vy5za2ro-01qee1t-3rc33npe6n78q2p3ehum71g3m
@@ -306,6 +325,9 @@ Project Structure:
 │   │       ├── 📁 svgn-28nazeeqzbwem
 │   │       │   └── 📁 s-h8vz1u8g4i-1bm356r-ew58w6faof2jdq9pcbygo6hqy
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-29hy9lsugk9os
+│   │       │   └── 📁 s-h8wzqa3q1k-1nbjzxb-epb33kuuye9tzmx0i42fdooe2
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2duj3jprwpexu
 │   │       │   └── 📁 s-h8wlfixf6o-1mb62me-ecilleoye1it0ynt2jf6ohw64
 │   │       │       └── ... (depth limit reached)
@@ -316,7 +338,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy5yac0u-0h7dwbh-6eacg6ze51g599otndq4x839k
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2ns5rfv87t9ta
-│   │       │   └── 📁 s-h8ww3q1lyc-1p6ftg7-working
+│   │       │   └── 📁 s-h8wz72ng4g-07lkann-9ghf9seyqlwr86960k800ngtr
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2rmy7yzgckr3o
 │   │       │   └── 📁 s-h8vy5yac4w-0rd2u1o-7pdsdub5b0b9bejhzkssh35gb
@@ -345,7 +367,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8wv2m10c1-0r2mnwt-dg84arxbio956ernh94dg3spp
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3jlqspzqbxclx
-│   │       │   └── 📁 s-h8wyqd52j7-16ka7wn-working
+│   │       │   └── 📁 s-h8wz9www3q-1vwophh-1w123cnjspw1rbo3hlu0tkjyp
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3mdn4o2lu1v1e
 │   │       │   ├── 📁 s-h8wpu74qlf-0flvxht-f34qnqbutsn2k5hjtsoa57j5o
@@ -365,13 +387,16 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy5za1xg-0ihqec2-a1fjgdguy17qnpns80nkzd5xf
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgo_compatibility_tests-05t4q3ujpsvg9
-│   │       │   └── 📁 s-h8wyqen7ri-0res4o0-0y3li1mheis4sbtl3sywlow26
+│   │       │   └── 📁 s-h8wzpwrkpg-07fyo9z-8dpminviyahny39uwsbmx8niy
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgo_compatibility_tests-0plkr3wurhayh
 │   │       │   └── 📁 s-h8vy5za51b-1rao4cd-1oqsgf0i3u12da0k2o9tiu40q
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgo_compatibility_tests-16cyj5ilsnpam
 │   │       │   └── 📁 s-h8wlfix3v7-0l3cmfz-6ce7ncjpqlwo1lh4j586v1tzc
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgo_compatibility_tests-2el6kr49uyiww
+│   │       │   └── 📁 s-h8wz79sah9-0mnrdln-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgo_compatibility_tests-2y3i4ms1acm2w
 │   │       │   └── 📁 s-h8vxb2xs1d-0eoui62-55rvrmiq1clt9o6qx5pnqc3r9
@@ -385,8 +410,11 @@ Project Structure:
 │   │       ├── 📁 test_css_debug-0z5zpsjshjwvm
 │   │       │   └── 📁 s-h8wv2mvi75-045pu6i-1fbaddolsga4a7cq4u64jtnxc
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 test_css_debug-1ober9ort6tmj
+│   │       │   └── 📁 s-h8wz79s5fd-0hgtc7z-bws2232q9piyr3aktyguyp6ah
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_css_debug-1wfss9twgmiia
-│   │       │   └── 📁 s-h8wyqenrvi-0f40fhk-ehhbjpfmg3bvhmpaf9bkv2o7i
+│   │       │   └── 📁 s-h8wzpwtc3v-144629i-ehhbjpfmg3bvhmpaf9bkv2o7i
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-0bn9mgtuwuxsv
 │   │       │   └── 📁 s-h8wlfix7a2-1rf6qc8-0n61m4mnr29rzvg5fawpdny2t
@@ -400,11 +428,14 @@ Project Structure:
 │   │       ├── 📁 test_style_plugins-1v1us3lp5ztwb
 │   │       │   └── 📁 s-h8vz1ymb8v-0suv5ul-2ef09jm0rcozvh1mp0sfmty2h
 │   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 test_style_plugins-1xih4easbz52t
+│   │       │   └── 📁 s-h8wz79s76q-0wd9k32-eebw0fvniz67n3oq1yb7ptmvv
+│   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-2b05ra89z0gr5
 │   │       │   └── 📁 s-h8vxb2y10x-01h8pmm-25cymxyp3n51qcdakxgx9sw1y
 │   │       │       └── ... (depth limit reached)
 │   │       └── 📁 test_style_plugins-3or25hxn02lc4
-│   │           └── 📁 s-h8wyqenoyl-0tj563r-7p0grtpgi0tczztprr7xf6bp8
+│   │           └── 📁 s-h8wzpwt6fi-01k7aef-ac37fzlzwqnwabhkndxlich1z
 │   │               └── ... (depth limit reached)
 │   ├── 📁 release
 │   │   ├── 📁 deps
@@ -9686,7 +9717,7 @@ impl RemoveUselessStrokeAndFillPlugin {
                 
                 // Set explicit "none" if parent has non-none stroke
                 let parent_stroke = parent_styles.get("stroke");
-                if parent_stroke.map_or(false, |s| s != "none") {
+                if parent_stroke.is_some_and(|s| s != "none") {
                     element.attributes.insert("stroke".to_string(), "none".to_string());
                 }
             }
@@ -9718,7 +9749,7 @@ impl RemoveUselessStrokeAndFillPlugin {
             }
             
             // Set explicit "none" if not already set
-            if fill.map_or(true, |f| f != "none") {
+            if fill.is_none_or(|f| f != "none") {
                 element.attributes.insert("fill".to_string(), "none".to_string());
             }
         }
@@ -10033,6 +10064,11 @@ struct TestFixture {
 
 
 # File: /Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/plugins/convert_path_data.rs
+# Language: rust
+
+
+
+# File: /Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/tests/plugins/inline_styles.rs
 # Language: rust
 
 
