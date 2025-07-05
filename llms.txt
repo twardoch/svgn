@@ -299,7 +299,9 @@ Project Structure:
 │   │       │   └── 📁 s-h8wz79slo7-18ndj1d-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-10wch8w7zi0o3
-│   │       │   └── 📁 s-h8xo7pyhek-104b6x8-working
+│   │       │   ├── 📁 s-h8xps9wjhj-1e4ijmt-working
+│   │       │   │   └── ... (depth limit reached)
+│   │       │   └── 📁 s-h8xpsa9hzd-0djaz7t-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-13fgx0qv2imo9
 │   │       │   └── 📁 s-h8vxb2xsm4-0vekycq-cekbhqoqob44304h74ca0p6yc
@@ -314,6 +316,16 @@ Project Structure:
 │   │       │   ├── 📁 s-h8x0gxsuwn-1hpsrr2-0771ohntjp0mv36ploag2lqan
 │   │       │   │   └── ... (depth limit reached)
 │   │       │   └── 📁 s-h8x0zpwen0-0zibnb4-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-1e0nocmbidh04
+│   │       │   └── 📁 s-h8xqb7itn2-1ifritc-working
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-1eyulxdkqjy0x
+│   │       │   ├── 📁 s-h8xpsgq73y-101ic17-working
+│   │       │   │   └── ... (depth limit reached)
+│   │       │   ├── 📁 s-h8xpsjzz1p-0yvzh2p-working
+│   │       │   │   └── ... (depth limit reached)
+│   │       │   └── 📁 s-h8xpskja8f-145o2nn-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1m9uirifvmxna
 │   │       │   └── 📁 s-h8x14c751h-09zxyre-3yfq3vvx8c5uxnzsto0kl97cc
@@ -335,6 +347,9 @@ Project Structure:
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2duj3jprwpexu
 │   │       │   └── 📁 s-h8wlfixf6o-1mb62me-ecilleoye1it0ynt2jf6ohw64
+│   │       │       └── ... (depth limit reached)
+│   │       ├── 📁 svgn-2fhbxgnwihdsh
+│   │       │   └── 📁 s-h8xqb7iu18-13s2pmt-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2iffub482thnt
 │   │       │   └── 📁 s-h8wv2mvhno-1e9j7pz-arupovx8f0kkux5k8i3i6icrg
@@ -358,7 +373,9 @@ Project Structure:
 │   │       │   └── 📁 s-h8vz5c4113-1vh6154-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-375smsqubg4wl
-│   │       │   └── 📁 s-h8xo7pykax-0lt4lv7-working
+│   │       │   ├── 📁 s-h8xpsjzz0n-01mepk6-working
+│   │       │   │   └── ... (depth limit reached)
+│   │       │   └── 📁 s-h8xpskja9q-0jvmmg4-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-381scq06xq25y
 │   │       │   └── 📁 s-h8wlfhoauz-1lb9l0o-7ib9qoxuz4lztht8ygyqf7mam
@@ -906,11 +923,11 @@ homepage = "https://github.com/twardoch/svgn"
 [workspace.dependencies]
 serde_json = "1.0"
 anyhow = "1.0"
-thiserror = "1.0"
-quick-xml = "0.31"
+thiserror = "2.0.12"
+quick-xml = "0.38.0"
 roxmltree = "0.20"
-cssparser = "0.33"
-selectors = "0.25"
+cssparser = "0.35.0"
+selectors = "0.30.0"
 lightningcss = "1.0.0-alpha.67"
 regex = "1.10"
 indexmap = "2.0"
@@ -923,7 +940,7 @@ nalgebra = "0.33"
 assert_cmd = "2.0"
 predicates = "3.0"
 tempfile = "3.8"
-criterion = "0.5"
+criterion = "0.6.0"
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 
@@ -939,7 +956,7 @@ features = [ "derive" ]
 
 
 [workspace.dependencies.usvg]
-version = "0.42"
+version = "0.45.1"
 
 
 [profile.release]

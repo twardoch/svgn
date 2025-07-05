@@ -17,11 +17,11 @@ pub struct SvgSelectorImpl;
 
 impl SelectorImpl for SvgSelectorImpl {
     type ExtraMatchingData<'a> = ();
-    type AttrValue = cssparser::CowRcStr<'static>;
-    type Identifier = cssparser::CowRcStr<'static>;
-    type LocalName = cssparser::CowRcStr<'static>;
-    type NamespacePrefix = cssparser::CowRcStr<'static>;
-    type NamespaceUrl = cssparser::CowRcStr<'static>;
+    type AttrValue = String;
+    type Identifier = String;
+    type LocalName = String;
+    type NamespacePrefix = String;
+    type NamespaceUrl = String;
     type BorrowedNamespaceUrl = str;
     type BorrowedLocalName = str;
 
@@ -169,12 +169,13 @@ impl<'a> SelectorElement for SvgElement<'a> {
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&cssparser::CowRcStr<'static>>,
-        local_name: &cssparser::CowRcStr<'static>,
-        operation: &AttrSelectorOperation<&cssparser::CowRcStr<'static>>,
+        ns: &NamespaceConstraint<&String>,
+        local_name: &String,
+        operation: &AttrSelectorOperation<&String>,
     ) -> bool {
         // Only match attributes without namespace for now
-        if !matches!(ns, NamespaceConstraint::Specific(&"") | NamespaceConstraint::Any) {
+        if !matches!(ns, NamespaceConstraint::Specific(ns_val) if ns_val.is_empty())
+            && !matches!(ns, NamespaceConstraint::Any) {
             return false;
         }
 
@@ -193,7 +194,7 @@ impl<'a> SelectorElement for SvgElement<'a> {
                             if case_insensitive {
                                 attr_value.to_lowercase() == value.to_lowercase()
                             } else {
-                                attr_value == value
+                                attr_value == *value
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Includes => {
@@ -210,28 +211,28 @@ impl<'a> SelectorElement for SvgElement<'a> {
                                 let expected_lower = value.to_lowercase();
                                 attr_lower == expected_lower || attr_lower.starts_with(&format!("{}-", expected_lower))
                             } else {
-                                *attr_value == **value || attr_value.starts_with(&format!("{}-", value))
+                                attr_value == *value || attr_value.starts_with(&format!("{}-", value))
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Prefix => {
                             if case_insensitive {
                                 attr_value.to_lowercase().starts_with(&value.to_lowercase())
                             } else {
-                                attr_value.starts_with(value)
+                                attr_value.starts_with(&**value)
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Suffix => {
                             if case_insensitive {
                                 attr_value.to_lowercase().ends_with(&value.to_lowercase())
                             } else {
-                                attr_value.ends_with(value)
+                                attr_value.ends_with(&**value)
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Substring => {
                             if case_insensitive {
                                 attr_value.to_lowercase().contains(&value.to_lowercase())
                             } else {
-                                attr_value.contains(value)
+                                attr_value.contains(&**value)
                             }
                         }
                     }
@@ -242,11 +243,11 @@ impl<'a> SelectorElement for SvgElement<'a> {
         }
     }
 
-    fn match_non_ts_pseudo_class(&self, _pc: &NonTSPseudoClass) -> bool {
+    fn match_non_ts_pseudo_class(&self, _pc: &NonTSPseudoClass, _context: &mut selectors::matching::MatchingContext<SvgSelectorImpl>) -> bool {
         match *_pc {}
     }
 
-    fn match_pseudo_element(&self, _pe: &PseudoElement) -> bool {
+    fn match_pseudo_element(&self, _pe: &PseudoElement, _context: &mut selectors::matching::MatchingContext<SvgSelectorImpl>) -> bool {
         match *_pe {}
     }
 
@@ -258,11 +259,11 @@ impl<'a> SelectorElement for SvgElement<'a> {
         false
     }
 
-    fn has_id(&self, id: &str) -> bool {
+    fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
         self.element.attributes.get("id").map_or(false, |elem_id| elem_id == id)
     }
 
-    fn has_class(&self, name: &str) -> bool {
+    fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
         if let Some(class_attr) = self.element.attributes.get("class") {
             let classes = class_attr;
             classes.split_whitespace().any(|c| c == name)
@@ -271,12 +272,20 @@ impl<'a> SelectorElement for SvgElement<'a> {
         }
     }
 
-    fn imported_part(&self, _name: &str) -> Option<String> {
+    fn imported_part(&self, _name: &String) -> Option<String> {
         None
     }
 
-    fn is_part(&self, _name: &str) -> bool {
+    fn is_part(&self, _name: &String) -> bool {
         false
+    }
+
+    fn has_custom_state(&self, _name: &String) -> bool {
+        false
+    }
+
+    fn add_element_unique_hashes(&self, _filter: &mut selectors::bloom::CountingBloomFilter<selectors::bloom::BloomStorageU8>) -> bool {
+        true
     }
 
     fn is_empty(&self) -> bool {
@@ -305,18 +314,18 @@ where
 
 /// Check if a CSS selector matches an SVG element
 pub fn matches_selector(element: &Element, selector: &Selector<SvgSelectorImpl>) -> bool {
-    use selectors::matching::{MatchingContext, MatchingMode, IgnoreNthChildForInvalidation};
-    use selectors::NthIndexCache;
+    use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, MatchingForInvalidation};
+    use selectors::matching::SelectorCaches;
     
     let svg_element = SvgElement::new(element);
-    let mut nth_index_cache = NthIndexCache::default();
+    let mut selector_caches = SelectorCaches::default();
     let mut context = selectors::matching::MatchingContext::new(
         MatchingMode::Normal,
         None,
-        &mut nth_index_cache,
-        IgnoreNthChildForInvalidation::No,
-        selectors::matching::QuirksMode::NoQuirks,
-        selectors::matching::NeedsSelectorFlags::No,
+        &mut selector_caches,
+        QuirksMode::NoQuirks,
+        NeedsSelectorFlags::No,
+        MatchingForInvalidation::No,
     );
 
     selectors::matching::matches_selector(selector, 0, None, &svg_element, &mut context)

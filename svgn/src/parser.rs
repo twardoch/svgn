@@ -60,8 +60,9 @@ impl Parser {
     /// Parse an SVG string into a Document
     pub fn parse(&self, input: &str) -> ParseResult<Document> {
         let mut reader = Reader::from_str(input);
-        reader.expand_empty_elements(true);
-        reader.trim_text(!self.preserve_whitespace);
+        reader.config_mut().expand_empty_elements = true;
+        reader.config_mut().trim_text_start = self.preserve_whitespace;
+        reader.config_mut().trim_text_end = self.preserve_whitespace;
 
         let mut document = Document::new();
         let mut element_stack = Vec::new();
@@ -109,8 +110,8 @@ impl Parser {
                     }
                 }
                 Ok(Event::Text(ref e)) => {
-                    let text = e.unescape()?;
-                    let text_content = text.to_string();
+                    let text = e.unescape();
+                    let text_content = text.map_err(|e| ParseError::XmlError(e))?.to_string();
 
                     if self.preserve_whitespace || !text_content.trim().is_empty() {
                         if let Some(ref mut element) = current_element {
@@ -166,13 +167,17 @@ impl Parser {
                     }
                 }
                 Ok(Event::DocType(ref e)) => {
-                    let doctype = e.unescape()?.to_string();
+                    let doctype = e.unescape().map_err(|e| ParseError::XmlError(e))?.to_string();
                     if !found_root {
                         // DOCTYPE should come before the root element
                         document.prologue.push(Node::DocType(doctype));
                     }
                 }
                 Ok(Event::Eof) => break,
+                Ok(Event::GeneralRef(_)) => {
+                    // Handle general references (new in quick-xml v0.38.0)
+                    // For SVG parsing, we typically ignore these
+                }
                 Err(e) => return Err(ParseError::XmlError(e)),
                 // All event types are now handled explicitly
             }
