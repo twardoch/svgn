@@ -499,7 +499,7 @@ where
 pub fn matches_selector(element: &Element, selector: &Selector<SvgSelectorImpl>) -> bool {
     use selectors::matching::SelectorCaches;
     use selectors::matching::{
-        MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
+        MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
     };
 
     let svg_element = SvgElement::new(element);

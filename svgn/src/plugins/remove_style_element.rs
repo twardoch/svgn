@@ -110,16 +110,13 @@ mod tests {
 
     fn contains_style_element(element: &Element) -> bool {
         for child in &element.children {
-            match child {
-                Node::Element(elem) => {
-                    if elem.name == "style" {
-                        return true;
-                    }
-                    if contains_style_element(elem) {
-                        return true;
-                    }
+            if let Node::Element(elem) = child {
+                if elem.name == "style" {
+                    return true;
                 }
-                _ => {}
+                if contains_style_element(elem) {
+                    return true;
+                }
             }
         }
         false

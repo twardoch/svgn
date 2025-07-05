@@ -21,9 +21,10 @@ use lightningcss::{
     stylesheet::{ParserOptions, StyleSheet},
     traits::ToCss,
 };
-use selectors::matching::{
-    MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
-};
+// Temporarily disabled - will be re-enabled when selector matching is implemented
+// use selectors::matching::{
+//     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
+// };
 use selectors::parser::SelectorList;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,7 +33,8 @@ use std::collections::{HashMap, HashSet};
 mod inline_styles_converter;
 
 use crate::plugins::inline_styles_selector::{
-    walk_element_tree_with_parent, SvgElementWrapper, SvgSelectorImpl,
+    // walk_element_tree_with_parent, SvgElementWrapper, // Temporarily disabled
+    SvgSelectorImpl,
 };
 use inline_styles_converter::convert_css_property;
 
@@ -524,7 +526,7 @@ fn extract_css_rules(stylesheet: &StyleSheet) -> Vec<CssRuleData> {
                     }
                 }
             }
-            CssRule::Media(media_rule) => {
+            CssRule::Media(_media_rule) => {
                 // TODO: Handle media queries when useMqs parameter is true
                 // For now, skip media queries to maintain compatibility
                 // In future versions, we can recursively process media rules
@@ -580,7 +582,7 @@ fn calculate_selector_specificity(selector: &str) -> u32 {
 
 /// Parse a CSS selector string into a SelectorList
 /// Uses simplified parsing approach compatible with selectors v0.25
-fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
+fn parse_selector(_selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
     // For now, return None to disable advanced selector parsing
     // This forces the plugin to use the simple selector matching fallback
     // TODO: Implement proper selectors v0.25 compatible parsing

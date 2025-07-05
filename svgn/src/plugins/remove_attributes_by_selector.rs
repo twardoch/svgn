@@ -142,9 +142,9 @@ fn collect_matching_paths(
     matching_paths: &mut Vec<Vec<usize>>,
 ) {
     if let Node::Element(element) = node {
-        let wrapper = SvgElementWrapper::new(element);
+        let _wrapper = SvgElementWrapper::new(element);
         let mut selector_caches = selectors::matching::SelectorCaches::default();
-        let mut context: selectors::matching::MatchingContext<'_, SvgSelectorImpl> = selectors::matching::MatchingContext::new(
+        let _context: selectors::matching::MatchingContext<'_, SvgSelectorImpl> = selectors::matching::MatchingContext::new(
             selectors::matching::MatchingMode::Normal,
             None,
             &mut selector_caches,
@@ -154,7 +154,7 @@ fn collect_matching_paths(
         );
 
         // Check if any selector in the list matches
-        let mut matches = false;
+        let matches = false;
         // TODO: Fix SelectorList iteration - using fallback for now
         // for selector in &*selector_list {
         //     if selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context) {
@@ -195,19 +195,25 @@ fn get_element_by_path_mut<'a>(node: &'a mut Node, path: &[usize]) -> Option<&'a
 }
 
 /// Simple fallback function to remove attributes using basic selector matching
-fn remove_attributes_simple(element: &mut Element, selector: &str, attributes: &[String]) -> bool {
+fn remove_attributes_simple(element: &mut Element, selector: &str, attributes: &[String]) -> PluginResult<bool> {
     // Simple element matching - check if element matches selector
-    let matches = if selector.starts_with('.') {
-        // Class selector
-        let class_name = &selector[1..];
+    let matches = if let Some(class_name) = selector.strip_prefix('.') {
+        // Class selector: .className
         element.attributes.get("class")
-            .map_or(false, |classes| classes.split_whitespace().any(|c| c == class_name))
-    } else if selector.starts_with('#') {
-        // ID selector
-        let id = &selector[1..];
-        element.attributes.get("id").map_or(false, |elem_id| elem_id == id)
+            .is_some_and(|classes| classes.split_whitespace().any(|c| c == class_name))
+    } else if let Some(id) = selector.strip_prefix('#') {
+        // ID selector: #elementId
+        element.attributes.get("id").is_some_and(|elem_id| elem_id == id)
+    } else if selector.starts_with('[') && selector.ends_with(']') {
+        // Attribute selector: [attr='value'] or [attr="value"] or [attr=value]
+        parse_and_match_attribute_selector(element, selector)?
+    } else if selector.contains('[') || selector.contains(']') {
+        // Malformed attribute selector - should error
+        return Err(PluginError::InvalidConfig(
+            format!("Malformed CSS selector: {}", selector)
+        ));
     } else {
-        // Element selector
+        // Element selector: elementName
         element.name == selector
     };
 
@@ -216,20 +222,49 @@ fn remove_attributes_simple(element: &mut Element, selector: &str, attributes: &
         for attr in attributes {
             element.attributes.shift_remove(attr);
         }
-        return true;
+        return Ok(true);
     }
 
     // Recursively process children
     let mut found = false;
     for child in &mut element.children {
         if let Node::Element(child_element) = child {
-            if remove_attributes_simple(child_element, selector, attributes) {
+            if remove_attributes_simple(child_element, selector, attributes)? {
                 found = true;
             }
         }
     }
 
-    found
+    Ok(found)
+}
+
+/// Parse and match attribute selectors like [attr='value']
+fn parse_and_match_attribute_selector(element: &Element, selector: &str) -> PluginResult<bool> {
+    // Remove brackets and parse content
+    let content = &selector[1..selector.len()-1];
+    
+    // Handle different attribute selector formats:
+    // [attr='value'], [attr="value"], [attr=value]
+    if let Some(eq_pos) = content.find('=') {
+        let attr_name = content[..eq_pos].trim();
+        let attr_value = content[eq_pos+1..].trim();
+        
+        // Remove quotes if present
+        let attr_value = if (attr_value.starts_with('"') && attr_value.ends_with('"')) ||
+                            (attr_value.starts_with('\'') && attr_value.ends_with('\'')) {
+            &attr_value[1..attr_value.len()-1]
+        } else {
+            attr_value
+        };
+        
+        // Check if element has the attribute with the specified value
+        Ok(element.attributes.get(attr_name)
+            .is_some_and(|elem_value| elem_value == attr_value))
+    } else {
+        // Simple attribute existence check: [attr]
+        let attr_name = content.trim();
+        Ok(element.attributes.contains_key(attr_name))
+    }
 }
 
 impl Plugin for RemoveAttributesBySelectorPlugin {
@@ -253,19 +288,19 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
         for config in &params.selectors {
             // Parse the CSS selector
             let mut parser_input = cssparser::ParserInput::new(&config.selector);
-            let mut parser = cssparser::Parser::new(&mut parser_input);
-            let parsing_mode = selectors::parser::ParseRelative::No;
+            let _parser = cssparser::Parser::new(&mut parser_input);
+            let _parsing_mode = selectors::parser::ParseRelative::No;
 
             // Use our SVG selector implementation from the inline_styles_selector module
             // Parse selector using SvgSelectorImpl - simplified parsing for selectors v0.25
             let mut input = cssparser::ParserInput::new(&config.selector);
-            let mut parser = cssparser::Parser::new(&mut input);
+            let _parser = cssparser::Parser::new(&mut input);
 
             // For now, disable advanced selector parsing and use simple matching
             // TODO: Implement proper Parser trait for SvgSelectorImpl
             
             // Use simple fallback matching instead
-            remove_attributes_simple(&mut document.root, &config.selector, &config.attributes);
+            remove_attributes_simple(&mut document.root, &config.selector, &config.attributes)?;
         }
 
         Ok(())

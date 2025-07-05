@@ -148,8 +148,10 @@ mod tests {
 
     #[test]
     fn test_convert_rx_auto() {
-        let mut doc = Document::default();
-        doc.root = create_ellipse("50", "50", "auto", "25");
+        let mut doc = Document {
+            root: create_ellipse("50", "50", "auto", "25"),
+            ..Default::default()
+        };
 
         let mut plugin = ConvertEllipseToCirclePlugin;
         let plugin_info = PluginInfo::default();
@@ -162,8 +164,10 @@ mod tests {
 
     #[test]
     fn test_convert_ry_auto() {
-        let mut doc = Document::default();
-        doc.root = create_ellipse("50", "50", "30", "auto");
+        let mut doc = Document {
+            root: create_ellipse("50", "50", "30", "auto"),
+            ..Default::default()
+        };
 
         let mut plugin = ConvertEllipseToCirclePlugin;
         let plugin_info = PluginInfo::default();
@@ -226,7 +230,7 @@ mod tests {
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
 
         // First ellipse should be converted
-        if let Some(Node::Element(ref first)) = doc.root.children.get(0) {
+        if let Some(Node::Element(ref first)) = doc.root.children.first() {
             assert_eq!(first.name, "circle");
             assert_eq!(first.attributes.get("r"), Some(&"10".to_string()));
         }

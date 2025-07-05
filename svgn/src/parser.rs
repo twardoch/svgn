@@ -221,7 +221,7 @@ impl Parser {
                     // Convert bytes to string and unescape
                     let text_str = std::str::from_utf8(e.as_ref())?;
                     let text = quick_xml::escape::unescape(text_str)
-                        .unwrap_or_else(|_| std::borrow::Cow::Borrowed(text_str));
+                        .unwrap_or(std::borrow::Cow::Borrowed(text_str));
                     let mut text_content = text.into_owned();
                     
                     // Expand custom entities if enabled
@@ -331,7 +331,7 @@ impl Parser {
     }
 
     /// Parse a start element into an Element
-    fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>, input: &str) -> ParseResult<Element> {
+    fn parse_start_element(&self, start: &BytesStart, entities: &HashMap<String, String>, _input: &str) -> ParseResult<Element> {
         let name = std::str::from_utf8(start.name().as_ref())?.to_string();
         let mut element = Element::new(&name);
 

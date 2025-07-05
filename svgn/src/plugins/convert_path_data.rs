@@ -820,9 +820,9 @@ mod tests {
         let commands = parse_path_data(path).unwrap();
         assert_eq!(commands.len(), 2);
         assert_eq!(commands[0].cmd_type, CommandType::MoveTo);
-        assert_eq!(commands[0].is_absolute, false);
+        assert!(!commands[0].is_absolute);
         assert_eq!(commands[1].cmd_type, CommandType::LineTo);
-        assert_eq!(commands[1].is_absolute, false);
+        assert!(!commands[1].is_absolute);
     }
 
     #[test]

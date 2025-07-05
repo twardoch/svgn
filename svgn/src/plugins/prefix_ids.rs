@@ -382,8 +382,10 @@ mod tests {
 
         // Test with file path
         let config = PrefixIdsConfig::default();
-        let mut info = PluginInfo::default();
-        info.path = Some("/path/to/test.svg".to_string());
+        let info = PluginInfo {
+            path: Some("/path/to/test.svg".to_string()),
+            ..Default::default()
+        };
         assert_eq!(plugin.generate_prefix(&config, &info), "test_svg__");
 
         // Test default
