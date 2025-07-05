@@ -1,45 +1,52 @@
 Generating code snapshot in ./llms.txt ...
-╭───────────────────────────────────── CodeToPrompt ──────────────────────────────────────╮
-│ Configuration for this run:                                                             │
-│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn                      │
-│ Include Patterns: ['*']                                                                 │
-│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref', 'testdata', '*.lock'] │
-│ Respect .gitignore: True                                                                │
-│ Show Line Numbers: False                                                                │
-│ Count Tokens: True                                                                      │
-│ Compress Code: True                                                                     │
-│ Max Tokens: Unlimited                                                                   │
-│ Tree Depth: 5                                                                           │
-│ Output Format: default                                                                  │
-│ Interactive Mode: False                                                                 │
-╰─────────────────────────────────────────────────────────────────────────────────────────╯
+╭─────── CodeToPrompt ────────╮
+│ Configuration for this run: │
+│ Root Directory:             │
+│ /Users/adam/Developer/vcs/g │
+│ ithub.twardoch/pub/svgn     │
+│ Include Patterns: ['*']     │
+│ Exclude Patterns: ['*.svg', │
+│ '.specstory', '*.md',       │
+│ '*.txt', 'ref', 'testdata', │
+│ '*.lock']                   │
+│ Respect .gitignore: True    │
+│ Show Line Numbers: False    │
+│ Count Tokens: True          │
+│ Compress Code: True         │
+│ Max Tokens: Unlimited       │
+│ Tree Depth: 5               │
+│ Output Format: default      │
+│ Interactive Mode: False     │
+╰─────────────────────────────╯
 
-╭──────────────────────── Processing Complete ────────────────────────╮
-│ Summary:                                                            │
-│ Files Processed: 107                                                │
-│ Total Tokens: 67,192                                                │
-│ Output Destination: llms.txt                                        │
-│                                                                     │
-│ Top 3 Files by Tokens:                                              │
-│   - svgn/src/collections.rs (5,362 tokens)                          │
-│   - svgn/src/plugins/remove_unknowns_and_defaults.rs (4,955 tokens) │
-│   - svgn/src/plugins/cleanup_list_of_values.rs (3,957 tokens)       │
-│                                                                     │
-│ Top 5 Extensions by Tokens:                                         │
-│   - .rs (51,303 tokens)                                             │
-│   - .sh (6,130 tokens)                                              │
-│   - .yml (2,953 tokens)                                             │
-│   - .bak (2,786 tokens)                                             │
-│   - .cmd (2,652 tokens)                                             │
-╰─────────────────────────────────────────────────────────────────────╯
+╭──── Processing Complete ────╮
+│ Summary:                    │
+│ Files Processed: 107        │
+│ Total Tokens: 67,192        │
+│ Output Destination:         │
+│ llms.txt                    │
+│                             │
+│ Top 3 Files by Tokens:      │
+│   - svgn/src/collections.rs │
+│ (5,362 tokens)              │
+│   -                         │
+│ svgn/src/plugins/remove_unk │
+│ nowns_and_defaults.rs       │
+│ (4,955 tokens)              │
+│   -                         │
+│ svgn/src/plugins/cleanup_li │
+│ st_of_values.rs (3,957      │
+│ tokens)                     │
+│                             │
+│ Top 5 Extensions by Tokens: │
+│   - .rs (51,303 tokens)     │
+│   - .sh (6,130 tokens)      │
+│   - .yml (2,953 tokens)     │
+│   - .bak (2,786 tokens)     │
+│   - .cmd (2,652 tokens)     │
+╰─────────────────────────────╯
 Building the svgn project...
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
-error[E0432]: unresolved import `selectors::matching::IgnoreNthChildForInvalidation`
-  --> svgn/src/plugins/inline_styles.rs:28:90
-   |
-28 | use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, IgnoreNthChildForInvalidation};
-   |                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `IgnoreNthChildForInvalidation` in `matching`
-
 warning: unused imports: `SelectorImpl` and `Selector`
   --> svgn/src/plugins/remove_attributes_by_selector.rs:12:25
    |
@@ -83,6 +90,12 @@ warning: unused import: `SelectorImpl`
    |
 27 | use selectors::parser::{SelectorList, SelectorImpl};
    |                                       ^^^^^^^^^^^^
+
+warning: unused import: `MatchingForInvalidation`
+  --> svgn/src/plugins/inline_styles.rs:28:90
+   |
+28 | use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, MatchingForInvalidation};
+   |                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0277]: the trait bound `std::string::String: cssparser::ToCss` is not satisfied
    --> svgn/src/plugins/inline_styles_selector.rs:20:22
@@ -455,6 +468,12 @@ error[E0616]: field `0` of struct `SelectorList` is private
 207 |             for selector in selector_list.0.iter() {
     |                                           ^ private field
 
+error[E0433]: failed to resolve: use of undeclared type `IgnoreNthChildForInvalidation`
+   --> svgn/src/plugins/inline_styles.rs:214:21
+    |
+214 |                     IgnoreNthChildForInvalidation::No,
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ use of undeclared type `IgnoreNthChildForInvalidation`
+
 error[E0308]: mismatched types
    --> svgn/src/plugins/inline_styles.rs:211:21
     |
@@ -497,6 +516,12 @@ error[E0616]: field `0` of struct `SelectorList` is private
 275 |         selector_list.0.iter().any(|selector| {
     |                       ^ private field
 
+error[E0433]: failed to resolve: use of undeclared type `IgnoreNthChildForInvalidation`
+   --> svgn/src/plugins/inline_styles.rs:282:17
+    |
+282 |                 IgnoreNthChildForInvalidation::No,
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ use of undeclared type `IgnoreNthChildForInvalidation`
+
 error[E0308]: mismatched types
    --> svgn/src/plugins/inline_styles.rs:279:17
     |
@@ -534,7 +559,7 @@ warning: unused variable: `selector_str`
 558 | fn parse_selector(selector_str: &str) -> Option<SelectorList<SvgSelectorImpl>> {
     |                   ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_selector_str`
 
-Some errors have detailed explanations: E0061, E0277, E0308, E0432, E0593, E0599, E0616.
+Some errors have detailed explanations: E0061, E0277, E0308, E0433, E0593, E0599, E0616.
 For more information about an error, try `rustc --explain E0061`.
-warning: `svgn` (lib) generated 9 warnings
-error: could not compile `svgn` (lib) due to 23 previous errors; 9 warnings emitted
+warning: `svgn` (lib) generated 10 warnings
+error: could not compile `svgn` (lib) due to 24 previous errors; 10 warnings emitted

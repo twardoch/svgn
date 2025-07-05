@@ -25,7 +25,7 @@ use crate::collections::PRESENTATION_ATTRS;
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 use selectors::parser::{SelectorList, SelectorImpl};
-use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, IgnoreNthChildForInvalidation};
+use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, MatchingForInvalidation};
 
 mod inline_styles_converter;
 
@@ -211,7 +211,7 @@ fn count_matching_elements_for_rule(element: &Element, rule: &CssRuleData) -> us
                     &mut selectors::NthIndexCache::default(),
                     QuirksMode::NoQuirks,
                     NeedsSelectorFlags::No,
-                    IgnoreNthChildForInvalidation::No,
+                    MatchingForInvalidation::No,
                 );
                 if selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context) {
                     count += 1;
@@ -279,7 +279,7 @@ fn apply_css_rule_and_track_impl(
                 &mut selectors::NthIndexCache::default(),
                 QuirksMode::NoQuirks,
                 NeedsSelectorFlags::No,
-                IgnoreNthChildForInvalidation::No,
+                MatchingForInvalidation::No,
             );
             selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context)
         })
