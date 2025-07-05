@@ -10,8 +10,11 @@ use crate::ast::Element;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::{Selector, SelectorImpl};
 use selectors::{Element as SelectorElement, OpaqueElement};
-use std::fmt;
 use std::borrow::Borrow;
+use std::fmt;
+
+// Import PrecomputedHash trait - required for SelectorImpl associated types
+use precomputed_hash::PrecomputedHash;
 
 /// Wrapper types to implement required traits for selectors crate
 /// These types wrap String to avoid orphan rule violations (E0117)
@@ -272,7 +275,7 @@ impl<'a> SelectorElement for SvgElement<'a> {
     fn opaque(&self) -> OpaqueElement {
         OpaqueElement::new(self.element)
     }
-    
+
     fn apply_selector_flags(&self, _flags: selectors::matching::ElementSelectorFlags) {
         // No-op for SVG elements - we don't need to track selector flags
     }
@@ -335,7 +338,8 @@ impl<'a> SelectorElement for SvgElement<'a> {
     ) -> bool {
         // Only match attributes without namespace for now
         if !matches!(ns, NamespaceConstraint::Specific(ns_val) if ns_val.is_empty())
-            && !matches!(ns, NamespaceConstraint::Any) {
+            && !matches!(ns, NamespaceConstraint::Any)
+        {
             return false;
         }
 
@@ -347,8 +351,9 @@ impl<'a> SelectorElement for SvgElement<'a> {
                     case_sensitivity,
                     value,
                 } => {
-                    let case_insensitive = matches!(case_sensitivity, CaseSensitivity::AsciiCaseInsensitive);
-                    
+                    let case_insensitive =
+                        matches!(case_sensitivity, CaseSensitivity::AsciiCaseInsensitive);
+
                     match operator {
                         selectors::attr::AttrSelectorOperator::Equal => {
                             if case_insensitive {
@@ -360,7 +365,9 @@ impl<'a> SelectorElement for SvgElement<'a> {
                         selectors::attr::AttrSelectorOperator::Includes => {
                             let values: Vec<&str> = attr_value.split_whitespace().collect();
                             if case_insensitive {
-                                values.iter().any(|v| v.to_lowercase() == value.to_lowercase())
+                                values
+                                    .iter()
+                                    .any(|v| v.to_lowercase() == value.to_lowercase())
                             } else {
                                 values.contains(value)
                             }
@@ -369,9 +376,11 @@ impl<'a> SelectorElement for SvgElement<'a> {
                             if case_insensitive {
                                 let attr_lower = attr_value.to_lowercase();
                                 let expected_lower = value.to_lowercase();
-                                attr_lower == expected_lower || attr_lower.starts_with(&format!("{}-", expected_lower))
+                                attr_lower == expected_lower
+                                    || attr_lower.starts_with(&format!("{}-", expected_lower))
                             } else {
-                                attr_value == value || attr_value.starts_with(&format!("{}-", value))
+                                attr_value == value
+                                    || attr_value.starts_with(&format!("{}-", value))
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Prefix => {
@@ -403,11 +412,19 @@ impl<'a> SelectorElement for SvgElement<'a> {
         }
     }
 
-    fn match_non_ts_pseudo_class(&self, _pc: &NonTSPseudoClass, _context: &mut selectors::matching::MatchingContext<SvgSelectorImpl>) -> bool {
+    fn match_non_ts_pseudo_class(
+        &self,
+        _pc: &NonTSPseudoClass,
+        _context: &mut selectors::matching::MatchingContext<SvgSelectorImpl>,
+    ) -> bool {
         match *_pc {}
     }
 
-    fn match_pseudo_element(&self, _pe: &PseudoElement, _context: &mut selectors::matching::MatchingContext<SvgSelectorImpl>) -> bool {
+    fn match_pseudo_element(
+        &self,
+        _pe: &PseudoElement,
+        _context: &mut selectors::matching::MatchingContext<SvgSelectorImpl>,
+    ) -> bool {
         match *_pe {}
     }
 
@@ -420,7 +437,10 @@ impl<'a> SelectorElement for SvgElement<'a> {
     }
 
     fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
-        self.element.attributes.get("id").map_or(false, |elem_id| elem_id == id)
+        self.element
+            .attributes
+            .get("id")
+            .map_or(false, |elem_id| elem_id == id)
     }
 
     fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
@@ -444,7 +464,10 @@ impl<'a> SelectorElement for SvgElement<'a> {
         false
     }
 
-    fn add_element_unique_hashes(&self, _filter: &mut selectors::bloom::CountingBloomFilter<selectors::bloom::BloomStorageU8>) -> bool {
+    fn add_element_unique_hashes(
+        &self,
+        _filter: &mut selectors::bloom::CountingBloomFilter<selectors::bloom::BloomStorageU8>,
+    ) -> bool {
         true
     }
 
@@ -464,7 +487,7 @@ where
     F: FnMut(&Element, Option<&Element>),
 {
     visitor(element, parent);
-    
+
     for child in &element.children {
         if let crate::ast::Node::Element(child_element) = child {
             walk_element_tree_with_parent(child_element, Some(element), &mut visitor);
@@ -474,9 +497,11 @@ where
 
 /// Check if a CSS selector matches an SVG element
 pub fn matches_selector(element: &Element, selector: &Selector<SvgSelectorImpl>) -> bool {
-    use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, MatchingForInvalidation};
     use selectors::matching::SelectorCaches;
-    
+    use selectors::matching::{
+        MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, QuirksMode,
+    };
+
     let svg_element = SvgElement::new(element);
     let mut selector_caches = SelectorCaches::default();
     let mut context = selectors::matching::MatchingContext::new(

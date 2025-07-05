@@ -8,28 +8,55 @@ use lightningcss::properties::Property;
 pub fn convert_css_property(property: &Property) -> Option<(String, String)> {
     // For now, use a simplified approach that extracts from debug strings
     let debug_str = format!("{:?}", property);
-    
+
     // Try to match common SVG properties
     if debug_str.starts_with("Fill(") {
         Some(("fill".to_string(), extract_color_from_debug(&debug_str)))
-    } else if debug_str.starts_with("Stroke(") && !debug_str.contains("Width") && !debug_str.contains("Opacity") {
+    } else if debug_str.starts_with("Stroke(")
+        && !debug_str.contains("Width")
+        && !debug_str.contains("Opacity")
+    {
         Some(("stroke".to_string(), extract_color_from_debug(&debug_str)))
     } else if debug_str.starts_with("Opacity(") {
-        Some(("opacity".to_string(), extract_opacity_from_debug(&debug_str)))
+        Some((
+            "opacity".to_string(),
+            extract_opacity_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("FillOpacity(") {
-        Some(("fill-opacity".to_string(), extract_opacity_from_debug(&debug_str)))
+        Some((
+            "fill-opacity".to_string(),
+            extract_opacity_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("StrokeOpacity(") {
-        Some(("stroke-opacity".to_string(), extract_opacity_from_debug(&debug_str)))
+        Some((
+            "stroke-opacity".to_string(),
+            extract_opacity_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("StrokeWidth(") {
-        Some(("stroke-width".to_string(), extract_dimension_from_debug(&debug_str)))
+        Some((
+            "stroke-width".to_string(),
+            extract_dimension_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("FontSize(") {
-        Some(("font-size".to_string(), extract_dimension_from_debug(&debug_str)))
+        Some((
+            "font-size".to_string(),
+            extract_dimension_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("FontFamily(") {
-        Some(("font-family".to_string(), extract_font_family_from_debug(&debug_str)))
+        Some((
+            "font-family".to_string(),
+            extract_font_family_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("FontStyle(") {
-        Some(("font-style".to_string(), extract_font_style_from_debug(&debug_str)))
+        Some((
+            "font-style".to_string(),
+            extract_font_style_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("FontWeight(") {
-        Some(("font-weight".to_string(), extract_font_weight_from_debug(&debug_str)))
+        Some((
+            "font-weight".to_string(),
+            extract_font_weight_from_debug(&debug_str),
+        ))
     } else if debug_str.starts_with("Transform(") {
         Some(("transform".to_string(), "none".to_string()))
     } else {
@@ -51,7 +78,7 @@ fn extract_color_from_debug(debug_str: &str) -> String {
         if let (Some(r), Some(g), Some(b)) = (
             extract_number_after(debug_str, "red: "),
             extract_number_after(debug_str, "green: "),
-            extract_number_after(debug_str, "blue: ")
+            extract_number_after(debug_str, "blue: "),
         ) {
             return format!("rgb({}, {}, {})", r, g, b);
         }
@@ -99,7 +126,8 @@ fn extract_number_after(s: &str, prefix: &str) -> Option<u8> {
     if let Some(start) = s.find(prefix) {
         let after_prefix = &s[start + prefix.len()..];
         // Take digits until we hit a non-digit
-        let num_str: String = after_prefix.chars()
+        let num_str: String = after_prefix
+            .chars()
             .take_while(|c| c.is_ascii_digit())
             .collect();
         num_str.parse().ok()
@@ -107,7 +135,6 @@ fn extract_number_after(s: &str, prefix: &str) -> Option<u8> {
         None
     }
 }
-
 
 /// Extract dimension value from debug string (for stroke-width, font-size, etc.)
 fn extract_dimension_from_debug(debug_str: &str) -> String {

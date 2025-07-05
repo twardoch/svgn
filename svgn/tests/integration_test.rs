@@ -2,7 +2,7 @@
 
 //! Integration tests for svgn
 
-use svgn::config::{Js2SvgOptions, QuoteAttrsStyle, LineEnding};
+use svgn::config::{Js2SvgOptions, LineEnding, QuoteAttrsStyle};
 use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 #[test]

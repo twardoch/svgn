@@ -74,11 +74,11 @@ pub struct Js2SvgOptions {
     /// Quote attributes (always, never, auto)
     #[serde(default = "default_quote_attrs")]
     pub quote_attrs: QuoteAttrsStyle,
-    
+
     /// Line ending style
     #[serde(default)]
     pub eol: LineEnding,
-    
+
     /// Ensure final newline
     #[serde(default)]
     pub final_newline: bool,
@@ -279,8 +279,8 @@ impl Config {
             "minifyStyles",
             "convertStyleToAttrs",
             "convertColors",
-            "convertTransform",      // ✅ Completed - matrix math with nalgebra
-            "inlineStyles",          // ✅ In Progress - CSS parsing with lightningcss
+            "convertTransform", // ✅ Completed - matrix math with nalgebra
+            "inlineStyles",     // ✅ In Progress - CSS parsing with lightningcss
             // TODO: Implement remaining complex plugins:
             // "convertPathData",    // Requires lyon integration
             // "mergePaths",         // Requires path analysis

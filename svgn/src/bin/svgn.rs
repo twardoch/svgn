@@ -192,7 +192,7 @@ fn run_cli(matches: clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
     if let Some(indent) = matches.get_one::<usize>("indent") {
         config.js2svg.indent = *indent;
     }
-    
+
     if let Some(eol) = matches.get_one::<String>("eol") {
         use svgn::config::LineEnding;
         config.js2svg.eol = match eol.as_str() {
@@ -201,7 +201,7 @@ fn run_cli(matches: clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>> 
             _ => unreachable!(), // Clap validates this
         };
     }
-    
+
     if matches.get_flag("final-newline") {
         config.js2svg.final_newline = true;
     }
@@ -418,9 +418,7 @@ fn process_files(
                 let result = optimize_with_config(&content, file_config)?;
 
                 let input_path = Path::new(input_file);
-                let file_name = input_path
-                    .file_name()
-                    .ok_or("Invalid input file path")?;
+                let file_name = input_path.file_name().ok_or("Invalid input file path")?;
                 let output_path = Path::new(&output_dir).join(file_name);
 
                 fs::write(&output_path, &result.data)?;
@@ -565,7 +563,8 @@ fn find_svg_files_recursive(
 
             if path.is_dir() {
                 dirs_to_process.push(path);
-            } else if path.is_file() && is_svg_file(&path) && !is_excluded(&path, exclude_patterns)? {
+            } else if path.is_file() && is_svg_file(&path) && !is_excluded(&path, exclude_patterns)?
+            {
                 svg_files.push(path);
             }
         }
@@ -602,7 +601,10 @@ fn apply_precision_override(config: &mut Config, precision: u8) {
     // Apply precision to all plugins that support it
     for plugin_config in &mut config.plugins {
         match plugin_config.name.as_str() {
-            "cleanupNumericValues" | "cleanupListOfValues" | "convertPathData" | "convertTransform" => {
+            "cleanupNumericValues"
+            | "cleanupListOfValues"
+            | "convertPathData"
+            | "convertTransform" => {
                 let params = plugin_config
                     .params
                     .get_or_insert_with(|| serde_json::json!({}));

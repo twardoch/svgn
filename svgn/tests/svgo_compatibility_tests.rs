@@ -4,7 +4,7 @@
 //! These tests verify that SVGN is feature-compatible with SVGO
 
 use serde_json::json;
-use svgn::config::{Js2SvgOptions, QuoteAttrsStyle, LineEnding};
+use svgn::config::{Js2SvgOptions, LineEnding, QuoteAttrsStyle};
 use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 /// Test helper function to run optimization with specific plugins

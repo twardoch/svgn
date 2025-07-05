@@ -183,7 +183,6 @@ impl PathCommand {
             (CommandType::ClosePath, _) => 'z',
         }
     }
-
 }
 
 /// Parse a path data string into commands
@@ -215,7 +214,7 @@ fn parse_path_data(path_data: &str) -> Result<Vec<PathCommand>, String> {
 
                 // Parse new command
                 let (cmd_type, is_absolute) = parse_command_char(ch)?;
-                
+
                 if cmd_type == CommandType::ClosePath {
                     commands.push(PathCommand {
                         cmd_type,
@@ -320,7 +319,7 @@ fn process_accumulated_params(
     // Process params in chunks
     while params.len() >= expected {
         let chunk: Vec<f64> = params.drain(..expected).collect();
-        
+
         // Special case: MoveTo followed by implicit LineTo
         let actual_cmd_type = if cmd_type == CommandType::MoveTo && !commands.is_empty() {
             CommandType::LineTo
@@ -344,10 +343,7 @@ fn process_accumulated_params(
 }
 
 /// Optimize path data string
-fn optimize_path_data(
-    path_data: &str,
-    config: &PathOptimizationConfig,
-) -> Result<String, String> {
+fn optimize_path_data(path_data: &str, config: &PathOptimizationConfig) -> Result<String, String> {
     // Parse path data
     let mut commands = parse_path_data(path_data)?;
 
@@ -482,7 +478,13 @@ fn optimize_path_data(
     }
 
     // Convert back to string
-    stringify_commands(&commands, config.float_precision, config.utilize_absolute, config.leading_zero, config.negative_extra_space)
+    stringify_commands(
+        &commands,
+        config.float_precision,
+        config.utilize_absolute,
+        config.leading_zero,
+        config.negative_extra_space,
+    )
 }
 
 /// Remove useless commands (e.g., LineTo to current position)
@@ -645,7 +647,12 @@ fn stringify_commands(
 }
 
 /// Determine if absolute coordinates are more efficient
-fn should_use_absolute(_cmd: &PathCommand, _current_x: f64, _current_y: f64, _precision: u8) -> bool {
+fn should_use_absolute(
+    _cmd: &PathCommand,
+    _current_x: f64,
+    _current_y: f64,
+    _precision: u8,
+) -> bool {
     // For now, always use absolute
     // TODO: Implement size comparison
     true
@@ -773,22 +780,22 @@ fn update_position(cmd: &PathCommand, current_x: &mut f64, current_y: &mut f64) 
 fn format_number(value: f64, precision: u8, leading_zero: bool) -> String {
     // Format with precision
     let formatted = format!("{:.1$}", value, precision as usize);
-    
+
     // Remove trailing zeros and decimal point if integer
     let mut trimmed = formatted.trim_end_matches('0').trim_end_matches('.');
-    
+
     // Handle edge cases
     if trimmed.is_empty() || trimmed == "-" {
         return "0".to_string();
     }
-    
+
     // Remove leading zero if requested
     if !leading_zero && trimmed.starts_with("0.") {
         trimmed = &trimmed[1..];
     } else if !leading_zero && trimmed.starts_with("-0.") {
         return format!("-{}", &trimmed[2..]);
     }
-    
+
     trimmed.to_string()
 }
 

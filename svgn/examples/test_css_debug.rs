@@ -1,6 +1,6 @@
 use lightningcss::{
-    stylesheet::{ParserOptions, StyleSheet},
     rules::CssRule,
+    stylesheet::{ParserOptions, StyleSheet},
 };
 
 fn main() {
@@ -12,9 +12,9 @@ fn main() {
             font-size: 16px;
         }
     "#;
-    
+
     let stylesheet = StyleSheet::<'_, '_>::parse(css, ParserOptions::default()).unwrap();
-    
+
     for rule in &stylesheet.rules.0 {
         if let CssRule::Style(style_rule) = rule {
             for property in &style_rule.declarations.declarations {

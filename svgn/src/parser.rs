@@ -167,7 +167,10 @@ impl Parser {
                     }
                 }
                 Ok(Event::DocType(ref e)) => {
-                    let doctype = e.unescape().map_err(|e| ParseError::XmlError(e))?.into_owned();
+                    let doctype = e
+                        .unescape()
+                        .map_err(|e| ParseError::XmlError(e))?
+                        .into_owned();
                     if !found_root {
                         // DOCTYPE should come before the root element
                         document.prologue.push(Node::DocType(doctype));

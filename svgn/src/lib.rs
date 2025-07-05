@@ -18,7 +18,9 @@ pub mod stringifier;
 // Re-export main types
 pub use ast::{Document, Element, Node};
 pub use config::Config;
-pub use optimizer::{optimize, optimize_default, optimize_with_config, OptimizationResult, OptimizeOptions};
+pub use optimizer::{
+    optimize, optimize_default, optimize_with_config, OptimizationResult, OptimizeOptions,
+};
 pub use plugin::{Plugin, PluginConfig, PluginRegistry};
 
 /// Library version (from git tag or Cargo.toml)

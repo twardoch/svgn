@@ -2,15 +2,26 @@
 
 use crate::ast::{Document, Element, Node};
 use crate::plugin::{Plugin, PluginInfo, PluginResult};
+use once_cell::sync::Lazy;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use once_cell::sync::Lazy;
 
 /// SVG shape elements that can have stroke and fill attributes
 static SHAPE_ELEMENTS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     HashSet::from([
-        "rect", "circle", "ellipse", "line", "polyline", "polygon", 
-        "path", "text", "tspan", "textPath", "altGlyph", "glyph", "missing-glyph"
+        "rect",
+        "circle",
+        "ellipse",
+        "line",
+        "polyline",
+        "polygon",
+        "path",
+        "text",
+        "tspan",
+        "textPath",
+        "altGlyph",
+        "glyph",
+        "missing-glyph",
     ])
 });
 
@@ -20,7 +31,7 @@ static SHAPE_ELEMENTS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 /// - Set to "none" when no parent element has these attributes
 /// - Set to transparent (opacity 0)
 /// - Stroke width set to 0
-/// 
+///
 /// It also handles inheritance and can optionally remove elements that have
 /// no visible stroke or fill (removeNone parameter).
 pub struct RemoveUselessStrokeAndFillPlugin;
@@ -49,7 +60,7 @@ impl RemoveUselessStrokeAndFillPlugin {
 
     fn parse_params(&self, params: Option<&Value>) -> RemoveUselessStrokeAndFillParams {
         let mut result = RemoveUselessStrokeAndFillParams::default();
-        
+
         if let Some(Value::Object(obj)) = params {
             if let Some(Value::Bool(stroke)) = obj.get("stroke") {
                 result.stroke = *stroke;
@@ -61,7 +72,7 @@ impl RemoveUselessStrokeAndFillPlugin {
                 result.remove_none = *remove_none;
             }
         }
-        
+
         result
     }
 
@@ -70,7 +81,7 @@ impl RemoveUselessStrokeAndFillPlugin {
         if element.name == "style" || element.name == "script" {
             return true;
         }
-        
+
         for child in &element.children {
             if let Node::Element(child_elem) = child {
                 if self.has_style_or_script(child_elem) {
@@ -78,7 +89,7 @@ impl RemoveUselessStrokeAndFillPlugin {
                 }
             }
         }
-        
+
         false
     }
 
@@ -93,30 +104,30 @@ impl RemoveUselessStrokeAndFillPlugin {
         if element.attributes.contains_key("id") {
             return HashMap::new();
         }
-        
+
         // Only process shape elements
         if !SHAPE_ELEMENTS.contains(&element.name.as_str()) {
             return HashMap::new();
         }
-        
+
         // Compute current element styles
         let current_styles = self.compute_element_styles(element, parent_styles);
-        
+
         // Process stroke attributes
         if params.stroke {
             self.process_stroke_attributes(element, &current_styles, parent_styles);
         }
-        
+
         // Process fill attributes
         if params.fill {
             self.process_fill_attributes(element, &current_styles);
         }
-        
+
         // Remove element if it has no visible stroke or fill
         if params.remove_none && self.should_remove_element(element, &current_styles) {
             nodes_to_remove.push(element as *mut Element);
         }
-        
+
         current_styles
     }
 
@@ -126,27 +137,31 @@ impl RemoveUselessStrokeAndFillPlugin {
         parent_styles: &HashMap<String, String>,
     ) -> HashMap<String, String> {
         let mut styles = parent_styles.clone();
-        
+
         // Override with element's own attributes
         for (attr, value) in &element.attributes {
-            if attr.starts_with("stroke") || attr.starts_with("fill") || attr.starts_with("marker") {
+            if attr.starts_with("stroke") || attr.starts_with("fill") || attr.starts_with("marker")
+            {
                 styles.insert(attr.clone(), value.clone());
             }
         }
-        
+
         // Parse style attribute
         if let Some(style_attr) = element.attributes.get("style") {
             for part in style_attr.split(';') {
                 if let Some((key, value)) = part.split_once(':') {
                     let key = key.trim();
                     let value = value.trim();
-                    if key.starts_with("stroke") || key.starts_with("fill") || key.starts_with("marker") {
+                    if key.starts_with("stroke")
+                        || key.starts_with("fill")
+                        || key.starts_with("marker")
+                    {
                         styles.insert(key.to_string(), value.to_string());
                     }
                 }
             }
         }
-        
+
         styles
     }
 
@@ -160,15 +175,15 @@ impl RemoveUselessStrokeAndFillPlugin {
         let stroke_opacity = current_styles.get("stroke-opacity");
         let stroke_width = current_styles.get("stroke-width");
         let marker_end = current_styles.get("marker-end");
-        
+
         let should_remove_stroke = stroke.is_none_or(|s| s == "none")
             || stroke_opacity.is_some_and(|op| op == "0")
             || stroke_width.is_some_and(|w| w == "0");
-        
+
         if should_remove_stroke {
             // Check if stroke-width affects marker visibility
             let can_remove = stroke_width.is_none_or(|w| w == "0") || marker_end.is_none();
-            
+
             if can_remove {
                 // Remove all stroke-related attributes
                 let stroke_attrs: Vec<String> = element
@@ -177,15 +192,17 @@ impl RemoveUselessStrokeAndFillPlugin {
                     .filter(|k| k.starts_with("stroke"))
                     .cloned()
                     .collect();
-                
+
                 for attr in stroke_attrs {
                     element.attributes.shift_remove(&attr);
                 }
-                
+
                 // Set explicit "none" if parent has non-none stroke
                 let parent_stroke = parent_styles.get("stroke");
                 if parent_stroke.is_some_and(|s| s != "none") {
-                    element.attributes.insert("stroke".to_string(), "none".to_string());
+                    element
+                        .attributes
+                        .insert("stroke".to_string(), "none".to_string());
                 }
             }
         }
@@ -198,10 +215,10 @@ impl RemoveUselessStrokeAndFillPlugin {
     ) {
         let fill = current_styles.get("fill");
         let fill_opacity = current_styles.get("fill-opacity");
-        
-        let should_remove_fill = fill.is_some_and(|f| f == "none")
-            || fill_opacity.is_some_and(|op| op == "0");
-        
+
+        let should_remove_fill =
+            fill.is_some_and(|f| f == "none") || fill_opacity.is_some_and(|op| op == "0");
+
         if should_remove_fill {
             // Remove all fill-related attributes except fill itself
             let fill_attrs: Vec<String> = element
@@ -210,14 +227,16 @@ impl RemoveUselessStrokeAndFillPlugin {
                 .filter(|k| k.starts_with("fill-"))
                 .cloned()
                 .collect();
-            
+
             for attr in fill_attrs {
                 element.attributes.shift_remove(&attr);
             }
-            
+
             // Set explicit "none" if not already set
             if fill.is_none_or(|f| f != "none") {
-                element.attributes.insert("fill".to_string(), "none".to_string());
+                element
+                    .attributes
+                    .insert("fill".to_string(), "none".to_string());
             }
         }
     }
@@ -229,10 +248,15 @@ impl RemoveUselessStrokeAndFillPlugin {
     ) -> bool {
         let stroke = current_styles.get("stroke");
         let fill = current_styles.get("fill");
-        
-        let no_stroke = stroke.is_none_or(|s| s == "none") || element.attributes.get("stroke").is_some_and(|s| s == "none");
-        let no_fill = fill.is_some_and(|f| f == "none") || element.attributes.get("fill").is_some_and(|f| f == "none");
-        
+
+        let no_stroke = stroke.is_none_or(|s| s == "none")
+            || element
+                .attributes
+                .get("stroke")
+                .is_some_and(|s| s == "none");
+        let no_fill = fill.is_some_and(|f| f == "none")
+            || element.attributes.get("fill").is_some_and(|f| f == "none");
+
         no_stroke && no_fill
     }
 
@@ -246,7 +270,7 @@ impl RemoveUselessStrokeAndFillPlugin {
                 true
             }
         });
-        
+
         // Process children recursively
         for child in &mut element.children {
             if let Node::Element(child_elem) = child {
@@ -278,20 +302,25 @@ impl Plugin for RemoveUselessStrokeAndFillPlugin {
         params: Option<&Value>,
     ) -> PluginResult<()> {
         let params = self.parse_params(params);
-        
+
         // Skip optimization if there are style or script elements
         if self.has_style_or_script(&document.root) {
             return Ok(());
         }
-        
+
         let mut nodes_to_remove = Vec::new();
-        self.process_element_recursive(&mut document.root, &params, &HashMap::new(), &mut nodes_to_remove);
-        
+        self.process_element_recursive(
+            &mut document.root,
+            &params,
+            &HashMap::new(),
+            &mut nodes_to_remove,
+        );
+
         // Remove marked elements
         if !nodes_to_remove.is_empty() {
             self.remove_marked_elements(&mut document.root, &nodes_to_remove);
         }
-        
+
         Ok(())
     }
 }
@@ -306,11 +335,16 @@ impl RemoveUselessStrokeAndFillPlugin {
     ) {
         // Process current element
         let current_styles = self.process_element(element, params, parent_styles, nodes_to_remove);
-        
+
         // Process children with updated styles
         for child in &mut element.children {
             if let Node::Element(child_elem) = child {
-                self.process_element_recursive(child_elem, params, &current_styles, nodes_to_remove);
+                self.process_element_recursive(
+                    child_elem,
+                    params,
+                    &current_styles,
+                    nodes_to_remove,
+                );
             }
         }
     }
@@ -324,16 +358,19 @@ mod tests {
 
     #[test]
     fn test_remove_stroke_none() {
-        let mut doc = parse_svg(r#"
+        let mut doc = parse_svg(
+            r#"
             <svg>
                 <rect stroke="none" fill="red" width="100" height="100"/>
             </svg>
-        "#).unwrap();
-        
+        "#,
+        )
+        .unwrap();
+
         let mut plugin = RemoveUselessStrokeAndFillPlugin::new();
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
-        
+
         let output = stringify(&doc).unwrap();
         assert!(!output.contains(r#"stroke="none""#));
         assert!(output.contains(r#"fill="red""#));
@@ -341,16 +378,19 @@ mod tests {
 
     #[test]
     fn test_remove_fill_none() {
-        let mut doc = parse_svg(r#"
+        let mut doc = parse_svg(
+            r#"
             <svg>
                 <rect stroke="blue" fill="none" width="100" height="100"/>
             </svg>
-        "#).unwrap();
-        
+        "#,
+        )
+        .unwrap();
+
         let mut plugin = RemoveUselessStrokeAndFillPlugin::new();
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
-        
+
         let output = stringify(&doc).unwrap();
         assert!(output.contains(r#"stroke="blue""#));
         assert!(output.contains(r#"fill="none""#)); // Should keep explicit none
@@ -358,16 +398,19 @@ mod tests {
 
     #[test]
     fn test_remove_zero_opacity() {
-        let mut doc = parse_svg(r#"
+        let mut doc = parse_svg(
+            r#"
             <svg>
                 <rect stroke-opacity="0" fill-opacity="0" width="100" height="100"/>
             </svg>
-        "#).unwrap();
-        
+        "#,
+        )
+        .unwrap();
+
         let mut plugin = RemoveUselessStrokeAndFillPlugin::new();
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
-        
+
         let output = stringify(&doc).unwrap();
         assert!(!output.contains("stroke-opacity"));
         assert!(output.contains(r#"fill="none""#));
@@ -375,16 +418,19 @@ mod tests {
 
     #[test]
     fn test_preserve_with_id() {
-        let mut doc = parse_svg(r#"
+        let mut doc = parse_svg(
+            r#"
             <svg>
                 <rect id="test" stroke="none" fill="none" width="100" height="100"/>
             </svg>
-        "#).unwrap();
-        
+        "#,
+        )
+        .unwrap();
+
         let mut plugin = RemoveUselessStrokeAndFillPlugin::new();
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
-        
+
         let output = stringify(&doc).unwrap();
         // Should preserve attributes because element has ID
         assert!(output.contains(r#"stroke="none""#));
@@ -393,17 +439,20 @@ mod tests {
 
     #[test]
     fn test_skip_with_style_element() {
-        let mut doc = parse_svg(r#"
+        let mut doc = parse_svg(
+            r#"
             <svg>
                 <style>.test { fill: red; }</style>
                 <rect stroke="none" fill="none" width="100" height="100"/>
             </svg>
-        "#).unwrap();
-        
+        "#,
+        )
+        .unwrap();
+
         let mut plugin = RemoveUselessStrokeAndFillPlugin::new();
         let plugin_info = PluginInfo::default();
         plugin.apply(&mut doc, &plugin_info, None).unwrap();
-        
+
         let output = stringify(&doc).unwrap();
         // Should preserve attributes because of style element
         assert!(output.contains(r#"stroke="none""#));

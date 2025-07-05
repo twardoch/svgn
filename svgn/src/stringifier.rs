@@ -6,7 +6,7 @@
 //! SVG strings with configurable formatting options.
 
 use crate::ast::{Document, Element, Node};
-use crate::config::{QuoteAttrsStyle, LineEnding};
+use crate::config::{LineEnding, QuoteAttrsStyle};
 use std::fmt::Write;
 use thiserror::Error;
 
@@ -84,13 +84,13 @@ impl Stringifier {
         self.quote_attrs = style;
         self
     }
-    
+
     /// Set line ending style
     pub fn eol(mut self, eol: LineEnding) -> Self {
         self.eol = eol;
         self
     }
-    
+
     /// Set final newline
     pub fn final_newline(mut self, final_newline: bool) -> Self {
         self.final_newline = final_newline;
@@ -138,7 +138,7 @@ impl Stringifier {
         if self.pretty && !self.ends_with_newline(&output) {
             self.write_newline(&mut output)?;
         }
-        
+
         // Add final newline if requested
         if self.final_newline && !self.ends_with_newline(&output) {
             self.write_newline(&mut output)?;
@@ -146,13 +146,13 @@ impl Stringifier {
 
         Ok(output)
     }
-    
+
     /// Write a newline with the configured line ending
     fn write_newline(&self, output: &mut String) -> StringifyResult<()> {
         output.push_str(self.eol.as_str());
         Ok(())
     }
-    
+
     /// Check if string ends with any kind of newline
     fn ends_with_newline(&self, s: &str) -> bool {
         s.ends_with('\n') || s.ends_with("\r\n")
