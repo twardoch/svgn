@@ -1,0 +1,146 @@
+<!-- Configuration Panel -->
+<div class="config-panel">
+  <h3 class="text-lg font-semibold mb-4">Configuration</h3>
+  
+  <!-- Preset Selection -->
+  <div class="form-control">
+    <label class="label">
+      <span class="label-text">Optimization Preset</span>
+    </label>
+    <select class="select select-bordered w-full" id="preset-select">
+      <option value="default">Default (Recommended)</option>
+      <option value="safe">Safe (Conservative)</option>
+      <option value="aggressive">Aggressive (Maximum)</option>
+      <option value="custom">Custom</option>
+    </select>
+  </div>
+  
+  <!-- Plugin Toggles -->
+  <div class="mt-6">
+    <h4 class="font-medium mb-3">Plugin Options</h4>
+    <div class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+      <!-- Core Plugins -->
+      <div class="plugin-toggle">
+        <span class="text-sm">Remove Comments</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Remove Metadata</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Cleanup Attributes</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Remove Dimensions</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm">
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Convert Colors</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Minify Paths</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Inline Styles</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+      <div class="plugin-toggle">
+        <span class="text-sm">Remove Empty Elements</span>
+        <input type="checkbox" class="toggle toggle-primary toggle-sm" checked>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Output Options -->
+  <div class="mt-6">
+    <h4 class="font-medium mb-3">Output Options</h4>
+    <div class="form-control">
+      <label class="label cursor-pointer">
+        <span class="label-text">Pretty Print</span>
+        <input type="checkbox" class="checkbox checkbox-primary" id="pretty-print">
+      </label>
+    </div>
+    <div class="form-control">
+      <label class="label cursor-pointer">
+        <span class="label-text">Remove XML Declaration</span>
+        <input type="checkbox" class="checkbox checkbox-primary" id="remove-xml-decl" checked>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Statistics Panel -->
+<div class="config-panel">
+  <h3 class="text-lg font-semibold mb-4">Statistics</h3>
+  
+  <div class="grid grid-cols-2 gap-4">
+    <div class="stat-card">
+      <div class="stat-value" id="original-size">-</div>
+      <div class="stat-title">Original Size</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="optimized-size">-</div>
+      <div class="stat-title">Optimized Size</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="size-reduction">-</div>
+      <div class="stat-title">Reduction</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="compression-ratio">-</div>
+      <div class="stat-title">Ratio</div>
+    </div>
+  </div>
+  
+  <!-- Progress Indicator -->
+  <div class="mt-4" id="progress-container" style="display: none;">
+    <div class="flex items-center gap-3">
+      <div class="progress-circle"></div>
+      <span class="text-sm">Optimizing...</span>
+    </div>
+    <progress class="progress progress-primary w-full mt-2" id="optimization-progress"></progress>
+  </div>
+</div>
+
+<!-- Help Panel -->
+<div class="config-panel">
+  <h3 class="text-lg font-semibold mb-4">Help & Tips</h3>
+  
+  <div class="space-y-3">
+    <div class="alert alert-info">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+      </svg>
+      <span class="text-xs">Drag & drop SVG files or click to upload</span>
+    </div>
+    
+    <div class="collapse collapse-arrow bg-base-200">
+      <input type="checkbox"> 
+      <div class="collapse-title text-sm font-medium">Plugin Guide</div>
+      <div class="collapse-content text-xs">
+        <ul class="list-disc list-inside space-y-1">
+          <li><strong>Default:</strong> Safe optimizations for most use cases</li>
+          <li><strong>Safe:</strong> Very conservative, preserves all visual aspects</li>
+          <li><strong>Aggressive:</strong> Maximum compression, may alter appearance</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="collapse collapse-arrow bg-base-200">
+      <input type="checkbox"> 
+      <div class="collapse-title text-sm font-medium">Supported Formats</div>
+      <div class="collapse-content text-xs">
+        <ul class="list-disc list-inside space-y-1">
+          <li>SVG files (.svg)</li>
+          <li>XML files with SVG content</li>
+          <li>Inline SVG from HTML</li>
+          <li>Base64 encoded SVG</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

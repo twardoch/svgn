@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'en-US' }}" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% seo %}
+
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <link rel="shortcut icon" href="{{ '/favicon.ico' | relative_url }}" type="image/x-icon">
+
+  {% if site.ga_tracking != nil %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.ga_tracking }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ site.ga_tracking }}');
+    </script>
+  {% endif %}
+
+  <script>
+    // Theme handling
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+  </script>
+</head>
+
+<body>
+  <div class="min-h-screen bg-base-100">
+    {% include header.html %}
+    
+    <main class="container mx-auto px-4 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Sidebar Navigation -->
+        <aside class="lg:col-span-1">
+          {% include sidebar.html %}
+        </aside>
+        
+        <!-- Main Content -->
+        <article class="lg:col-span-3">
+          <div class="prose prose-slate max-w-none dark:prose-invert">
+            {{ content }}
+          </div>
+        </article>
+      </div>
+    </main>
+    
+    {% include footer.html %}
+  </div>
+
+  <!-- Theme Management Script -->
+  <script src="{{ '/assets/js/theme.js' | relative_url }}"></script>
+</body>
+</html>

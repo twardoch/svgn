@@ -52,3 +52,26 @@ collections:
   benchmarks:
     output: true
     nav_order: 7
+  tools:
+    output: true
+    permalink: /tools/:name/
+
+# Build settings
+sass:
+  sass_dir: _sass
+  style: compressed
+
+# Assets
+include:
+  - assets/css/main.css
+  - assets/js/
+
+# Exclude from processing
+exclude:
+  - node_modules/
+  - package.json
+  - package-lock.json
+  - tailwind.config.js
+  - assets/css/input.css
+  - _build.sh
+  - _serve.sh

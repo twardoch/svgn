@@ -7,7 +7,6 @@
 //! rule violations when implementing external traits.
 
 use crate::ast::Element;
-use precomputed_hash::PrecomputedHash;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::{Selector, SelectorImpl};
 use selectors::{Element as SelectorElement, OpaqueElement};
@@ -100,6 +99,25 @@ impl cssparser::ToCss for SvgNamespacePrefix {
 }
 
 impl PrecomputedHash for SvgNamespacePrefix {
+    fn precomputed_hash(&self) -> u32 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        self.0.hash(&mut hasher);
+        hasher.finish() as u32
+    }
+}
+
+impl cssparser::ToCss for SvgNamespaceUrl {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        dest.write_str(&self.0)
+    }
+}
+
+impl PrecomputedHash for SvgNamespaceUrl {
     fn precomputed_hash(&self) -> u32 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};

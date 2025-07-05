@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'en-US' }}" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% seo %}
+
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <link rel="shortcut icon" href="{{ '/favicon.ico' | relative_url }}" type="image/x-icon">
+
+  <script>
+    // Theme handling
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+  </script>
+</head>
+
+<body>
+  <div class="min-h-screen bg-base-100">
+    {% include header.html %}
+    
+    <!-- Tool-specific full-width layout -->
+    <main class="container mx-auto px-4 py-6">
+      <!-- Tool Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-primary mb-2">{{ page.title | default: "SVG Optimizer" }}</h1>
+        <p class="text-lg text-base-content/70">{{ page.description | default: "Optimize your SVG files with our powerful online tool" }}</p>
+      </div>
+
+      <!-- Tool Grid Layout -->
+      <div class="tool-grid">
+        <!-- Main Tool Area -->
+        <div class="tool-main space-y-6">
+          {{ content }}
+        </div>
+        
+        <!-- Tool Sidebar -->
+        <div class="tool-sidebar space-y-6">
+          {% include tool_sidebar.html %}
+        </div>
+      </div>
+    </main>
+    
+    {% include footer.html %}
+  </div>
+
+  <!-- Include tool-specific JavaScript -->
+  <script src="{{ '/assets/js/svg-optimizer.js' | relative_url }}"></script>
+  
+  <!-- Theme Management Script -->
+  <script src="{{ '/assets/js/theme.js' | relative_url }}"></script>
+</body>
+</html>
