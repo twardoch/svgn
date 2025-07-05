@@ -500,7 +500,7 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
             let parsing_mode = selectors::parser::ParseRelative::No;
             
             struct DummyParser;
-            impl<'i> selectors::Parser<'i> for DummyParser {
+            impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
                 type Impl = SelectorImpl;
                 type Error = selectors::parser::SelectorParseErrorKind<'i>;
             }

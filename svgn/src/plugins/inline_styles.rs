@@ -588,4 +588,57 @@ fn calculate_parsed_selector_specificity(selector: &selectors::parser::Selector<
     selector.specificity()
 }
 
-// TODO: Add tests when test_utils module is available
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Document, Element, Node};
+    use crate::plugin::{Plugin, PluginInfo};
+    
+    /// Helper function to create a test document with style element
+    fn create_test_document_with_style(css: &str, _svg_content: &str) -> Document {
+        let mut doc = Document::new();
+        doc.root.name = "svg".to_string();
+        
+        // Add style element
+        let mut style_elem = Element::new("style");
+        style_elem.children.push(Node::Text(css.to_string()));
+        doc.root.children.push(Node::Element(style_elem));
+        
+        // Parse and add SVG content elements
+        // For now, just add a simple rect element for testing
+        let mut rect_elem = Element::new("rect");
+        rect_elem.attributes.insert("class".to_string(), "st0".to_string());
+        rect_elem.attributes.insert("x".to_string(), "10".to_string());
+        rect_elem.attributes.insert("y".to_string(), "10".to_string());
+        rect_elem.attributes.insert("width".to_string(), "100".to_string());
+        rect_elem.attributes.insert("height".to_string(), "100".to_string());
+        doc.root.children.push(Node::Element(rect_elem));
+        
+        doc
+    }
+    
+    #[test]
+    fn test_inline_styles_plugin_name() {
+        let plugin = InlineStylesPlugin;
+        assert_eq!(plugin.name(), "inlineStyles");
+    }
+    
+    #[test]
+    fn test_inline_styles_plugin_description() {
+        let plugin = InlineStylesPlugin;
+        assert_eq!(plugin.description(), "Move and merge styles from style elements to inline style attributes");
+    }
+    
+    #[test]
+    fn test_inline_styles_basic_functionality() {
+        let css = ".st0 { fill: blue; }";
+        let mut doc = create_test_document_with_style(css, "");
+        
+        let mut plugin = InlineStylesPlugin;
+        let plugin_info = PluginInfo::default();
+        
+        // Run the plugin
+        let result = plugin.apply(&mut doc, &plugin_info, None);
+        assert!(result.is_ok());
+    }
+}

@@ -279,13 +279,13 @@ impl Config {
             "minifyStyles",
             "convertStyleToAttrs",
             "convertColors",
-            // TODO: Implement complex plugins:
+            "convertTransform",      // ✅ Completed - matrix math with nalgebra
+            "inlineStyles",          // ✅ In Progress - CSS parsing with lightningcss
+            // TODO: Implement remaining complex plugins:
             // "convertPathData",    // Requires lyon integration
-            // "convertTransform",   // Requires matrix math
             // "mergePaths",         // Requires path analysis
             // "moveElemsAttrsToGroup", // Requires DOM analysis
             // "moveGroupAttrsToElems", // Requires DOM analysis
-            // "inlineStyles",       // Requires CSS parsing
             "removeEmptyText",
             "removeEmptyContainers",
             "collapseGroups",

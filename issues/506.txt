@@ -1,0 +1,131 @@
+https://github.com/twardoch/svgn/actions/runs/16082567984
+
+The failing job is due to a mismatch in trait implementation for CSS selector parsing in your plugin files, specifically related to the selectors crate. The error shows up around lines like:
+
+```
+impl<'i> SelectorParser<'i> for Parser {
+    type Impl = SvgSelectorImpl;
+    type Error = selectors::parser::SelectorParseErrorKind<'i>;
+```
+and
+```
+impl<'i> selectors::Parser<'i> for DummyParser {
+    type Impl = SelectorImpl;
+    type Error = selectors::parser::SelectorParseErrorKind<'i>;
+}
+```
+
+This error is caused by using the wrong trait name: the selectors crate (v0.25+) uses `SelectorParser`, not `Parser`, for selector parsing. You should update all trait implementations from `selectors::Parser` to `selectors::parser::SelectorParser`.
+
+### How to fix
+
+#### 1. In `svgn/src/plugins/remove_attributes_by_selector.rs`:
+Change this section (around line 503):
+
+```rust
+impl<'i> selectors::Parser<'i> for DummyParser {
+    type Impl = SelectorImpl;
+    type Error = selectors::parser::SelectorParseErrorKind<'i>;
+}
+```
+
+**To:**
+
+```rust
+impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
+    type Impl = SelectorImpl;
+    type Error = selectors::parser::SelectorParseErrorKind<'i>;
+}
+```
+
+#### 2. In `svgn/src/plugins/inline_styles.rs`:
+You are already correctly using `SelectorParser` here:
+
+```rust
+impl<'i> SelectorParser<'i> for Parser {
+    type Impl = SvgSelectorImpl;
+    type Error = selectors::parser::SelectorParseErrorKind<'i>;
+    // ...
+}
+```
+No change needed if it looks like above, but double-check for any `impl selectors::Parser` and update to `impl selectors::parser::SelectorParser`.
+
+---
+
+### Summary
+
+- Replace all `impl selectors::Parser<'i> for ...` with `impl selectors::parser::SelectorParser<'i> for ...` in your plugin code.
+- This aligns with the current selectors crate API.
+- After this change, the trait implementation should match what the selectors crate expects, and your job should pass.
+
+---
+
+**References:**
+- [selectors crate docs](https://docs.rs/selectors/latest/selectors/parser/trait.SelectorParser.html)
+
+
+The job failed with the error: Resource not accessible by integration during the security audit step, specifically when running rustsec/audit-check@v1.4.1. This is most often caused by missing or insufficient permissions for the GitHub token.
+
+**Solution:**  
+Update your security audit job in .github/workflows/rust.yml to use a token with sufficient permissions. The default GITHUB_TOKEN in some contexts (like pull requests from forks) has limited access. You can resolve this by:
+
+1. Ensure the workflow requests correct permissions at the top:
+   ```yaml
+   permissions:
+     contents: read
+     security-events: write
+   ```
+
+2. If possible, use the default `${{ secrets.GITHUB_TOKEN }}` but make sure it is not restricted.
+
+3. Place the permissions block at the top of your workflow file, before `jobs:`:
+   ```yaml
+   name: Rust
+
+   permissions:
+     contents: read
+     security-events: write
+
+   on:
+     push:
+       branches: [ "main" ]
+     pull_request:
+       branches: [ "main" ]
+   ```
+
+4. If you still see issues, consider generating a personal access token (PAT) with the necessary permissions and store it as a secret (e.g., `RUSTSEC_TOKEN`). Then in your workflow:
+   ```yaml
+   - uses: rustsec/audit-check@v1.4.1
+     with:
+       token: ${{ secrets.RUSTSEC_TOKEN }}
+   ```
+
+**Summary of the fix:**  
+Add a permissions block to your workflow file to ensure the GITHUB_TOKEN has the necessary access, or use a PAT if needed.
+
+You can edit your workflow as described above to resolve the "Resource not accessible by integration" error.
+
+—
+See your workflow file here for reference: [.github/workflows/rust.yml](https://github.com/twardoch/svgn/blob/f8f46b007e25e063fa4854da6fae14ed54a3de08/.github/workflows/rust.yml)
+
+
+The job failed because it uses a deprecated version of actions/upload-artifact (v3), which is no longer supported as of April 2024. You need to upgrade to v4. 
+
+**Solution:**
+- In your workflow file [.github/workflows/release.yml](https://github.com/twardoch/svgn/blob/f8f46b007e25e063fa4854da6fae14ed54a3de08/.github/workflows/release.yml), update this step:
+
+```yaml
+153|       - name: Upload artifacts
+154|         uses: actions/upload-artifact@v3
+```
+
+**Replace with:**
+```yaml
+153|       - name: Upload artifacts
+154|         uses: actions/upload-artifact@v4
+```
+
+**Summary of fix:**  
+Change every instance of actions/upload-artifact@v3 to actions/upload-artifact@v4 in your workflow YAML files.
+
+**After making this change, commit and push to rerun the workflow.** This will resolve the deprecation failure.

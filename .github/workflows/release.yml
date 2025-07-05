@@ -151,7 +151,7 @@ jobs:
       
       # Upload artifacts to GitHub Actions (for debugging)
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: svgn-${{ matrix.name }}-${{ needs.create-release.outputs.version }}
           path: ${{ matrix.artifacts_path }}/*

@@ -85,6 +85,8 @@ Project Structure:
 │   │   │   ├── 📄 convert_transform.rs
 │   │   │   ├── 📄 inline_styles.rs
 │   │   │   ├── 📄 inline_styles_complex.rs
+│   │   │   ├── 📄 inline_styles_converter.rs
+│   │   │   ├── 📄 inline_styles_selector.rs
 │   │   │   ├── 📄 merge_styles.rs
 │   │   │   ├── 📄 minify_styles.rs
 │   │   │   ├── 📄 mod.rs
@@ -172,7 +174,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vvl61geu-0updjie-754cmt0sl1sqig74syuo84xtr
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-04qkxn61x8ptz
-│   │       │   └── 📁 s-h8wzpwt6i2-1n2a64n-6glinfgxxr3ttbh3clbimzfx9
+│   │       │   └── 📁 s-h8x0g1ad3a-0q1s1h8-0652a5ulj2hxsoc7qcxxcnh3q
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 fixture_tests-0ply0uphy5qym
 │   │       │   └── 📁 s-h8vy5za5t7-0f3dhok-f2uek7626qhxmg09wpsldq1h9
@@ -199,7 +201,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8wz79so1m-1o5eing-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-1yospmh98a6ii
-│   │       │   └── 📁 s-h8wzpwr1ot-1xa1zvl-1jt2skj6payar8q5mo91qvpt1
+│   │       │   └── 📁 s-h8x0g1ad0a-1kibrh1-18j09xvt13sr8a7isnvan9esu
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 integration_test-289jpq8zntzlt
 │   │       │   └── 📁 s-h8wlfix3li-1c0sudl-ehitses9di4nwy7aga1pqlckh
@@ -244,7 +246,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8wz79ov5k-0kbltx5-cb3kckv1wvfo7o8cro5nx7th4
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 plugins-3h3qbxszk3i0n
-│   │       │   └── 📁 s-h8wzpwshda-1dcbahg-a3yyo5q0ytwy259oeiue6n1ry
+│   │       │   └── 📁 s-h8x0g1afgu-0r81x91-97200syit04plk9w52h1pq8la
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-005rkcjeongye
 │   │       │   └── 📁 s-h8vz1u4zde-16l6y1l-delgivoc9912fy7ako87t5e5e
@@ -253,7 +255,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vz1ymg8i-1qnqf76-e1n4i575zyfrj06zbz25iuss2
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-02mbnowxjxo1w
-│   │       │   └── 📁 s-h8wzpwtb53-1f86ejz-c1q7mfs7zw5wizq3bo860gvky
+│   │       │   └── 📁 s-h8x0g1abhr-0bhp0iw-c4a0zujaoe53zljyyla2rhv9u
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-09muhj9jcze26
 │   │       │   └── 📁 s-h8wlfix1h9-1oreiby-47zko5a8unin3lki782a7xkaq
@@ -268,10 +270,10 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy0xu2m4-1fi6nc6-8kgtlewppt4f7cp8pcxu8dwqt
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0dt3a5dv8rnf7
-│   │       │   └── 📁 s-h8wq96v1se-0bogqxr-0h1u796dt9c2avz1x73alks76
+│   │       │   └── 📁 s-h8x0h2a6uf-0lo2sun-2e2hsts6fjgzbkll3lth113eb
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0g1g5cqluatjo
-│   │       │   └── 📁 s-h8wpu9q2p6-0ghpiqk-4ongrjstfbmzgvuh8fpdeti35
+│   │       │   └── 📁 s-h8x0ai50ve-0lbwzb9-8x7l5vck32fuwutvvz6v5gjuk
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0h2kstmafyw4c
 │   │       │   └── 📁 s-h8wz79srnf-0wpzvln-working
@@ -291,7 +293,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vvlffns1-1iqvdlu-3fr3gkwrj002cfnfs8v1d0vkw
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0x8b1gml46p0g
-│   │       │   └── 📁 s-h8wzq40q07-1dex6ne-dypo15xp201wpba25ie9zzc0u
+│   │       │   └── 📁 s-h8x02gt6or-1hmposl-dypo15xp201wpba25ie9zzc0u
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-0xr22q2li5f6e
 │   │       │   └── 📁 s-h8wz79slo7-18ndj1d-working
@@ -300,18 +302,18 @@ Project Structure:
 │   │       │   └── 📁 s-h8vxb2xsm4-0vekycq-cekbhqoqob44304h74ca0p6yc
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-16m4msdj71xla
-│   │       │   └── 📁 s-h8wzpr5vty-011k1vb-5vw25jd8wrk68aeoybwro9eto
+│   │       │   └── 📁 s-h8x0fzdqm6-11uwka8-413skpw9fu6qm6z478cphkf74
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1bp5730z55td3
 │   │       │   └── 📁 s-h8vxsn8nmj-1aq357o-41dvo3qd8fjtp093h600d4ccw
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1d7ohcv94dgpe
-│   │       │   ├── 📁 s-h8wq966xla-1k340ce-0l1yo6oa7ndgwsmvn1clk0f34
+│   │       │   ├── 📁 s-h8x0gxsuwn-1hpsrr2-0771ohntjp0mv36ploag2lqan
 │   │       │   │   └── ... (depth limit reached)
-│   │       │   └── 📁 s-h8wuvu02jd-1hjemqs-working
+│   │       │   └── 📁 s-h8x0zpwen0-0zibnb4-working
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1m9uirifvmxna
-│   │       │   └── 📁 s-h8wzpwryg2-02ikqz3-b45a50qbxweapacaq471q9ei5
+│   │       │   └── 📁 s-h8x0g1ad1b-1yqh0n2-d4tjvs0h0ss4pyyvh8ke43cm7
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-1we9em8jemp43
 │   │       │   └── 📁 s-h8vy5za2ro-01qee1t-3rc33npe6n78q2p3ehum71g3m
@@ -326,7 +328,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vz1u8g4i-1bm356r-ew58w6faof2jdq9pcbygo6hqy
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-29hy9lsugk9os
-│   │       │   └── 📁 s-h8wzqa3q1k-1nbjzxb-epb33kuuye9tzmx0i42fdooe2
+│   │       │   └── 📁 s-h8x02inyj9-0i1opb1-epb33kuuye9tzmx0i42fdooe2
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-2duj3jprwpexu
 │   │       │   └── 📁 s-h8wlfixf6o-1mb62me-ecilleoye1it0ynt2jf6ohw64
@@ -367,12 +369,10 @@ Project Structure:
 │   │       │   └── 📁 s-h8wv2m10c1-0r2mnwt-dg84arxbio956ernh94dg3spp
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3jlqspzqbxclx
-│   │       │   └── 📁 s-h8wz9www3q-1vwophh-1w123cnjspw1rbo3hlu0tkjyp
+│   │       │   └── 📁 s-h8x0fzdi0r-1jlym7g-b6xuycp717ufb3svwroubzy2a
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3mdn4o2lu1v1e
-│   │       │   ├── 📁 s-h8wpu74qlf-0flvxht-f34qnqbutsn2k5hjtsoa57j5o
-│   │       │   │   └── ... (depth limit reached)
-│   │       │   └── 📁 s-h8wuo811ym-07ukc3d-working
+│   │       │   └── 📁 s-h8x0ahumhh-078zazs-4e2n4mkzzjnewu5qga3dlmdto
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgn-3mzybu9a7g9sf
 │   │       │   └── 📁 s-h8wlfhoauz-1tg106y-062hw5l9yc3c96kx174aeavu8
@@ -387,7 +387,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vy5za1xg-0ihqec2-a1fjgdguy17qnpns80nkzd5xf
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgo_compatibility_tests-05t4q3ujpsvg9
-│   │       │   └── 📁 s-h8wzpwrkpg-07fyo9z-8dpminviyahny39uwsbmx8niy
+│   │       │   └── 📁 s-h8x0g1abda-16vdj52-59paeia6z7kpcog1ygf8y3gf1
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 svgo_compatibility_tests-0plkr3wurhayh
 │   │       │   └── 📁 s-h8vy5za51b-1rao4cd-1oqsgf0i3u12da0k2o9tiu40q
@@ -414,7 +414,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8wz79s5fd-0hgtc7z-bws2232q9piyr3aktyguyp6ah
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_css_debug-1wfss9twgmiia
-│   │       │   └── 📁 s-h8wzpwtc3v-144629i-ehhbjpfmg3bvhmpaf9bkv2o7i
+│   │       │   └── 📁 s-h8x0g8vv87-0p30bia-ehhbjpfmg3bvhmpaf9bkv2o7i
 │   │       │       └── ... (depth limit reached)
 │   │       ├── 📁 test_style_plugins-0bn9mgtuwuxsv
 │   │       │   └── 📁 s-h8wlfix7a2-1rf6qc8-0n61m4mnr29rzvg5fawpdny2t
@@ -435,7 +435,7 @@ Project Structure:
 │   │       │   └── 📁 s-h8vxb2y10x-01h8pmm-25cymxyp3n51qcdakxgx9sw1y
 │   │       │       └── ... (depth limit reached)
 │   │       └── 📁 test_style_plugins-3or25hxn02lc4
-│   │           └── 📁 s-h8wzpwt6fi-01k7aef-ac37fzlzwqnwabhkndxlich1z
+│   │           └── 📁 s-h8x0g8vv3h-0ofhnbt-6jj2ou199i7gjcj87eu9hsb8q
 │   │               └── ... (depth limit reached)
 │   ├── 📁 release
 │   │   ├── 📁 deps
@@ -621,7 +621,7 @@ jobs:
       
       # Upload artifacts to GitHub Actions (for debugging)
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: svgn-${{ matrix.name }}-${{ needs.create-release.outputs.version }}
           path: ${{ matrix.artifacts_path }}/*
@@ -692,6 +692,10 @@ Relative File Path: .github/workflows/rust.yml
 
 ```yaml
 name: Rust
+
+permissions:
+  contents: read
+  security-events: write
 
 on:
   push:
@@ -6516,6 +6520,8 @@ mod inline_styles_selector;
 
 mod inline_styles_converter;
 
+mod tests;
+
 struct InlineStylesParams {
 }
 
@@ -6539,6 +6545,21 @@ struct InlineStylesPlugin {
 }
 
 struct CssRuleData {
+}
+
+
+# File: /Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/src/plugins/inline_styles_converter.rs
+# Language: rust
+
+
+
+# File: /Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn/src/plugins/inline_styles_selector.rs
+# Language: rust
+
+struct SvgSelectorImpl {
+}
+
+struct SvgElementWrapper {
 }
 
 
