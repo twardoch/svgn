@@ -24,7 +24,8 @@ use serde_json::Value;
 use crate::collections::PRESENTATION_ATTRS;
 use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
-use selectors::parser::{Parser as SelectorParser, SelectorList};
+use selectors::parser::{SelectorList, SelectorParser};
+use selectors::matching::{MatchingContext, MatchingMode, QuirksMode, NeedsSelectorFlags, IgnoreNthChildForInvalidation};
 
 mod inline_styles_selector;
 mod inline_styles_converter;
@@ -205,11 +206,13 @@ fn count_matching_elements_for_rule(element: &Element, rule: &CssRuleData) -> us
         walk_element_tree_with_parent(element, None, |elem, parent, index| {
             let wrapper = SvgElementWrapper::new(elem, parent, index);
             for selector in selector_list.0.iter() {
-                let mut context = selectors::matching::MatchingContext::new(
-                    selectors::matching::MatchingMode::Normal,
+                let mut context = MatchingContext::new(
+                    MatchingMode::Normal,
                     None,
-                    None,
-                    selectors::matching::QuirksMode::NoQuirks,
+                    &mut selectors::NthIndexCache::default(),
+                    QuirksMode::NoQuirks,
+                    NeedsSelectorFlags::No,
+                    IgnoreNthChildForInvalidation::No,
                 );
                 if selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context) {
                     count += 1;
@@ -271,11 +274,13 @@ fn apply_css_rule_and_track_impl(
         // Use advanced selector matching
         let wrapper = SvgElementWrapper::new(element, parent, index);
         selector_list.0.iter().any(|selector| {
-            let mut context = selectors::matching::MatchingContext::new(
-                selectors::matching::MatchingMode::Normal,
+            let mut context = MatchingContext::new(
+                MatchingMode::Normal,
                 None,
-                None,
-                selectors::matching::QuirksMode::NoQuirks,
+                &mut selectors::NthIndexCache::default(),
+                QuirksMode::NoQuirks,
+                NeedsSelectorFlags::No,
+                IgnoreNthChildForInvalidation::No,
             );
             selectors::matching::matches_selector(selector, 0, None, &wrapper, &mut context)
         })

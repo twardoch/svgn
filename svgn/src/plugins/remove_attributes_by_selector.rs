@@ -503,6 +503,39 @@ impl Plugin for RemoveAttributesBySelectorPlugin {
             impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
                 type Impl = SelectorImpl;
                 type Error = selectors::parser::SelectorParseErrorKind<'i>;
+                
+                fn parse_non_ts_pseudo_class(
+                    &self,
+                    _location: cssparser::SourceLocation,
+                    _name: cssparser::CowRcStr<'i>,
+                ) -> Result<<Self::Impl as selectors::parser::SelectorImpl>::NonTSPseudoClass, cssparser::ParseError<'i, selectors::parser::SelectorParseErrorKind<'i>>> {
+                    Err(cssparser::ParseError {
+                        kind: cssparser::ParseErrorKind::Basic(cssparser::BasicParseErrorKind::UnexpectedToken(cssparser::Token::Ident(_name))),
+                        location: _location,
+                    })
+                }
+                
+                fn parse_pseudo_element(
+                    &self,
+                    _location: cssparser::SourceLocation,
+                    _name: cssparser::CowRcStr<'i>,
+                ) -> Result<<Self::Impl as selectors::parser::SelectorImpl>::PseudoElement, cssparser::ParseError<'i, selectors::parser::SelectorParseErrorKind<'i>>> {
+                    Err(cssparser::ParseError {
+                        kind: cssparser::ParseErrorKind::Basic(cssparser::BasicParseErrorKind::UnexpectedToken(cssparser::Token::Ident(_name))),
+                        location: _location,
+                    })
+                }
+                
+                fn default_namespace(&self) -> Option<<Self::Impl as selectors::parser::SelectorImpl>::NamespaceUrl> {
+                    None
+                }
+                
+                fn namespace_for_prefix(
+                    &self,
+                    _prefix: &<Self::Impl as selectors::parser::SelectorImpl>::NamespacePrefix,
+                ) -> Option<<Self::Impl as selectors::parser::SelectorImpl>::NamespaceUrl> {
+                    None
+                }
             }
             
             let selector_list = match SelectorList::<SelectorImpl>::parse(&DummyParser, &mut parser, parsing_mode) {

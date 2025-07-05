@@ -1,19 +1,18 @@
 Generating code snapshot in ./llms.txt ...
-╭──────────────────────────────── CodeToPrompt ────────────────────────────────╮
-│ Configuration for this run:                                                  │
-│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn           │
-│ Include Patterns: ['*']                                                      │
-│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref',            │
-│ 'testdata', '*.lock']                                                        │
-│ Respect .gitignore: True                                                     │
-│ Show Line Numbers: False                                                     │
-│ Count Tokens: True                                                           │
-│ Compress Code: True                                                          │
-│ Max Tokens: Unlimited                                                        │
-│ Tree Depth: 5                                                                │
-│ Output Format: default                                                       │
-│ Interactive Mode: False                                                      │
-╰──────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────── CodeToPrompt ──────────────────────────────────────╮
+│ Configuration for this run:                                                             │
+│ Root Directory: /Users/adam/Developer/vcs/github.twardoch/pub/svgn                      │
+│ Include Patterns: ['*']                                                                 │
+│ Exclude Patterns: ['*.svg', '.specstory', '*.md', '*.txt', 'ref', 'testdata', '*.lock'] │
+│ Respect .gitignore: True                                                                │
+│ Show Line Numbers: False                                                                │
+│ Count Tokens: True                                                                      │
+│ Compress Code: True                                                                     │
+│ Max Tokens: Unlimited                                                                   │
+│ Tree Depth: 5                                                                           │
+│ Output Format: default                                                                  │
+│ Interactive Mode: False                                                                 │
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
 
 ╭──────────────────────── Processing Complete ────────────────────────╮
 │ Summary:                                                            │
@@ -34,13 +33,31 @@ Generating code snapshot in ./llms.txt ...
 │   - .cmd (2,652 tokens)                                             │
 ╰─────────────────────────────────────────────────────────────────────╯
 Building the svgn project...
-    Blocking waiting for file lock on build directory
    Compiling svgn v1.2.3 (/Users/adam/Developer/vcs/github.twardoch/pub/svgn/svgn)
+error[E0432]: unresolved import `selectors::parser::SelectorParser`
+  --> svgn/src/plugins/remove_attributes_by_selector.rs:15:5
+   |
+15 | use selectors::parser::SelectorParser;
+   |     ^^^^^^^^^^^^^^^^^^^--------------
+   |     |                  |
+   |     |                  help: a similar name exists in the module: `SelectorParseError`
+   |     no `SelectorParser` in `parser`
+
 error[E0405]: cannot find trait `SelectorParser` in module `selectors::parser`
-   --> svgn/src/plugins/remove_attributes_by_selector.rs:503:41
+   --> svgn/src/plugins/remove_attributes_by_selector.rs:504:41
     |
-503 |             impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
+504 |             impl<'i> selectors::parser::SelectorParser<'i> for DummyParser {
     |                                         ^^^^^^^^^^^^^^ not found in `selectors::parser`
 
-For more information about this error, try `rustc --explain E0405`.
-error: could not compile `svgn` (lib) due to 1 previous error
+warning: unused import: `element_matches_selector`
+  --> svgn/src/plugins/inline_styles.rs:32:66
+   |
+32 | use inline_styles_selector::{SvgSelectorImpl, SvgElementWrapper, element_matches_selector, walk_element_tree_with_parent};
+   |                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+Some errors have detailed explanations: E0405, E0432.
+For more information about an error, try `rustc --explain E0405`.
+warning: `svgn` (lib) generated 1 warning
+error: could not compile `svgn` (lib) due to 2 previous errors; 1 warning emitted
