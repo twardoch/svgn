@@ -1537,6 +1537,7 @@ dependencies = [
  "lyon",
  "nalgebra",
  "once_cell",
+ "precomputed-hash",
  "quick-xml",
  "regex",
  "selectors",

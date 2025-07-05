@@ -222,15 +222,14 @@ fn apply_datauri_encoding(svg: &str, format: &crate::config::DataUriFormat) -> S
     }
 }
 
-// Placeholder functions for encoding (would use proper libraries in real implementation)
+// Base64 encoding function using the base64 crate
 fn base64_encode(input: &str) -> String {
-    // This is a placeholder - use the `base64` crate in real implementation
-    input.to_string()
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    STANDARD.encode(input.as_bytes())
 }
 
 fn url_encode(input: &str) -> String {
-    // This is a placeholder - use proper URL encoding in real implementation
-    input
+    urlencoding::encode(input).into_owned()
         .replace(' ', "%20")
         .replace('<', "%3C")
         .replace('>', "%3E")
@@ -303,16 +302,23 @@ mod tests {
     #[test]
     fn test_datauri_encoding() {
         use crate::config::DataUriFormat;
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
 
-        let svg = "<svg></svg>";
+        let svg = "<svg><circle r=\"5\"/></svg>";
 
+        // Test Base64 encoding
         let base64_result = apply_datauri_encoding(svg, &DataUriFormat::Base64);
         assert!(base64_result.starts_with("data:image/svg+xml;base64,"));
+        let expected_base64 = STANDARD.encode(svg.as_bytes());
+        assert_eq!(base64_result, format!("data:image/svg+xml;base64,{}", expected_base64));
 
+        // Test URL encoding
         let enc_result = apply_datauri_encoding(svg, &DataUriFormat::Enc);
         assert!(enc_result.starts_with("data:image/svg+xml,"));
+        assert!(enc_result.contains("%3Csvg%3E%3Ccircle%20r%3D%225%22%2F%3E%3C%2Fsvg%3E"));
 
+        // Test unencoded
         let unenc_result = apply_datauri_encoding(svg, &DataUriFormat::Unenc);
-        assert!(unenc_result.starts_with("data:image/svg+xml,"));
+        assert_eq!(unenc_result, format!("data:image/svg+xml,{}", svg));
     }
 }

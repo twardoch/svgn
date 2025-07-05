@@ -332,18 +332,18 @@ impl<'a> SelectorElement for SvgElement<'a> {
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&String>,
-        local_name: &String,
-        operation: &AttrSelectorOperation<&String>,
+        ns: &NamespaceConstraint<&SvgNamespaceUrl>,
+        local_name: &SvgLocalName,
+        operation: &AttrSelectorOperation<&SvgAttrValue>,
     ) -> bool {
         // Only match attributes without namespace for now
-        if !matches!(ns, NamespaceConstraint::Specific(ns_val) if ns_val.is_empty())
+        if !matches!(ns, NamespaceConstraint::Specific(ns_val) if ns_val.0.is_empty())
             && !matches!(ns, NamespaceConstraint::Any)
         {
             return false;
         }
 
-        if let Some(attr_value) = self.element.attributes.get(local_name) {
+        if let Some(attr_value) = self.element.attributes.get(&local_name.0) {
             match operation {
                 AttrSelectorOperation::Exists => true,
                 AttrSelectorOperation::WithValue {
@@ -357,9 +357,9 @@ impl<'a> SelectorElement for SvgElement<'a> {
                     match operator {
                         selectors::attr::AttrSelectorOperator::Equal => {
                             if case_insensitive {
-                                attr_value.to_lowercase() == value.to_lowercase()
+                                attr_value.to_lowercase() == value.0.to_lowercase()
                             } else {
-                                attr_value == value
+                                attr_value == &value.0
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Includes => {
@@ -367,41 +367,41 @@ impl<'a> SelectorElement for SvgElement<'a> {
                             if case_insensitive {
                                 values
                                     .iter()
-                                    .any(|v| v.to_lowercase() == value.to_lowercase())
+                                    .any(|v| v.to_lowercase() == value.0.to_lowercase())
                             } else {
-                                values.contains(value)
+                                values.contains(&value.0.as_str())
                             }
                         }
                         selectors::attr::AttrSelectorOperator::DashMatch => {
                             if case_insensitive {
                                 let attr_lower = attr_value.to_lowercase();
-                                let expected_lower = value.to_lowercase();
+                                let expected_lower = value.0.to_lowercase();
                                 attr_lower == expected_lower
                                     || attr_lower.starts_with(&format!("{}-", expected_lower))
                             } else {
-                                attr_value == value
-                                    || attr_value.starts_with(&format!("{}-", value))
+                                attr_value == &value.0
+                                    || attr_value.starts_with(&format!("{}-", value.0))
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Prefix => {
                             if case_insensitive {
-                                attr_value.to_lowercase().starts_with(&value.to_lowercase())
+                                attr_value.to_lowercase().starts_with(&value.0.to_lowercase())
                             } else {
-                                attr_value.starts_with(value)
+                                attr_value.starts_with(&value.0)
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Suffix => {
                             if case_insensitive {
-                                attr_value.to_lowercase().ends_with(&value.to_lowercase())
+                                attr_value.to_lowercase().ends_with(&value.0.to_lowercase())
                             } else {
-                                attr_value.ends_with(value)
+                                attr_value.ends_with(&value.0)
                             }
                         }
                         selectors::attr::AttrSelectorOperator::Substring => {
                             if case_insensitive {
-                                attr_value.to_lowercase().contains(&value.to_lowercase())
+                                attr_value.to_lowercase().contains(&value.0.to_lowercase())
                             } else {
-                                attr_value.contains(value)
+                                attr_value.contains(&value.0)
                             }
                         }
                     }
@@ -436,23 +436,23 @@ impl<'a> SelectorElement for SvgElement<'a> {
         false
     }
 
-    fn has_id(&self, id: &String, _case_sensitivity: CaseSensitivity) -> bool {
+    fn has_id(&self, id: &SvgIdentifier, _case_sensitivity: CaseSensitivity) -> bool {
         self.element
             .attributes
             .get("id")
-            .map_or(false, |elem_id| elem_id == id)
+            .map_or(false, |elem_id| elem_id == &id.0)
     }
 
-    fn has_class(&self, name: &String, _case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class(&self, name: &SvgIdentifier, _case_sensitivity: CaseSensitivity) -> bool {
         if let Some(class_attr) = self.element.attributes.get("class") {
             let classes = class_attr;
-            classes.split_whitespace().any(|c| c == name)
+            classes.split_whitespace().any(|c| c == &name.0)
         } else {
             false
         }
     }
 
-    fn imported_part(&self, _name: &String) -> Option<String> {
+    fn imported_part(&self, _name: &SvgIdentifier) -> Option<SvgIdentifier> {
         None
     }
 

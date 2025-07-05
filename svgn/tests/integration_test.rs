@@ -2,7 +2,7 @@
 
 //! Integration tests for svgn
 
-use svgn::config::{Js2SvgOptions, LineEnding, QuoteAttrsStyle};
+use svgn::config::{DataUriFormat, Js2SvgOptions, LineEnding, QuoteAttrsStyle};
 use svgn::{optimize, Config, OptimizeOptions, PluginConfig};
 
 #[test]
@@ -224,4 +224,53 @@ fn test_pretty_print_formatting() {
     assert!(result.data.contains("    <circle"));
     assert!(result.data.contains("  </g>"));
     assert!(result.data.trim_end().ends_with("</svg>"));
+}
+
+#[test]
+fn test_datauri_output_formats() {
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+        <circle cx="50" cy="50" r="40" fill="red"/>
+    </svg>"#;
+
+    // Test Base64 encoding
+    let config_base64 = Config {
+        plugins: vec![PluginConfig::new("removeMetadata".to_string())],
+        datauri: Some(DataUriFormat::Base64),
+        ..Default::default()
+    };
+    
+    let result_base64 = optimize(svg, OptimizeOptions::new(config_base64)).unwrap();
+    assert!(result_base64.data.starts_with("data:image/svg+xml;base64,"));
+    
+    // Decode the base64 to verify it's valid
+    let base64_part = result_base64.data.strip_prefix("data:image/svg+xml;base64,").unwrap();
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    let decoded = STANDARD.decode(base64_part).unwrap();
+    let decoded_str = String::from_utf8(decoded).unwrap();
+    assert!(decoded_str.contains("<svg"));
+    assert!(decoded_str.contains("<circle"));
+
+    // Test URL encoding
+    let config_enc = Config {
+        plugins: vec![PluginConfig::new("removeMetadata".to_string())],
+        datauri: Some(DataUriFormat::Enc),
+        ..Default::default()
+    };
+    
+    let result_enc = optimize(svg, OptimizeOptions::new(config_enc)).unwrap();
+    assert!(result_enc.data.starts_with("data:image/svg+xml,"));
+    assert!(result_enc.data.contains("%3Csvg"));
+    assert!(result_enc.data.contains("%3Ccircle"));
+
+    // Test unencoded
+    let config_unenc = Config {
+        plugins: vec![PluginConfig::new("removeMetadata".to_string())],
+        datauri: Some(DataUriFormat::Unenc),
+        ..Default::default()
+    };
+    
+    let result_unenc = optimize(svg, OptimizeOptions::new(config_unenc)).unwrap();
+    assert!(result_unenc.data.starts_with("data:image/svg+xml,"));
+    assert!(result_unenc.data.contains("<svg"));
+    assert!(result_unenc.data.contains("<circle"));
 }

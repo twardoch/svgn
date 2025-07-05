@@ -265,7 +265,7 @@
 - [ ] Q9. Fix collapsible match (1)
 - [ ] Q10. Remove needless return (1)
 - [ ] Q11. Fix invalid regex with backreference in prefix_ids.rs
-- [ ] Q12. Fix minor formatting issues in benches/optimization.rs
+- [x] Q12. Fix minor formatting issues in benches/optimization.rs - COMPLETED: Applied rustfmt across entire codebase
 
 ## Thread R: Testing Infrastructure (EASY) - independent
 **Dependencies:** None - can be developed in parallel
@@ -289,7 +289,7 @@
 **Complexity:** Easy - feature additions
 
 - [ ] S1. Add support for .js config files (currently only .json and .toml)
-- [ ] S2. Implement base64 encoding for datauri output (currently placeholder)
+- [x] S2. Implement base64 encoding for datauri output (currently placeholder) - COMPLETED: Implemented proper base64 and URL encoding using base64 and urlencoding crates
 
 ## Thread T: Build & Distribution (EASY) - independent
 **Dependencies:** None - can be developed in parallel
